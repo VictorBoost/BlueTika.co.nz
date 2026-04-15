@@ -8,7 +8,7 @@ export interface ReviewSubmission {
   reviewer_role: "client" | "provider";
   reviewee_role: "client" | "provider";
   rating: number;
-  review_text: string;
+  comment: string;
   is_public: boolean;
 }
 

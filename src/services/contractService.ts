@@ -24,7 +24,7 @@ export const contractService = {
 
   async updateContractStatus(
     contractId: string,
-    status: "active" | "completed" | "cancelled"
+    status: "active" | "completed" | "cancelled" | "Awaiting Fund Release" | string
   ) {
     const updates: Partial<Contract> = { status };
     if (status === "completed") {

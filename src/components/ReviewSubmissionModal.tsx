@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Star } from "lucide-react";
 import { submitReview } from "@/services/reviewService";
-import { updateContractStatus } from "@/services/contractService";
+import { contractService } from "@/services/contractService";
 import { sendAdminFundReleaseNotification } from "@/services/sesEmailService";
 import { areBothReviewsSubmitted } from "@/services/reviewService";
 import { toast } from "@/hooks/use-toast";
@@ -68,7 +68,7 @@ export function ReviewSubmissionModal({
         reviewer_role: reviewerRole,
         reviewee_role: reviewerRole === "client" ? "provider" : "client",
         rating,
-        review_text: reviewText,
+        comment: reviewText,
         is_public: true
       });
 
@@ -77,7 +77,7 @@ export function ReviewSubmissionModal({
 
       if (bothSubmitted) {
         // Update contract status
-        await updateContractStatus(contractId, "Awaiting Fund Release");
+        await contractService.updateContractStatus(contractId, "Awaiting Fund Release");
 
         // Send admin notification
         await sendAdminFundReleaseNotification(contractId, projectTitle);
