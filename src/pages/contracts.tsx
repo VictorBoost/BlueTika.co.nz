@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { EvidencePhotoUpload } from "@/components/EvidencePhotoUpload";
 import { ReviewSubmissionModal } from "@/components/ReviewSubmissionModal";
+import { TierProgressCard } from "@/components/TierProgressCard";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -442,218 +443,226 @@ export default function Contracts() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid md:grid-cols-2 gap-6">
-              {contracts.map(contract => {
-                const isProvider = contract.provider_id === userId;
-                const isClient = contract.client_id === userId;
-                const hasRoutineBookings = contract.project?.booking_type === "routine" && routineBookings[contract.id]?.length > 0;
-                const status = evidenceStatus[contract.id];
-                const isExpanded = expandedContracts[contract.id];
-                const hasSubmittedReview = userReviewStatus[contract.id];
-                const bothReviews = bothReviewsSubmitted[contract.id];
-                const showReviewButton = status?.both_after_confirmed && !hasSubmittedReview && !bothReviews;
-                
-                return (
-                  <div key={contract.id} className="space-y-4">
-                    <Card>
-                      <CardHeader>
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <CardTitle className="text-xl mb-1">
-                              {contract.project?.title || "Project"}
-                            </CardTitle>
-                            <CardDescription>
-                              {isProvider 
-                                ? `Client: ${contract.client?.full_name || contract.client?.email || "Client"}` 
-                                : `Provider: ${contract.provider?.full_name || contract.provider?.email || "Service Provider"}`
-                              }
-                            </CardDescription>
-                          </div>
-                          <div className="flex flex-col gap-2 items-end">
-                            <Badge variant="outline" className={statusColors[contract.status as keyof typeof statusColors] || "bg-muted"}>
-                              {contract.status.replace(/_/g, " ")}
-                            </Badge>
-                            {contract.project?.booking_type === "routine" && (
-                              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                                Routine
+            <>
+              {userId && contracts.some(c => c.provider_id === userId) && (
+                <div className="mb-6">
+                  <TierProgressCard providerId={userId} />
+                </div>
+              )}
+              
+              <div className="grid md:grid-cols-2 gap-6">
+                {contracts.map(contract => {
+                  const isProvider = contract.provider_id === userId;
+                  const isClient = contract.client_id === userId;
+                  const hasRoutineBookings = contract.project?.booking_type === "routine" && routineBookings[contract.id]?.length > 0;
+                  const status = evidenceStatus[contract.id];
+                  const isExpanded = expandedContracts[contract.id];
+                  const hasSubmittedReview = userReviewStatus[contract.id];
+                  const bothReviews = bothReviewsSubmitted[contract.id];
+                  const showReviewButton = status?.both_after_confirmed && !hasSubmittedReview && !bothReviews;
+                  
+                  return (
+                    <div key={contract.id} className="space-y-4">
+                      <Card>
+                        <CardHeader>
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                              <CardTitle className="text-xl mb-1">
+                                {contract.project?.title || "Project"}
+                              </CardTitle>
+                              <CardDescription>
+                                {isProvider 
+                                  ? `Client: ${contract.client?.full_name || contract.client?.email || "Client"}` 
+                                  : `Provider: ${contract.provider?.full_name || contract.provider?.email || "Service Provider"}`
+                                }
+                              </CardDescription>
+                            </div>
+                            <div className="flex flex-col gap-2 items-end">
+                              <Badge variant="outline" className={statusColors[contract.status as keyof typeof statusColors] || "bg-muted"}>
+                                {contract.status.replace(/_/g, " ")}
                               </Badge>
-                            )}
+                              {contract.project?.booking_type === "routine" && (
+                                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                                  Routine
+                                </Badge>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                          <div className="flex items-center gap-1">
-                            <DollarSign className="h-4 w-4" />
-                            <span className="font-semibold text-foreground">
-                              NZD ${contract.final_amount.toLocaleString()}
-                            </span>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <DollarSign className="h-4 w-4" />
+                              <span className="font-semibold text-foreground">
+                                NZD ${contract.final_amount.toLocaleString()}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <MapPin className="h-4 w-4" />
+                              <span>{contract.project?.location || "N/A"}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Calendar className="h-4 w-4" />
+                              <span>{new Date(contract.created_at).toLocaleDateString()}</span>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <MapPin className="h-4 w-4" />
-                            <span>{contract.project?.location || "N/A"}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Calendar className="h-4 w-4" />
-                            <span>{new Date(contract.created_at).toLocaleDateString()}</span>
-                          </div>
-                        </div>
 
-                        {hasRoutineBookings && (
-                          <div className="text-sm text-muted-foreground">
-                            <p>
-                              {routineBookings[contract.id].length} sessions scheduled
-                            </p>
-                          </div>
-                        )}
-                        
-                        <div className="flex gap-2 flex-wrap">
-                          <Button asChild variant="outline" className="flex-1">
-                            <Link href={`/project/${contract.project_id}`}>
-                              View Project
-                            </Link>
-                          </Button>
+                          {hasRoutineBookings && (
+                            <div className="text-sm text-muted-foreground">
+                              <p>
+                                {routineBookings[contract.id].length} sessions scheduled
+                              </p>
+                            </div>
+                          )}
                           
-                          {(contract.status === "active" || contract.status === "awaiting_fund_release") && (
-                            <>
-                              <Button
-                                onClick={() => handleAddToCalendar(contract)}
-                                disabled={isCalendarButtonDisabled(contract) || addingToCalendar[contract.id]}
-                                variant={isCalendarButtonDisabled(contract) ? "outline" : "default"}
-                                className="flex-1"
-                              >
-                                {addingToCalendar[contract.id] ? (
-                                  <>Adding...</>
-                                ) : isCalendarButtonDisabled(contract) ? (
-                                  <>
-                                    <CheckCircle className="h-4 w-4 mr-2" />
-                                    {getCalendarButtonText(contract)}
-                                  </>
-                                ) : (
-                                  <>
-                                    <CalendarPlus className="h-4 w-4 mr-2" />
-                                    {getCalendarButtonText(contract)}
-                                  </>
-                                )}
-                              </Button>
-                              
-                              {status && (
+                          <div className="flex gap-2 flex-wrap">
+                            <Button asChild variant="outline" className="flex-1">
+                              <Link href={`/project/${contract.project_id}`}>
+                                View Project
+                              </Link>
+                            </Button>
+                            
+                            {(contract.status === "active" || contract.status === "awaiting_fund_release") && (
+                              <>
                                 <Button
-                                  onClick={() => toggleContract(contract.id)}
-                                  variant="outline"
-                                >
-                                  <Camera className="h-4 w-4 mr-2" />
-                                  Photos
-                                </Button>
-                              )}
-
-                              {isProvider && contract.status === "active" && status?.both_before_confirmed && !contract.work_done_at && (
-                                <Button
-                                  onClick={() => handleMarkWorkDone(contract.id)}
-                                  variant="outline"
-                                  className="bg-primary/5 hover:bg-primary/10 border-primary/20"
-                                >
-                                  <CheckCircle className="h-4 w-4 mr-2" />
-                                  Mark Work Done
-                                </Button>
-                              )}
-
-                              {showReviewButton && (
-                                <Button
-                                  onClick={() => handleOpenReviewModal(contract)}
-                                  variant="default"
-                                  className="bg-accent hover:bg-accent/90"
-                                >
-                                  <Star className="h-4 w-4 mr-2" />
-                                  Submit Review
-                                </Button>
-                              )}
-                              
-                              {canDisputeCache[contract.id] && (
-                                <Button
-                                  onClick={() => handleOpenDisputeDialog(contract)}
-                                  variant="destructive"
+                                  onClick={() => handleAddToCalendar(contract)}
+                                  disabled={isCalendarButtonDisabled(contract) || addingToCalendar[contract.id]}
+                                  variant={isCalendarButtonDisabled(contract) ? "outline" : "default"}
                                   className="flex-1"
                                 >
-                                  <AlertTriangle className="h-4 w-4 mr-2" />
-                                  Raise Dispute
+                                  {addingToCalendar[contract.id] ? (
+                                    <>Adding...</>
+                                  ) : isCalendarButtonDisabled(contract) ? (
+                                    <>
+                                      <CheckCircle className="h-4 w-4 mr-2" />
+                                      {getCalendarButtonText(contract)}
+                                    </>
+                                  ) : (
+                                    <>
+                                      <CalendarPlus className="h-4 w-4 mr-2" />
+                                      {getCalendarButtonText(contract)}
+                                    </>
+                                  )}
                                 </Button>
-                              )}
+                                
+                                {status && (
+                                  <Button
+                                    onClick={() => toggleContract(contract.id)}
+                                    variant="outline"
+                                  >
+                                    <Camera className="h-4 w-4 mr-2" />
+                                    Photos
+                                  </Button>
+                                )}
 
-                              {hasSubmittedReview && !bothReviews && (
-                                <Badge variant="outline" className="bg-success/10 text-success border-success/20 py-2 px-3">
-                                  <CheckCircle className="h-3 w-3 mr-1" />
-                                  Review Submitted
-                                </Badge>
-                              )}
+                                {isProvider && contract.status === "active" && status?.both_before_confirmed && !contract.work_done_at && (
+                                  <Button
+                                    onClick={() => handleMarkWorkDone(contract.id)}
+                                    variant="outline"
+                                    className="bg-primary/5 hover:bg-primary/10 border-primary/20"
+                                  >
+                                    <CheckCircle className="h-4 w-4 mr-2" />
+                                    Mark Work Done
+                                  </Button>
+                                )}
 
-                              {bothReviews && (
-                                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 py-2 px-3">
-                                  Awaiting Fund Release
-                                </Badge>
-                              )}
-                            </>
+                                {showReviewButton && (
+                                  <Button
+                                    onClick={() => handleOpenReviewModal(contract)}
+                                    variant="default"
+                                    className="bg-accent hover:bg-accent/90"
+                                  >
+                                    <Star className="h-4 w-4 mr-2" />
+                                    Submit Review
+                                  </Button>
+                                )}
+                                
+                                {canDisputeCache[contract.id] && (
+                                  <Button
+                                    onClick={() => handleOpenDisputeDialog(contract)}
+                                    variant="destructive"
+                                    className="flex-1"
+                                  >
+                                    <AlertTriangle className="h-4 w-4 mr-2" />
+                                    Raise Dispute
+                                  </Button>
+                                )}
+
+                                {hasSubmittedReview && !bothReviews && (
+                                  <Badge variant="outline" className="bg-success/10 text-success border-success/20 py-2 px-3">
+                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                    Review Submitted
+                                  </Badge>
+                                )}
+
+                                {bothReviews && (
+                                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 py-2 px-3">
+                                    Awaiting Fund Release
+                                  </Badge>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Evidence Photos Section */}
+                      {contract.status === "active" && status && isExpanded && (
+                        <div className="space-y-4">
+                          <h3 className="text-lg font-semibold">Evidence Photos</h3>
+                          
+                          {contract.work_done_at && (
+                            <Alert className="bg-blue-50 border-blue-200">
+                              <AlertCircle className="h-4 w-4 text-blue-600" />
+                              <AlertDescription className="text-blue-700">
+                                Work has been marked as done. 
+                                {isClient ? " You have 24 hours to raise a dispute if there are issues." : " Client has 24 hours to review."}
+                              </AlertDescription>
+                            </Alert>
                           )}
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* Evidence Photos Section */}
-                    {contract.status === "active" && status && isExpanded && (
-                      <div className="space-y-4">
-                        <h3 className="text-lg font-semibold">Evidence Photos</h3>
-                        
-                        {contract.work_done_at && (
-                          <Alert className="bg-blue-50 border-blue-200">
-                            <AlertCircle className="h-4 w-4 text-blue-600" />
-                            <AlertDescription className="text-blue-700">
-                              Work has been marked as done. 
-                              {isClient ? " You have 24 hours to raise a dispute if there are issues." : " Client has 24 hours to review."}
-                            </AlertDescription>
-                          </Alert>
-                        )}
-                        
-                        {/* Before Photos */}
-                        <div className="grid md:grid-cols-2 gap-4">
-                          <EvidencePhotoUpload
-                            contractId={contract.id}
-                            photoType="before"
-                            uploaderRole={isClient ? "client" : "provider"}
-                            currentPhotos={getPhotosForUpload(contract.id, "before", isClient ? "client" : "provider")}
-                            currentStatus={isClient ? status.client_before : status.provider_before}
-                            otherPartyStatus={isClient ? status.provider_before : status.client_before}
-                            onUpdate={() => handleEvidenceUpdate(contract.id)}
-                          />
-                        </div>
-
-                        {/* After Photos - only show if both before photos are confirmed */}
-                        {status.both_before_confirmed && (
+                          
+                          {/* Before Photos */}
                           <div className="grid md:grid-cols-2 gap-4">
                             <EvidencePhotoUpload
                               contractId={contract.id}
-                              photoType="after"
+                              photoType="before"
                               uploaderRole={isClient ? "client" : "provider"}
-                              currentPhotos={getPhotosForUpload(contract.id, "after", isClient ? "client" : "provider")}
-                              currentStatus={isClient ? status.client_after : status.provider_after}
-                              otherPartyStatus={isClient ? status.provider_after : status.client_after}
+                              currentPhotos={getPhotosForUpload(contract.id, "before", isClient ? "client" : "provider")}
+                              currentStatus={isClient ? status.client_before : status.provider_before}
+                              otherPartyStatus={isClient ? status.provider_before : status.client_before}
                               onUpdate={() => handleEvidenceUpdate(contract.id)}
                             />
                           </div>
-                        )}
 
-                        {!status.both_before_confirmed && (
-                          <Alert>
-                            <AlertDescription>
-                              Both parties must confirm their before photos before work can begin and after photos can be uploaded.
-                            </AlertDescription>
-                          </Alert>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                          {/* After Photos - only show if both before photos are confirmed */}
+                          {status.both_before_confirmed && (
+                            <div className="grid md:grid-cols-2 gap-4">
+                              <EvidencePhotoUpload
+                                contractId={contract.id}
+                                photoType="after"
+                                uploaderRole={isClient ? "client" : "provider"}
+                                currentPhotos={getPhotosForUpload(contract.id, "after", isClient ? "client" : "provider")}
+                                currentStatus={isClient ? status.client_after : status.provider_after}
+                                otherPartyStatus={isClient ? status.provider_after : status.client_after}
+                                onUpdate={() => handleEvidenceUpdate(contract.id)}
+                              />
+                            </div>
+                          )}
+
+                          {!status.both_before_confirmed && (
+                            <Alert>
+                              <AlertDescription>
+                                Both parties must confirm their before photos before work can begin and after photos can be uploaded.
+                              </AlertDescription>
+                            </Alert>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
         </div>
         

@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
+import { updateProviderTier } from "./commissionService";
 
 export type Contract = Tables<"contracts">;
 
@@ -41,12 +42,19 @@ export const contractService = {
     console.log("updateContractStatus:", { data, error });
     if (error) console.error("Contract status update error:", error);
 
-    // If completed, update project status
+    // If completed, update project status and provider tier
     if (status === "completed" && data) {
       await supabase
         .from("projects")
         .update({ status: "completed" })
         .eq("id", data.project_id);
+      
+      // Update provider's commission tier
+      try {
+        await updateProviderTier(data.provider_id);
+      } catch (tierError) {
+        console.error("Error updating provider tier:", tierError);
+      }
     }
 
     return { data, error };
