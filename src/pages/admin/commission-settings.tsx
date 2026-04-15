@@ -32,7 +32,7 @@ export default function CommissionSettingsPage() {
   useEffect(() => {
     async function checkAuth() {
       const profile = await getProfile();
-      if (!profile || profile.role !== "admin") {
+      if (!profile || !profile.email?.endsWith("@bluetika.co.nz")) {
         router.push("/");
         return;
       }
