@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -62,6 +62,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      categories: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          slug: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          slug: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          slug?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       contracts: {
         Row: {
@@ -194,7 +230,7 @@ export type Database = {
       projects: {
         Row: {
           budget: number
-          category: string
+          category_id: string | null
           client_id: string
           created_at: string | null
           description: string
@@ -206,7 +242,7 @@ export type Database = {
         }
         Insert: {
           budget: number
-          category: string
+          category_id?: string | null
           client_id: string
           created_at?: string | null
           description: string
@@ -218,7 +254,7 @@ export type Database = {
         }
         Update: {
           budget?: number
-          category?: string
+          category_id?: string | null
           client_id?: string
           created_at?: string | null
           description?: string
@@ -229,6 +265,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "projects_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "projects_client_id_fkey"
             columns: ["client_id"]
