@@ -1,4 +1,3 @@
-<![CDATA[
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { SEO } from "@/components/SEO";
@@ -378,7 +377,7 @@ export default function Checkout() {
                   className="w-full"
                   size="lg"
                 >
-                  {processing ? "Processing..." : `Pay NZD $${fees.total.toLocaleString()}`}
+                  {processing ? "Processing..." : `Pay NZD ${fees.total.toLocaleString()}`}
                 </Button>
 
                 <p className="text-xs text-center text-muted-foreground">
@@ -394,4 +393,3 @@ export default function Checkout() {
     </>
   );
 }
-</file_contents>

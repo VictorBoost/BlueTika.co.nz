@@ -1,12 +1,10 @@
-<![CDATA[
 import { supabase } from "@/integrations/supabase/client";
-import { authService } from "./authService";
 
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
 const GOOGLE_CLIENT_SECRET = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_SECRET || "";
 const REDIRECT_URI = typeof window !== "undefined" 
   ? `${window.location.origin}/api/google-calendar-callback`
-  : "";
+  : process.env.NEXT_PUBLIC_SITE_URL ? `${process.env.NEXT_PUBLIC_SITE_URL}/api/google-calendar-callback` : "";
 
 const SCOPES = [
   "https://www.googleapis.com/auth/calendar.events",
@@ -344,6 +342,5 @@ export const googleCalendarService = {
     }
 
     return true;
-  },
+  }
 };
-</file_contents>

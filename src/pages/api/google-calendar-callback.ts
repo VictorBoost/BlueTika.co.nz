@@ -1,7 +1,6 @@
-<![CDATA[
 import type { NextApiRequest, NextApiResponse } from "next";
 import { googleCalendarService } from "@/services/googleCalendarService";
-import { authService } from "@/services/authService";
+import { supabase } from "@/integrations/supabase/client";
 
 export default async function handler(
   req: NextApiRequest,
@@ -26,8 +25,9 @@ export default async function handler(
     // Exchange code for tokens
     const tokens = await googleCalendarService.exchangeCode(code);
 
-    // Get current user from session
-    const session = await authService.getCurrentSession();
+    // Get current user from session using Supabase auth
+    const { data: { session } } = await supabase.auth.getSession();
+    
     if (!session?.user) {
       return res.redirect("/login?calendar_error=not_authenticated");
     }
@@ -43,4 +43,3 @@ export default async function handler(
     return res.redirect("/contracts?calendar_error=token_exchange_failed");
   }
 }
-</file_contents>
