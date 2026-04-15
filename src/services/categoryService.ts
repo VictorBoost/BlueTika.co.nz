@@ -1,7 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { Tables } from "@/integrations/supabase/types";
+import type { Tables, TablesInsert } from "@/integrations/supabase/types";
 
 type Category = Tables<"categories">;
+type CategoryInsert = TablesInsert<"categories">;
 
 export const categoryService = {
   // Get all active categories
@@ -40,10 +41,10 @@ export const categoryService = {
   },
 
   // Create category
-  async createCategory(category: Partial<Category>): Promise<{ data: Category | null; error: any }> {
+  async createCategory(category: CategoryInsert): Promise<{ data: Category | null; error: any }> {
     const { data, error } = await supabase
       .from("categories")
-      .insert([category])
+      .insert(category)
       .select()
       .single();
 
