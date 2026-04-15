@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -115,6 +115,7 @@ export type Database = {
           completed_at: string | null
           created_at: string | null
           final_amount: number
+          google_calendar_event_id: string | null
           id: string
           payment_processing_fee: number | null
           payment_status: string | null
@@ -132,6 +133,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string | null
           final_amount: number
+          google_calendar_event_id?: string | null
           id?: string
           payment_processing_fee?: number | null
           payment_status?: string | null
@@ -149,6 +151,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string | null
           final_amount?: number
+          google_calendar_event_id?: string | null
           id?: string
           payment_processing_fee?: number | null
           payment_status?: string | null
@@ -303,6 +306,9 @@ export type Database = {
           email: string | null
           first_name: string | null
           full_name: string | null
+          google_calendar_access_token: string | null
+          google_calendar_refresh_token: string | null
+          google_calendar_token_expires_at: string | null
           gst_enabled: boolean | null
           id: string
           is_client: boolean | null
@@ -334,6 +340,9 @@ export type Database = {
           email?: string | null
           first_name?: string | null
           full_name?: string | null
+          google_calendar_access_token?: string | null
+          google_calendar_refresh_token?: string | null
+          google_calendar_token_expires_at?: string | null
           gst_enabled?: boolean | null
           id: string
           is_client?: boolean | null
@@ -365,6 +374,9 @@ export type Database = {
           email?: string | null
           first_name?: string | null
           full_name?: string | null
+          google_calendar_access_token?: string | null
+          google_calendar_refresh_token?: string | null
+          google_calendar_token_expires_at?: string | null
           gst_enabled?: boolean | null
           id?: string
           is_client?: boolean | null
@@ -634,6 +646,7 @@ export type Database = {
           contract_id: string | null
           created_at: string | null
           day_of_week: string
+          google_calendar_event_id: string | null
           id: string
           project_id: string
           provider_id: string
@@ -646,6 +659,7 @@ export type Database = {
           contract_id?: string | null
           created_at?: string | null
           day_of_week: string
+          google_calendar_event_id?: string | null
           id?: string
           project_id: string
           provider_id: string
@@ -658,6 +672,7 @@ export type Database = {
           contract_id?: string | null
           created_at?: string | null
           day_of_week?: string
+          google_calendar_event_id?: string | null
           id?: string
           project_id?: string
           provider_id?: string
