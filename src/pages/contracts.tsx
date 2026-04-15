@@ -8,12 +8,16 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { EvidencePhotoUpload } from "@/components/EvidencePhotoUpload";
 import { ReviewSubmissionModal } from "@/components/ReviewSubmissionModal";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { DollarSign, MapPin, Calendar, CalendarPlus, CheckCircle, Camera, Star } from "lucide-react";
+import { DollarSign, MapPin, Calendar, CalendarPlus, CheckCircle, Camera, Star, AlertTriangle, AlertCircle } from "lucide-react";
 import { contractService } from "@/services/contractService";
 import { routineBookingService } from "@/services/routineBookingService";
 import { authService } from "@/services/authService";
 import { googleCalendarService } from "@/services/googleCalendarService";
+import { disputeService } from "@/services/disputeService";
 import { getEvidenceStatusSummary, getContractEvidencePhotos, type EvidenceStatusSummary, type EvidencePhoto } from "@/services/evidencePhotoService";
 import { hasUserSubmittedReview, areBothReviewsSubmitted } from "@/services/reviewService";
 import { useToast } from "@/hooks/use-toast";
@@ -45,6 +49,13 @@ export default function Contracts() {
   const [selectedContract, setSelectedContract] = useState<ExtendedContract | null>(null);
   const [userReviewStatus, setUserReviewStatus] = useState<{[key: string]: boolean}>({});
   const [bothReviewsSubmitted, setBothReviewsSubmitted] = useState<{[key: string]: boolean}>({});
+
+  // Dispute state
+  const [disputeDialogOpen, setDisputeDialogOpen] = useState(false);
+  const [disputeContract, setDisputeContract] = useState<ExtendedContract | null>(null);
+  const [disputeReason, setDisputeReason] = useState("");
+  const [submittingDispute, setSubmittingDispute] = useState(false);
+  const [canDisputeCache, setCanDisputeCache] = useState<{[key: string]: boolean}>({});
 
   useEffect(() => {
     loadContracts();
@@ -99,6 +110,7 @@ export default function Contracts() {
       const photosMap: {[key: string]: EvidencePhoto[]} = {};
       const reviewStatusMap: {[key: string]: boolean} = {};
       const bothReviewsMap: {[key: string]: boolean} = {};
+      const canDisputeCache: {[key: string]: boolean} = {};
       
       for (const contract of combined) {
         if (contract.project?.booking_type === "routine") {
@@ -108,6 +120,11 @@ export default function Contracts() {
           }
         }
         
+        // Check dispute eligibility
+        const isClient = contract.client_id === session.user.id;
+        const canDispute = await contractService.canRaiseDispute(contract.id, isClient ? "client" : "provider");
+        canDisputeCache[contract.id] = canDispute;
+
         // Load evidence status and photos for active contracts
         if (contract.status === "active") {
           try {
@@ -141,6 +158,7 @@ export default function Contracts() {
       setEvidencePhotos(photosMap);
       setUserReviewStatus(reviewStatusMap);
       setBothReviewsSubmitted(bothReviewsMap);
+      setCanDisputeCache(canDisputeCache);
     }
     
     setLoading(false);
@@ -318,6 +336,63 @@ export default function Contracts() {
     return photo?.photo_urls || [];
   };
 
+  const handleMarkWorkDone = async (contractId: string) => {
+    try {
+      await contractService.markWorkDone(contractId);
+      toast({
+        title: "Work Marked as Done",
+        description: "The 24-hour client dispute window has started.",
+      });
+      await loadContracts();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update contract status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleOpenDisputeDialog = (contract: ExtendedContract) => {
+    setDisputeContract(contract);
+    setDisputeReason("");
+    setDisputeDialogOpen(true);
+  };
+
+  const handleSubmitDispute = async () => {
+    if (!disputeContract || !userId || !disputeReason.trim()) return;
+
+    setSubmittingDispute(true);
+    try {
+      const isClient = disputeContract.client_id === userId;
+      
+      await disputeService.createDispute({
+        contractId: disputeContract.id,
+        raisedBy: userId,
+        raiserRole: isClient ? "client" : "provider",
+        claimDescription: disputeReason
+      });
+
+      toast({
+        title: "Dispute Raised",
+        description: "Our admin team has been notified and will review the case.",
+      });
+      
+      setDisputeDialogOpen(false);
+      setDisputeContract(null);
+      await loadContracts();
+    } catch (error) {
+      console.error("Dispute error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to raise dispute",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmittingDispute(false);
+    }
+  };
+
   return (
     <>
       <SEO 
@@ -394,9 +469,9 @@ export default function Contracts() {
                               }
                             </CardDescription>
                           </div>
-                          <div className="flex flex-col gap-2">
-                            <Badge variant="outline" className={statusColors[contract.status]}>
-                              {contract.status}
+                          <div className="flex flex-col gap-2 items-end">
+                            <Badge variant="outline" className={statusColors[contract.status as keyof typeof statusColors] || "bg-muted"}>
+                              {contract.status.replace(/_/g, " ")}
                             </Badge>
                             {contract.project?.booking_type === "routine" && (
                               <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
@@ -439,7 +514,7 @@ export default function Contracts() {
                             </Link>
                           </Button>
                           
-                          {contract.status === "active" && (
+                          {(contract.status === "active" || contract.status === "awaiting_fund_release") && (
                             <>
                               <Button
                                 onClick={() => handleAddToCalendar(contract)}
@@ -472,6 +547,17 @@ export default function Contracts() {
                                 </Button>
                               )}
 
+                              {isProvider && contract.status === "active" && status?.both_before_confirmed && !contract.work_done_at && (
+                                <Button
+                                  onClick={() => handleMarkWorkDone(contract.id)}
+                                  variant="outline"
+                                  className="bg-primary/5 hover:bg-primary/10 border-primary/20"
+                                >
+                                  <CheckCircle className="h-4 w-4 mr-2" />
+                                  Mark Work Done
+                                </Button>
+                              )}
+
                               {showReviewButton && (
                                 <Button
                                   onClick={() => handleOpenReviewModal(contract)}
@@ -480,6 +566,17 @@ export default function Contracts() {
                                 >
                                   <Star className="h-4 w-4 mr-2" />
                                   Submit Review
+                                </Button>
+                              )}
+                              
+                              {canDisputeCache[contract.id] && (
+                                <Button
+                                  onClick={() => handleOpenDisputeDialog(contract)}
+                                  variant="destructive"
+                                  className="flex-1"
+                                >
+                                  <AlertTriangle className="h-4 w-4 mr-2" />
+                                  Raise Dispute
                                 </Button>
                               )}
 
@@ -505,6 +602,16 @@ export default function Contracts() {
                     {contract.status === "active" && status && isExpanded && (
                       <div className="space-y-4">
                         <h3 className="text-lg font-semibold">Evidence Photos</h3>
+                        
+                        {contract.work_done_at && (
+                          <Alert className="bg-blue-50 border-blue-200">
+                            <AlertCircle className="h-4 w-4 text-blue-600" />
+                            <AlertDescription className="text-blue-700">
+                              Work has been marked as done. 
+                              {isClient ? " You have 24 hours to raise a dispute if there are issues." : " Client has 24 hours to review."}
+                            </AlertDescription>
+                          </Alert>
+                        )}
                         
                         {/* Before Photos */}
                         <div className="grid md:grid-cols-2 gap-4">
@@ -552,6 +659,56 @@ export default function Contracts() {
         
         <Footer />
       </div>
+
+      {/* Dispute Submission Dialog */}
+      <Dialog open={disputeDialogOpen} onOpenChange={setDisputeDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-red-600 flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5" />
+              Raise Dispute
+            </DialogTitle>
+            <DialogDescription>
+              Please describe the issue in detail. Our admin team will review the evidence photos and your claim to reach a resolution.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="dispute-reason">Claim Description</Label>
+              <Textarea
+                id="dispute-reason"
+                placeholder="Describe what went wrong, referencing the evidence photos if applicable..."
+                value={disputeReason}
+                onChange={(e) => setDisputeReason(e.target.value)}
+                rows={5}
+              />
+            </div>
+            <Alert className="bg-yellow-50 text-yellow-800 border-yellow-200">
+              <AlertDescription>
+                Once a dispute is raised, funds will be locked until an admin resolves the case.
+              </AlertDescription>
+            </Alert>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDisputeDialogOpen(false)}
+              disabled={submittingDispute}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleSubmitDispute}
+              disabled={submittingDispute || !disputeReason.trim()}
+            >
+              {submittingDispute ? "Submitting..." : "Submit Dispute Case"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Review Submission Modal */}
       {selectedContract && (

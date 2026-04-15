@@ -85,14 +85,16 @@ export const fundReleaseService = {
       .from("contracts")
       .select(`
         *,
-        bids!inner(agreed_price)
+        bids(agreed_price)
       `)
       .eq("id", params.contractId)
       .single();
 
     if (fetchError) throw fetchError;
 
-    const agreedPrice = contract.bids.agreed_price;
+    const bidsAny = contract.bids as any;
+    const agreedPrice = bidsAny?.agreed_price || bidsAny?.[0]?.agreed_price || 0;
+    
     let commissionCalc;
     let providerPayout;
 

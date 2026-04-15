@@ -95,6 +95,7 @@ export default function AdminFundReleases() {
           selectedContract.client_id,
           "Funds Released",
           `Payment for "${selectedContract.projects.title}" has been processed.`,
+          "payment",
           `/project/${selectedContract.project_id}`
         );
       }
@@ -113,6 +114,7 @@ export default function AdminFundReleases() {
           selectedContract.provider_id,
           "Payment Released",
           `Your payment of NZD $${commission.netToProvider.toLocaleString()} for "${selectedContract.projects.title}" will arrive in 2-3 business days.`,
+          "payment",
           `/project/${selectedContract.project_id}`
         );
       }
