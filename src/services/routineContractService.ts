@@ -18,7 +18,7 @@ export const routineContractService = {
     const { data: routine, error } = await supabase
       .from("routine_contracts")
       .insert({
-        contract_id: data.contract_id,
+        original_contract_id: data.contract_id,
         client_id: data.client_id,
         provider_id: data.provider_id,
         project_id: data.project_id,
@@ -26,10 +26,10 @@ export const routineContractService = {
         custom_days: data.custom_days,
         start_date: data.start_date,
         selected_days: data.selected_days,
-        is_active: true,
+        status: "active",
         client_agreed: false,
         provider_agreed: false,
-      })
+      } as any)
       .select()
       .single();
 
@@ -161,7 +161,7 @@ export const routineContractService = {
         provider:profiles!routine_contracts_provider_id_fkey(id, full_name, email)
       `)
       .eq(column, userId)
-      .eq("is_active", true)
+      .eq("status", "active")
       .order("created_at", { ascending: false });
 
     console.log("getActiveRoutines:", { data, error });
@@ -172,7 +172,7 @@ export const routineContractService = {
   async pauseRoutine(routineId: string) {
     const { data, error } = await supabase
       .from("routine_contracts")
-      .update({ is_active: false, paused_at: new Date().toISOString() })
+      .update({ status: "paused" as any, paused_at: new Date().toISOString() as any })
       .eq("id", routineId)
       .select()
       .single();
@@ -194,8 +194,8 @@ export const routineContractService = {
     const { data, error } = await supabase
       .from("routine_contracts")
       .update({ 
-        is_active: false, 
-        cancelled_at: new Date().toISOString() 
+        status: "cancelled" as any, 
+        cancelled_at: new Date().toISOString() as any
       })
       .eq("id", routineId)
       .select()
@@ -238,7 +238,7 @@ export const routineContractService = {
         provider:profiles!routine_contracts_provider_id_fkey(id, full_name, email),
         contract:contracts(id, agreed_price)
       `)
-      .eq("is_active", true)
+      .eq("status", "active")
       .order("created_at", { ascending: false });
 
     console.log("getAllActiveRoutines:", { data, error });

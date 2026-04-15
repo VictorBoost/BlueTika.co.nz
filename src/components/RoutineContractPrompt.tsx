@@ -10,6 +10,7 @@ import { CalendarIcon, Clock, Users } from "lucide-react";
 import { routineContractService } from "@/services/routineContractService";
 import { sendRoutineContractInvitation } from "@/services/sesEmailService";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface RoutineContractPromptProps {
   isOpen: boolean;

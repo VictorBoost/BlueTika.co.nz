@@ -29,11 +29,11 @@ export default function AdminRoutineContractsPage() {
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("is_admin")
+      .select("*")
       .eq("id", user.id)
       .single();
 
-    if (!profile?.is_admin) {
+    if (!(profile as any)?.is_admin) {
       router.push("/");
       toast({
         title: "Access Denied",
@@ -91,13 +91,13 @@ export default function AdminRoutineContractsPage() {
     if (!routine.client_agreed || !routine.provider_agreed) {
       return <Badge variant="outline">Pending Agreement</Badge>;
     }
-    if (routine.is_active) {
+    if (routine.status === "active" || routine.is_active) {
       return <Badge className="bg-green-600">Active</Badge>;
     }
-    if (routine.paused_at) {
+    if (routine.status === "paused" || routine.paused_at) {
       return <Badge variant="secondary">Paused</Badge>;
     }
-    if (routine.cancelled_at) {
+    if (routine.status === "cancelled" || routine.cancelled_at) {
       return <Badge variant="destructive">Cancelled</Badge>;
     }
     return <Badge variant="outline">Unknown</Badge>;
