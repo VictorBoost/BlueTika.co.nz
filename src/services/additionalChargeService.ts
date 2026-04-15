@@ -59,13 +59,13 @@ export const additionalChargeService = {
       }
 
       // In-platform notification
-      await notificationService.createNotification({
-        userId: clientId,
-        title: "Additional Charge Request",
-        message: `${providerName} has requested an additional charge of NZD $${amount.toLocaleString()} for ${projectTitle}`,
-        type: "payment",
-        relatedContractId: contractId,
-      });
+      await notificationService.createNotification(
+        clientId,
+        "Additional Charge Request",
+        `${providerName} has requested an additional charge of NZD $${amount.toLocaleString()} for ${projectTitle}`,
+        "payment",
+        contractId
+      );
     }
 
     return { data, error };
@@ -131,13 +131,13 @@ export const additionalChargeService = {
       }
 
       // In-platform notification
-      await notificationService.createNotification({
-        userId: data.provider_id,
-        title: "Additional Charge Approved",
-        message: `${clientName} approved your additional charge request of NZD $${data.amount.toLocaleString()} for ${projectTitle}`,
-        type: "success",
-        relatedContractId: data.contract_id,
-      });
+      await notificationService.createNotification(
+        data.provider_id,
+        "Additional Charge Approved",
+        `${clientName} approved your additional charge request of NZD $${data.amount.toLocaleString()} for ${projectTitle}`,
+        "success",
+        data.contract_id
+      );
     }
 
     return { data, error };
@@ -187,13 +187,13 @@ export const additionalChargeService = {
       }
 
       // In-platform notification
-      await notificationService.createNotification({
-        userId: data.provider_id,
-        title: "Additional Charge Declined",
-        message: `${clientName} declined your additional charge request of NZD $${data.amount.toLocaleString()} for ${projectTitle}`,
-        type: "warning",
-        relatedContractId: data.contract_id,
-      });
+      await notificationService.createNotification(
+        data.provider_id,
+        "Additional Charge Declined",
+        `${clientName} declined your additional charge request of NZD $${data.amount.toLocaleString()} for ${projectTitle}`,
+        "warning",
+        data.contract_id
+      );
     }
 
     return { data, error };
@@ -272,21 +272,21 @@ export const additionalChargeService = {
       }
 
       // In-platform notifications
-      await notificationService.createNotification({
-        userId: data.provider_id,
-        title: "Additional Charge Payment Received",
-        message: `Payment of NZD $${netToProvider.toLocaleString()} received for additional work on ${projectTitle}`,
-        type: "success",
-        relatedContractId: data.contract_id,
-      });
+      await notificationService.createNotification(
+        data.provider_id,
+        "Additional Charge Payment Received",
+        `Payment of NZD $${netToProvider.toLocaleString()} received for additional work on ${projectTitle}`,
+        "success",
+        data.contract_id
+      );
 
-      await notificationService.createNotification({
-        userId: data.client_id,
-        title: "Additional Charge Payment Confirmed",
-        message: `Payment of NZD $${data.amount.toLocaleString()} confirmed for additional work on ${projectTitle}`,
-        type: "payment",
-        relatedContractId: data.contract_id,
-      });
+      await notificationService.createNotification(
+        data.client_id,
+        "Additional Charge Payment Confirmed",
+        `Payment of NZD $${data.amount.toLocaleString()} confirmed for additional work on ${projectTitle}`,
+        "payment",
+        data.contract_id
+      );
     }
 
     return { data, error };
