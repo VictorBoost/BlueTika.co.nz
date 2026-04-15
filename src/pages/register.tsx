@@ -257,8 +257,8 @@ export default function RegisterPage() {
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         id="is_client"
-                        checked={formData.is_client}
-                        onCheckedChange={(checked) => setFormData({ ...formData, is_client: !!checked })}
+                        checked={formData.isClient}
+                        onCheckedChange={(checked) => setFormData({ ...formData, isClient: !!checked })}
                       />
                       <Label htmlFor="is_client" className="font-normal cursor-pointer">
                         Client (I want to hire service providers)
@@ -267,15 +267,15 @@ export default function RegisterPage() {
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         id="is_provider"
-                        checked={formData.is_provider}
-                        onCheckedChange={(checked) => setFormData({ ...formData, is_provider: !!checked })}
+                        checked={formData.isProvider}
+                        onCheckedChange={(checked) => setFormData({ ...formData, isProvider: !!checked })}
                       />
                       <Label htmlFor="is_provider" className="font-normal cursor-pointer">
                         Service Provider (I want to offer my services)
                       </Label>
                     </div>
                   </div>
-                  {formData.is_provider && (
+                  {formData.isProvider && (
                     <Alert>
                       <AlertCircle className="h-4 w-4" />
                       <AlertDescription>
