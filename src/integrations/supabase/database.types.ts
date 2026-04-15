@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -639,6 +639,9 @@ export type Database = {
           is_public: boolean | null
           provider_id: string
           rating: number
+          reminder_sent_at: string | null
+          reviewee_role: string
+          reviewer_role: string
           updated_at: string | null
         }
         Insert: {
@@ -650,6 +653,9 @@ export type Database = {
           is_public?: boolean | null
           provider_id: string
           rating: number
+          reminder_sent_at?: string | null
+          reviewee_role?: string
+          reviewer_role?: string
           updated_at?: string | null
         }
         Update: {
@@ -661,6 +667,9 @@ export type Database = {
           is_public?: boolean | null
           provider_id?: string
           rating?: number
+          reminder_sent_at?: string | null
+          reviewee_role?: string
+          reviewer_role?: string
           updated_at?: string | null
         }
         Relationships: [
@@ -674,7 +683,7 @@ export type Database = {
           {
             foreignKeyName: "reviews_contract_id_fkey"
             columns: ["contract_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "contracts"
             referencedColumns: ["id"]
           },
