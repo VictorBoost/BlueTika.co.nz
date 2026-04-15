@@ -195,9 +195,10 @@ export default function ProjectDetail() {
     } else {
       toast({
         title: "Success",
-        description: "Bid accepted! A contract has been created.",
+        description: "Bid accepted! Redirecting to checkout...",
       });
-      router.push("/contracts");
+      // Redirect to checkout page with the contract ID
+      router.push(`/checkout/${data.id}`);
     }
 
     setAccepting(false);
