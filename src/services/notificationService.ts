@@ -5,6 +5,31 @@ import { sendEvidencePhotoReminder as sendEmailReminder } from "./sesEmailServic
 type Notification = Tables<"notifications">;
 
 export const notificationService = {
+  // Send a notification to a user
+  async sendNotification(
+    userId: string,
+    title: string,
+    message: string,
+    notification_type: "contract_update" | "payment" | "bid" | "message" | "general" = "general",
+    relatedId?: string
+  ) {
+    const { data, error } = await supabase
+      .from("notifications")
+      .insert({
+        user_id: userId,
+        title,
+        message,
+        notification_type,
+        related_id: relatedId,
+        is_read: false,
+      })
+      .select()
+      .single();
+
+    console.log("sendNotification:", { data, error });
+    return { data, error };
+  },
+
   async createNotification(
     userId: string,
     title: string,
