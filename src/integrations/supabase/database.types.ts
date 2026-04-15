@@ -258,15 +258,25 @@ export type Database = {
           category_id: string | null
           client_id: string
           created_at: string | null
+          date_from: string | null
+          date_preference: string | null
+          date_to: string | null
           description: string
+          expires_at: string | null
           id: string
+          is_expired: boolean | null
+          last_reopened_at: string | null
           location: string
+          photos: string[] | null
+          reopened_count: number | null
           selected_days: string[] | null
+          specific_date: string | null
           start_date: string | null
           status: string | null
           subcategory_id: string | null
           title: string
           updated_at: string | null
+          video_url: string | null
           weeks_count: number | null
         }
         Insert: {
@@ -275,15 +285,25 @@ export type Database = {
           category_id?: string | null
           client_id: string
           created_at?: string | null
+          date_from?: string | null
+          date_preference?: string | null
+          date_to?: string | null
           description: string
+          expires_at?: string | null
           id?: string
+          is_expired?: boolean | null
+          last_reopened_at?: string | null
           location: string
+          photos?: string[] | null
+          reopened_count?: number | null
           selected_days?: string[] | null
+          specific_date?: string | null
           start_date?: string | null
           status?: string | null
           subcategory_id?: string | null
           title: string
           updated_at?: string | null
+          video_url?: string | null
           weeks_count?: number | null
         }
         Update: {
@@ -292,15 +312,25 @@ export type Database = {
           category_id?: string | null
           client_id?: string
           created_at?: string | null
+          date_from?: string | null
+          date_preference?: string | null
+          date_to?: string | null
           description?: string
+          expires_at?: string | null
           id?: string
+          is_expired?: boolean | null
+          last_reopened_at?: string | null
           location?: string
+          photos?: string[] | null
+          reopened_count?: number | null
           selected_days?: string[] | null
+          specific_date?: string | null
           start_date?: string | null
           status?: string | null
           subcategory_id?: string | null
           title?: string
           updated_at?: string | null
+          video_url?: string | null
           weeks_count?: number | null
         }
         Relationships: [
@@ -637,7 +667,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      mark_expired_projects: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

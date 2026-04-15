@@ -10,11 +10,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { authService } from "@/services/authService";
 import { projectService } from "@/services/projectService";
 import { categoryService } from "@/services/categoryService";
 import { subcategoryService } from "@/services/subcategoryService";
+import { supabase } from "@/integrations/supabase/client";
+import { AlertCircle, Upload, X, Video } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 const NZ_LOCATIONS = [
@@ -25,6 +28,11 @@ const NZ_LOCATIONS = [
 
 const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
+const MAX_PHOTOS = 5;
+const MAX_PHOTO_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
+const MAX_VIDEO_DURATION = 30; // seconds
+
 export default function PostProject() {
   const router = useRouter();
   const { toast } = useToast();
@@ -32,6 +40,10 @@ export default function PostProject() {
   const [categories, setCategories] = useState<Tables<"categories">[]>([]);
   const [subcategories, setSubcategories] = useState<any[]>([]);
   const [isDomesticHelper, setIsDomesticHelper] = useState(false);
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+  
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -43,9 +55,14 @@ export default function PostProject() {
     selected_days: [] as string[],
     start_date: "",
     weeks_count: 1,
+    date_preference: "asap_flexible",
+    date_from: "",
+    date_to: "",
+    specific_date: "",
   });
 
   useEffect(() => {
+    checkVerification();
     loadCategories();
   }, []);
 
@@ -62,6 +79,35 @@ export default function PostProject() {
       }
     }
   }, [formData.category_id, categories]);
+
+  const checkVerification = async () => {
+    const session = await authService.getCurrentSession();
+    if (!session?.user) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to post a project",
+        variant: "destructive",
+      });
+      router.push("/login");
+      return;
+    }
+
+    // Check if user is a client
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("is_client")
+      .eq("id", session.user.id)
+      .single();
+
+    if (!profile?.is_client) {
+      toast({
+        title: "Access denied",
+        description: "Only clients can post projects",
+        variant: "destructive",
+      });
+      router.push("/");
+    }
+  };
 
   const loadCategories = async () => {
     const { data } = await categoryService.getAllCategories();
@@ -86,10 +132,142 @@ export default function PostProject() {
     }));
   };
 
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    
+    if (photoFiles.length + files.length > MAX_PHOTOS) {
+      toast({
+        title: "Too many photos",
+        description: `You can only upload up to ${MAX_PHOTOS} photos`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const validFiles = files.filter(file => {
+      if (file.size > MAX_PHOTO_SIZE) {
+        toast({
+          title: "File too large",
+          description: `${file.name} is larger than 10MB`,
+          variant: "destructive",
+        });
+        return false;
+      }
+      if (!['image/jpeg', 'image/png'].includes(file.type)) {
+        toast({
+          title: "Invalid file type",
+          description: `${file.name} must be JPG or PNG`,
+          variant: "destructive",
+        });
+        return false;
+      }
+      return true;
+    });
+
+    setPhotoFiles(prev => [...prev, ...validFiles]);
+  };
+
+  const handleVideoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > MAX_VIDEO_SIZE) {
+      toast({
+        title: "Video too large",
+        description: "Video must be under 50MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (file.type !== 'video/mp4') {
+      toast({
+        title: "Invalid file type",
+        description: "Video must be MP4 format",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check video duration
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    
+    video.onloadedmetadata = () => {
+      window.URL.revokeObjectURL(video.src);
+      if (video.duration > MAX_VIDEO_DURATION) {
+        toast({
+          title: "Video too long",
+          description: `Video must be ${MAX_VIDEO_DURATION} seconds or less`,
+          variant: "destructive",
+        });
+      } else {
+        setVideoFile(file);
+      }
+    };
+
+    video.src = URL.createObjectURL(file);
+  };
+
+  const removePhoto = (index: number) => {
+    setPhotoFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const removeVideo = () => {
+    setVideoFile(null);
+  };
+
+  const uploadMedia = async (userId: string) => {
+    const photoUrls: string[] = [];
+    let videoUrl: string | null = null;
+
+    // Upload photos
+    for (let i = 0; i < photoFiles.length; i++) {
+      const file = photoFiles[i];
+      const fileName = `${userId}/${Date.now()}_${i}_${file.name}`;
+      
+      const { data, error } = await supabase.storage
+        .from('project-media')
+        .upload(fileName, file);
+
+      if (error) {
+        console.error('Photo upload error:', error);
+        throw error;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('project-media')
+        .getPublicUrl(fileName);
+      
+      photoUrls.push(publicUrl);
+    }
+
+    // Upload video
+    if (videoFile) {
+      const fileName = `${userId}/${Date.now()}_video_${videoFile.name}`;
+      
+      const { data, error } = await supabase.storage
+        .from('project-media')
+        .upload(fileName, videoFile);
+
+      if (error) {
+        console.error('Video upload error:', error);
+        throw error;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('project-media')
+        .getPublicUrl(fileName);
+      
+      videoUrl = publicUrl;
+    }
+
+    return { photoUrls, videoUrl };
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Check auth
     const session = await authService.getCurrentSession();
     if (!session?.user) {
       toast({
@@ -101,7 +279,6 @@ export default function PostProject() {
       return;
     }
 
-    // Validate Domestic Helper requirements
     if (isDomesticHelper && !formData.subcategory_id) {
       toast({
         title: "Subcategory required",
@@ -138,46 +315,89 @@ export default function PostProject() {
       }
     }
 
-    setLoading(true);
-    
-    const projectData: any = {
-      title: formData.title,
-      description: formData.description,
-      budget: parseFloat(formData.budget),
-      location: formData.location,
-      client_id: session.user.id,
-      status: "open",
-      category_id: formData.category_id,
-    };
-
-    if (isDomesticHelper) {
-      projectData.subcategory_id = formData.subcategory_id;
-      projectData.booking_type = formData.booking_type;
-      
-      if (formData.booking_type === "routine") {
-        projectData.selected_days = formData.selected_days;
-        projectData.start_date = formData.start_date;
-        projectData.weeks_count = formData.weeks_count;
-      }
-    }
-
-    const { data, error } = await projectService.createProject(projectData);
-
-    if (error) {
+    // Validate date preference fields
+    if (formData.date_preference === "date_range" && (!formData.date_from || !formData.date_to)) {
       toast({
-        title: "Error",
-        description: "Failed to create project. Please try again.",
+        title: "Date range required",
+        description: "Please select both from and to dates",
         variant: "destructive",
       });
-    } else {
-      toast({
-        title: "Success",
-        description: "Project posted successfully!",
-      });
-      router.push(`/project/${data.id}`);
+      return;
     }
-    
-    setLoading(false);
+
+    if (formData.date_preference === "specific_date" && !formData.specific_date) {
+      toast({
+        title: "Specific date required",
+        description: "Please select a specific date",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    setUploadingMedia(true);
+
+    try {
+      // Upload media files
+      const { photoUrls, videoUrl } = await uploadMedia(session.user.id);
+
+      const projectData: any = {
+        title: formData.title,
+        description: formData.description,
+        budget: parseFloat(formData.budget),
+        location: formData.location,
+        client_id: session.user.id,
+        status: "open",
+        category_id: formData.category_id,
+        date_preference: formData.date_preference,
+        photos: photoUrls,
+        video_url: videoUrl,
+      };
+
+      if (formData.date_preference === "date_range") {
+        projectData.date_from = formData.date_from;
+        projectData.date_to = formData.date_to;
+      } else if (formData.date_preference === "specific_date") {
+        projectData.specific_date = formData.specific_date;
+      }
+
+      if (isDomesticHelper) {
+        projectData.subcategory_id = formData.subcategory_id;
+        projectData.booking_type = formData.booking_type;
+        
+        if (formData.booking_type === "routine") {
+          projectData.selected_days = formData.selected_days;
+          projectData.start_date = formData.start_date;
+          projectData.weeks_count = formData.weeks_count;
+        }
+      }
+
+      const { data, error } = await projectService.createProject(projectData);
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to create project. Please try again.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Project posted successfully!",
+        });
+        router.push(`/project/${data.id}`);
+      }
+    } catch (error) {
+      console.error('Project creation error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to upload media. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+      setUploadingMedia(false);
+    }
   };
 
   return (
@@ -213,6 +433,13 @@ export default function PostProject() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                <Alert className="mb-6">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    A 2% platform fee will be added to the agreed price at checkout. All amounts in NZD. No GST currently applies.
+                  </AlertDescription>
+                </Alert>
+
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="space-y-2">
                     <Label htmlFor="title">Project Title *</Label>
@@ -226,7 +453,7 @@ export default function PostProject() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="category">Category *</Label>
+                    <Label htmlFor="category">Service Category *</Label>
                     <Select
                       value={formData.category_id}
                       onValueChange={(value) => setFormData({ ...formData, category_id: value })}
@@ -351,7 +578,7 @@ export default function PostProject() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="budget">Budget (NZD) *</Label>
+                    <Label htmlFor="budget">Estimated Budget (NZD) *</Label>
                     <Input
                       id="budget"
                       type="number"
@@ -384,9 +611,147 @@ export default function PostProject() {
                     </Select>
                   </div>
 
+                  <div className="space-y-2">
+                    <Label htmlFor="date_preference">Date Preference *</Label>
+                    <Select
+                      value={formData.date_preference}
+                      onValueChange={(value) => setFormData({ ...formData, date_preference: value })}
+                      required
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="asap_flexible">ASAP or Flexible</SelectItem>
+                        <SelectItem value="specific_date">Specific Date</SelectItem>
+                        <SelectItem value="date_range">Date Range</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {formData.date_preference === "date_range" && (
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="date_from">From Date *</Label>
+                        <Input
+                          id="date_from"
+                          type="date"
+                          value={formData.date_from}
+                          onChange={(e) => setFormData({ ...formData, date_from: e.target.value })}
+                          min={new Date().toISOString().split("T")[0]}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="date_to">To Date *</Label>
+                        <Input
+                          id="date_to"
+                          type="date"
+                          value={formData.date_to}
+                          onChange={(e) => setFormData({ ...formData, date_to: e.target.value })}
+                          min={formData.date_from || new Date().toISOString().split("T")[0]}
+                          required
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {formData.date_preference === "specific_date" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="specific_date">Specific Date *</Label>
+                      <Input
+                        id="specific_date"
+                        type="date"
+                        value={formData.specific_date}
+                        onChange={(e) => setFormData({ ...formData, specific_date: e.target.value })}
+                        min={new Date().toISOString().split("T")[0]}
+                        required
+                      />
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label>Photos (up to {MAX_PHOTOS}, JPG or PNG, max 10MB each)</Label>
+                    <div className="space-y-4">
+                      {photoFiles.length < MAX_PHOTOS && (
+                        <div>
+                          <Input
+                            type="file"
+                            accept="image/jpeg,image/png"
+                            multiple
+                            onChange={handlePhotoChange}
+                            className="cursor-pointer"
+                          />
+                        </div>
+                      )}
+                      
+                      {photoFiles.length > 0 && (
+                        <div className="grid grid-cols-3 gap-4">
+                          {photoFiles.map((file, index) => (
+                            <div key={index} className="relative group">
+                              <img
+                                src={URL.createObjectURL(file)}
+                                alt={`Preview ${index + 1}`}
+                                className="w-full h-32 object-cover rounded-lg"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removePhoto(index)}
+                                className="absolute top-2 right-2 p-1 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                              <p className="text-xs text-muted-foreground mt-1 truncate">
+                                {file.name}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Video (optional, MP4, max 30 seconds, max 50MB)</Label>
+                    <div className="space-y-4">
+                      {!videoFile && (
+                        <div className="flex items-center gap-4">
+                          <Input
+                            type="file"
+                            accept="video/mp4"
+                            onChange={handleVideoChange}
+                            className="cursor-pointer"
+                          />
+                        </div>
+                      )}
+                      
+                      {videoFile && (
+                        <div className="flex items-center justify-between p-4 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <Video className="h-8 w-8 text-muted-foreground" />
+                            <div>
+                              <p className="font-medium">{videoFile.name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {(videoFile.size / 1024 / 1024).toFixed(2)} MB
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={removeVideo}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="flex gap-4">
-                    <Button type="submit" className="flex-1" disabled={loading}>
-                      {loading ? "Posting..." : "Post Project"}
+                    <Button type="submit" className="flex-1" disabled={loading || uploadingMedia}>
+                      {uploadingMedia ? "Uploading media..." : loading ? "Posting..." : "Post Project"}
                     </Button>
                     <Button type="button" variant="outline" onClick={() => router.push("/projects")}>
                       Cancel
