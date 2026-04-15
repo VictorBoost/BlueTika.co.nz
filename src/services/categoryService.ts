@@ -1,8 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { Tables, TablesInsert } from "@/integrations/supabase/types";
+import type { Tables } from "@/integrations/supabase/types";
 
 type Category = Tables<"categories">;
-type CategoryInsert = TablesInsert<"categories">;
+type CategoryInsert = Omit<Category, "id" | "created_at" | "updated_at">;
 
 export const categoryService = {
   // Get all active categories
