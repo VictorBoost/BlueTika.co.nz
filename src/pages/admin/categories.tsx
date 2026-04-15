@@ -262,6 +262,16 @@ export default function AdminCategories() {
                       </div>
 
                       <div className="space-y-2">
+                        <Label htmlFor="icon">Icon (optional)</Label>
+                        <Input
+                          id="icon"
+                          value={formData.icon || ""}
+                          onChange={(e) => setFormData({ ...formData, icon: e.target.value || null })}
+                          placeholder="lucide-react icon name"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
                         <Label htmlFor="display_order">Display Order</Label>
                         <Input
                           id="display_order"
