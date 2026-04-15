@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -179,6 +179,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          average_rating: number | null
           bio: string | null
           city_region: string | null
           commission_tier: string | null
@@ -199,6 +200,8 @@ export type Database = {
           location: string | null
           phone: string | null
           phone_number: string | null
+          response_rate: number | null
+          total_reviews: number | null
           updated_at: string | null
           verification_rejection_reason: string | null
           verification_reviewed_at: string | null
@@ -207,6 +210,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          average_rating?: number | null
           bio?: string | null
           city_region?: string | null
           commission_tier?: string | null
@@ -227,6 +231,8 @@ export type Database = {
           location?: string | null
           phone?: string | null
           phone_number?: string | null
+          response_rate?: number | null
+          total_reviews?: number | null
           updated_at?: string | null
           verification_rejection_reason?: string | null
           verification_reviewed_at?: string | null
@@ -235,6 +241,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          average_rating?: number | null
           bio?: string | null
           city_region?: string | null
           commission_tier?: string | null
@@ -255,6 +262,8 @@ export type Database = {
           location?: string | null
           phone?: string | null
           phone_number?: string | null
+          response_rate?: number | null
+          total_reviews?: number | null
           updated_at?: string | null
           verification_rejection_reason?: string | null
           verification_reviewed_at?: string | null
@@ -446,6 +455,64 @@ export type Database = {
             columns: ["subcategory_id"]
             isOneToOne: false
             referencedRelation: "subcategories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reviews: {
+        Row: {
+          client_id: string
+          comment: string | null
+          contract_id: string
+          created_at: string | null
+          id: string
+          is_public: boolean | null
+          provider_id: string
+          rating: number
+          updated_at: string | null
+        }
+        Insert: {
+          client_id: string
+          comment?: string | null
+          contract_id: string
+          created_at?: string | null
+          id?: string
+          is_public?: boolean | null
+          provider_id: string
+          rating: number
+          updated_at?: string | null
+        }
+        Update: {
+          client_id?: string
+          comment?: string | null
+          contract_id?: string
+          created_at?: string | null
+          id?: string
+          is_public?: boolean | null
+          provider_id?: string
+          rating?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: true
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
