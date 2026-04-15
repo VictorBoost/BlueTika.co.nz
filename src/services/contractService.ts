@@ -24,7 +24,7 @@ export const contractService = {
 
   async updateContractStatus(
     contractId: string,
-    status: "active" | "completed" | "cancelled" | "Awaiting Fund Release" | string
+    status: "active" | "completed" | "cancelled" | "awaiting_fund_release" | "dispute" | "funds_released" | string
   ) {
     const updates: Partial<Contract> = { status };
     if (status === "completed") {
@@ -50,5 +50,99 @@ export const contractService = {
     }
 
     return { data, error };
+  },
+
+  async markWorkDone(contractId: string) {
+    const { data, error } = await supabase
+      .from("contracts")
+      .update({
+        work_done_at: new Date().toISOString(),
+        client_dispute_deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+      })
+      .eq("id", contractId)
+      .select()
+      .single();
+
+    console.log("markWorkDone:", { data, error });
+    if (error) console.error("Work done update error:", error);
+    return { data, error };
+  },
+
+  async setProviderDisputeDeadline(contractId: string) {
+    // 5 working days (excluding weekends)
+    const now = new Date();
+    let daysAdded = 0;
+    const deadline = new Date(now);
+
+    while (daysAdded < 5) {
+      deadline.setDate(deadline.getDate() + 1);
+      const dayOfWeek = deadline.getDay();
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+        daysAdded++;
+      }
+    }
+
+    const { data, error } = await supabase
+      .from("contracts")
+      .update({
+        provider_dispute_deadline: deadline.toISOString(),
+      })
+      .eq("id", contractId)
+      .select()
+      .single();
+
+    console.log("setProviderDisputeDeadline:", { data, error });
+    if (error) console.error("Provider deadline update error:", error);
+    return { data, error };
+  },
+
+  async canRaiseDispute(contractId: string, role: "client" | "provider"): Promise<boolean> {
+    const { data, error } = await supabase
+      .from("contracts")
+      .select("work_done_at, client_dispute_deadline, provider_dispute_deadline, status")
+      .eq("id", contractId)
+      .single();
+
+    if (error || !data) return false;
+
+    // Can't raise dispute if already in dispute or funds released
+    if (data.status === "dispute" || data.status === "funds_released") {
+      return false;
+    }
+
+    const now = new Date();
+
+    if (role === "client") {
+      if (!data.client_dispute_deadline) return false;
+      return now <= new Date(data.client_dispute_deadline);
+    } else {
+      if (!data.provider_dispute_deadline) return false;
+      return now <= new Date(data.provider_dispute_deadline);
+    }
+  },
+
+  async checkReadyForRelease(contractId: string): Promise<void> {
+    const { data, error } = await supabase
+      .from("contracts")
+      .select("client_dispute_deadline, provider_dispute_deadline")
+      .eq("id", contractId)
+      .single();
+
+    if (error || !data) return;
+
+    const now = new Date();
+    const clientDeadlinePassed = data.client_dispute_deadline 
+      ? now > new Date(data.client_dispute_deadline) 
+      : false;
+    const providerDeadlinePassed = data.provider_dispute_deadline 
+      ? now > new Date(data.provider_dispute_deadline) 
+      : false;
+
+    if (clientDeadlinePassed && providerDeadlinePassed) {
+      await supabase
+        .from("contracts")
+        .update({ ready_for_release_at: now.toISOString() })
+        .eq("id", contractId);
+    }
   },
 };
