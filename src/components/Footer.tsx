@@ -37,6 +37,11 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/provider/verify" className="text-gray-400 hover:text-white transition-colors">
+                  Get Verified
+                </Link>
+              </li>
+              <li>
                 <Link href="/contracts" className="text-gray-400 hover:text-white transition-colors">
                   My Contracts
                 </Link>
