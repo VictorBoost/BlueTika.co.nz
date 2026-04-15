@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -157,58 +157,79 @@ export type Database = {
       }
       contracts: {
         Row: {
+          after_photos_submitted_at: string | null
           bid_id: string
+          client_dispute_deadline: string | null
           client_id: string
           completed_at: string | null
           created_at: string | null
           final_amount: number
+          funds_released_at: string | null
           google_calendar_event_id: string | null
           id: string
           payment_processing_fee: number | null
           payment_status: string | null
           platform_fee: number | null
           project_id: string
+          provider_dispute_deadline: string | null
           provider_id: string
+          ready_for_release_at: string | null
+          released_by: string | null
           status: string | null
           stripe_payment_intent_id: string | null
           total_amount: number | null
           updated_at: string | null
+          work_done_at: string | null
         }
         Insert: {
+          after_photos_submitted_at?: string | null
           bid_id: string
+          client_dispute_deadline?: string | null
           client_id: string
           completed_at?: string | null
           created_at?: string | null
           final_amount: number
+          funds_released_at?: string | null
           google_calendar_event_id?: string | null
           id?: string
           payment_processing_fee?: number | null
           payment_status?: string | null
           platform_fee?: number | null
           project_id: string
+          provider_dispute_deadline?: string | null
           provider_id: string
+          ready_for_release_at?: string | null
+          released_by?: string | null
           status?: string | null
           stripe_payment_intent_id?: string | null
           total_amount?: number | null
           updated_at?: string | null
+          work_done_at?: string | null
         }
         Update: {
+          after_photos_submitted_at?: string | null
           bid_id?: string
+          client_dispute_deadline?: string | null
           client_id?: string
           completed_at?: string | null
           created_at?: string | null
           final_amount?: number
+          funds_released_at?: string | null
           google_calendar_event_id?: string | null
           id?: string
           payment_processing_fee?: number | null
           payment_status?: string | null
           platform_fee?: number | null
           project_id?: string
+          provider_dispute_deadline?: string | null
           provider_id?: string
+          ready_for_release_at?: string | null
+          released_by?: string | null
           status?: string | null
           stripe_payment_intent_id?: string | null
           total_amount?: number | null
           updated_at?: string | null
+          work_done_at?: string | null
         }
         Relationships: [
           {
@@ -235,6 +256,137 @@ export type Database = {
           {
             foreignKeyName: "contracts_provider_id_fkey"
             columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_released_by_fkey"
+            columns: ["released_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      disputes: {
+        Row: {
+          claim_description: string
+          client_refund_amount: number | null
+          contract_id: string
+          created_at: string | null
+          id: string
+          provider_payout_amount: number | null
+          raised_by: string
+          raiser_role: string
+          resolution_reason: string | null
+          resolution_type: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          claim_description: string
+          client_refund_amount?: number | null
+          contract_id: string
+          created_at?: string | null
+          id?: string
+          provider_payout_amount?: number | null
+          raised_by: string
+          raiser_role: string
+          resolution_reason?: string | null
+          resolution_type?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          claim_description?: string
+          client_refund_amount?: number | null
+          contract_id?: string
+          created_at?: string | null
+          id?: string
+          provider_payout_amount?: number | null
+          raised_by?: string
+          raiser_role?: string
+          resolution_reason?: string | null
+          resolution_type?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disputes_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disputes_raised_by_fkey"
+            columns: ["raised_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disputes_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fund_releases: {
+        Row: {
+          agreed_price: number
+          commission_amount: number
+          commission_rate: number
+          contract_id: string
+          created_at: string | null
+          id: string
+          net_to_provider: number
+          notes: string | null
+          release_type: string
+          released_by: string
+        }
+        Insert: {
+          agreed_price: number
+          commission_amount: number
+          commission_rate: number
+          contract_id: string
+          created_at?: string | null
+          id?: string
+          net_to_provider: number
+          notes?: string | null
+          release_type: string
+          released_by: string
+        }
+        Update: {
+          agreed_price?: number
+          commission_amount?: number
+          commission_rate?: number
+          contract_id?: string
+          created_at?: string | null
+          id?: string
+          net_to_provider?: number
+          notes?: string | null
+          release_type?: string
+          released_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fund_releases_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: true
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fund_releases_released_by_fkey"
+            columns: ["released_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
