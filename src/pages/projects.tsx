@@ -24,7 +24,7 @@ export default function Projects() {
 
   const loadProjects = async () => {
     setLoading(true);
-    const { data, error } = await projectService.getProjects(
+    const { data, error } = await projectService.getAllProjects(
       statusFilter === "all" ? undefined : statusFilter
     );
     
