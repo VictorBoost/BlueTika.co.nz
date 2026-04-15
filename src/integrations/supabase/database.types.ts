@@ -108,6 +108,66 @@ export type Database = {
         }
         Relationships: []
       }
+      commission_settings: {
+        Row: {
+          id: string
+          promo_active: boolean | null
+          promo_rate: number | null
+          updated_at: string | null
+          warning_days: number | null
+        }
+        Insert: {
+          id?: string
+          promo_active?: boolean | null
+          promo_rate?: number | null
+          updated_at?: string | null
+          warning_days?: number | null
+        }
+        Update: {
+          id?: string
+          promo_active?: boolean | null
+          promo_rate?: number | null
+          updated_at?: string | null
+          warning_days?: number | null
+        }
+        Relationships: []
+      }
+      commission_tiers: {
+        Row: {
+          created_at: string | null
+          display_name: string
+          id: string
+          max_sales: number | null
+          min_sales: number
+          standard_rate: number
+          tier_name: string
+          tier_order: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          display_name: string
+          id?: string
+          max_sales?: number | null
+          min_sales: number
+          standard_rate: number
+          tier_name: string
+          tier_order: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          display_name?: string
+          id?: string
+          max_sales?: number | null
+          min_sales?: number
+          standard_rate?: number
+          tier_name?: string
+          tier_order?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       contract_evidence_photos: {
         Row: {
           confirmed_at: string | null
@@ -497,6 +557,7 @@ export type Database = {
           city_region: string | null
           commission_tier: string | null
           created_at: string | null
+          current_tier: string | null
           date_of_birth: string | null
           domestic_helper_verified: boolean | null
           driver_licence_number: string | null
@@ -513,10 +574,12 @@ export type Database = {
           is_client: boolean | null
           is_provider: boolean | null
           last_name: string | null
+          last_tier_calculation: string | null
           location: string | null
           phone: string | null
           phone_number: string | null
           response_rate: number | null
+          tier_updated_at: string | null
           total_reviews: number | null
           updated_at: string | null
           verification_rejection_reason: string | null
@@ -531,6 +594,7 @@ export type Database = {
           city_region?: string | null
           commission_tier?: string | null
           created_at?: string | null
+          current_tier?: string | null
           date_of_birth?: string | null
           domestic_helper_verified?: boolean | null
           driver_licence_number?: string | null
@@ -547,10 +611,12 @@ export type Database = {
           is_client?: boolean | null
           is_provider?: boolean | null
           last_name?: string | null
+          last_tier_calculation?: string | null
           location?: string | null
           phone?: string | null
           phone_number?: string | null
           response_rate?: number | null
+          tier_updated_at?: string | null
           total_reviews?: number | null
           updated_at?: string | null
           verification_rejection_reason?: string | null
@@ -565,6 +631,7 @@ export type Database = {
           city_region?: string | null
           commission_tier?: string | null
           created_at?: string | null
+          current_tier?: string | null
           date_of_birth?: string | null
           domestic_helper_verified?: boolean | null
           driver_licence_number?: string | null
@@ -581,10 +648,12 @@ export type Database = {
           is_client?: boolean | null
           is_provider?: boolean | null
           last_name?: string | null
+          last_tier_calculation?: string | null
           location?: string | null
           phone?: string | null
           phone_number?: string | null
           response_rate?: number | null
+          tier_updated_at?: string | null
           total_reviews?: number | null
           updated_at?: string | null
           verification_rejection_reason?: string | null
@@ -963,6 +1032,41 @@ export type Database = {
           },
         ]
       }
+      tier_drop_warnings: {
+        Row: {
+          current_tier: string
+          id: string
+          provider_id: string
+          tier_dropped_at: string | null
+          warning_sent_at: string | null
+          warning_tier: string
+        }
+        Insert: {
+          current_tier: string
+          id?: string
+          provider_id: string
+          tier_dropped_at?: string | null
+          warning_sent_at?: string | null
+          warning_tier: string
+        }
+        Update: {
+          current_tier?: string
+          id?: string
+          provider_id?: string
+          tier_dropped_at?: string | null
+          warning_sent_at?: string | null
+          warning_tier?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tier_drop_warnings_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trade_certificates: {
         Row: {
           certificate_number: string
@@ -1080,7 +1184,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_provider_60day_sales: {
+        Args: { provider_uuid: string }
+        Returns: number
+      }
+      get_tier_for_sales: { Args: { sales_amount: number }; Returns: string }
       mark_expired_projects: { Args: never; Returns: undefined }
+      update_provider_tier: {
+        Args: { provider_uuid: string }
+        Returns: {
+          new_tier: string
+          old_tier: string
+          sales_amount: number
+          tier_changed: boolean
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
