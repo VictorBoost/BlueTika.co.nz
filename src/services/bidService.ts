@@ -48,6 +48,28 @@ export const bidService = {
     return { data, error };
   },
 
+  async getProviderBids(providerId: string) {
+    const { data, error } = await supabase
+      .from("bids")
+      .select(`
+        *,
+        projects!bids_project_id_fkey(
+          id,
+          title,
+          budget,
+          location,
+          status,
+          category:categories!projects_category_id_fkey(name)
+        )
+      `)
+      .eq("provider_id", providerId)
+      .order("created_at", { ascending: false });
+
+    console.log("getProviderBids:", { data, error });
+    if (error) console.error("Provider bids fetch error:", error);
+    return { data, error };
+  },
+
   async acceptBid(bidId: string, projectId: string, clientId: string) {
     // First, update the bid status
     const { data: bidData, error: bidError } = await supabase
@@ -89,5 +111,26 @@ export const bidService = {
 
     console.log("acceptBid:", { bidData, contractData });
     return { data: contractData, error: null };
+  },
+
+  async uploadTradeCertificate(file: File, providerId: string): Promise<string | null> {
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${providerId}-${Date.now()}.${fileExt}`;
+    const filePath = `trade-certificates/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("project-media")
+      .upload(filePath, file);
+
+    if (uploadError) {
+      console.error("Trade certificate upload error:", uploadError);
+      return null;
+    }
+
+    const { data } = supabase.storage
+      .from("project-media")
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
   },
 };

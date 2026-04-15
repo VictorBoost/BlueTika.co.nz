@@ -1,21 +1,18 @@
-import Link from "next/link";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, DollarSign, MessageSquare, Tag } from "lucide-react";
+import { MapPin, DollarSign, Calendar, Clock, MessageSquare } from "lucide-react";
+import Link from "next/link";
 import type { Tables } from "@/integrations/supabase/types";
 
-type Project = Tables<"projects">;
+type Project = Tables<"projects"> & {
+  bid_count?: number;
+  category?: { name: string };
+  subcategory?: { name: string };
+};
 
 interface ProjectCardProps {
-  project: Project & {
-    bid_count?: number;
-    category?: {
-      id: string;
-      name: string;
-      slug: string;
-    };
-  };
+  project: Project;
 }
 
 export function ProjectCard({ project }: ProjectCardProps) {
@@ -26,58 +23,89 @@ export function ProjectCard({ project }: ProjectCardProps) {
     cancelled: "bg-muted text-muted-foreground border-muted",
   };
 
+  const formatDatePreference = () => {
+    switch (project.date_preference) {
+      case "asap_flexible":
+        return "ASAP or Flexible";
+      case "specific_date":
+        return project.specific_date ? new Date(project.specific_date).toLocaleDateString() : "Specific Date";
+      case "date_range":
+        return "Date Range";
+      default:
+        return "Not specified";
+    }
+  };
+
+  const getTimeAgo = (date: string) => {
+    const now = new Date();
+    const posted = new Date(date);
+    const diffMs = now.getTime() - posted.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return `${diffDays}d ago`;
+  };
+
   return (
     <Card className="hover:border-primary/50 transition-colors">
       <CardHeader>
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
-            <CardTitle className="text-xl mb-2 hover:text-primary transition-colors">
-              <Link href={`/project/${project.id}`}>
-                {project.title}
-              </Link>
-            </CardTitle>
-            <CardDescription className="line-clamp-2">
-              {project.description}
-            </CardDescription>
-          </div>
+        <div className="flex items-start justify-between gap-2 mb-2">
           <Badge variant="outline" className={statusColors[project.status]}>
             {project.status.replace("_", " ")}
           </Badge>
+          {project.is_expired && (
+            <Badge variant="destructive">Expired</Badge>
+          )}
         </div>
-        {project.category && (
-          <div className="mt-2">
+        <CardTitle className="text-xl line-clamp-2">{project.title}</CardTitle>
+        <CardDescription className="line-clamp-2">{project.description}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex flex-wrap gap-2">
+          {project.category && (
             <Badge variant="secondary" className="text-xs">
-              <Tag className="h-3 w-3 mr-1" />
               {project.category.name}
             </Badge>
+          )}
+          {project.subcategory && (
+            <Badge variant="outline" className="text-xs">
+              {project.subcategory.name}
+            </Badge>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-sm">
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <span className="font-semibold">NZD ${project.budget.toLocaleString()}</span>
           </div>
-        )}
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <DollarSign className="h-4 w-4" />
-            <span className="font-semibold text-foreground">
-              NZD ${project.budget.toLocaleString()}
-            </span>
-          </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <MapPin className="h-4 w-4" />
             <span>{project.location}</span>
           </div>
-          {project.bid_count !== undefined && (
-            <div className="flex items-center gap-1">
-              <MessageSquare className="h-4 w-4" />
-              <span>{project.bid_count} {project.bid_count === 1 ? "bid" : "bids"}</span>
-            </div>
-          )}
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Calendar className="h-4 w-4" />
+            <span>{formatDatePreference()}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between pt-2 border-t">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <MessageSquare className="h-4 w-4" />
+            <span>{project.bid_count || 0} bids</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Clock className="h-4 w-4" />
+            <span>{getTimeAgo(project.created_at)}</span>
+          </div>
         </div>
       </CardContent>
       <CardFooter>
-        <Button asChild variant="outline" className="w-full">
-          <Link href={`/project/${project.id}`}>
-            View Details
-          </Link>
+        <Button asChild className="w-full">
+          <Link href={`/project/${project.id}`}>View Details</Link>
         </Button>
       </CardFooter>
     </Card>
