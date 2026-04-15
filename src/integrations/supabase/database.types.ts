@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -116,9 +116,14 @@ export type Database = {
           created_at: string | null
           final_amount: number
           id: string
+          payment_processing_fee: number | null
+          payment_status: string | null
+          platform_fee: number | null
           project_id: string
           provider_id: string
           status: string | null
+          stripe_payment_intent_id: string | null
+          total_amount: number | null
           updated_at: string | null
         }
         Insert: {
@@ -128,9 +133,14 @@ export type Database = {
           created_at?: string | null
           final_amount: number
           id?: string
+          payment_processing_fee?: number | null
+          payment_status?: string | null
+          platform_fee?: number | null
           project_id: string
           provider_id: string
           status?: string | null
+          stripe_payment_intent_id?: string | null
+          total_amount?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -140,9 +150,14 @@ export type Database = {
           created_at?: string | null
           final_amount?: number
           id?: string
+          payment_processing_fee?: number | null
+          payment_status?: string | null
+          platform_fee?: number | null
           project_id?: string
           provider_id?: string
           status?: string | null
+          stripe_payment_intent_id?: string | null
+          total_amount?: number | null
           updated_at?: string | null
         }
         Relationships: [
@@ -170,6 +185,102 @@ export type Database = {
           {
             foreignKeyName: "contracts_provider_id_fkey"
             columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string
+          related_contract_id: string | null
+          related_project_id: string | null
+          title: string
+          type: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          related_contract_id?: string | null
+          related_project_id?: string | null
+          title: string
+          type?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          related_contract_id?: string | null
+          related_project_id?: string | null
+          title?: string
+          type?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_related_contract_id_fkey"
+            columns: ["related_contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_related_project_id_fkey"
+            columns: ["related_project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_settings: {
+        Row: {
+          description: string | null
+          id: string
+          setting_key: string
+          setting_type: string | null
+          setting_value: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          description?: string | null
+          id?: string
+          setting_key: string
+          setting_type?: string | null
+          setting_value: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          description?: string | null
+          id?: string
+          setting_key?: string
+          setting_type?: string | null
+          setting_value?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_settings_updated_by_fkey"
+            columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
