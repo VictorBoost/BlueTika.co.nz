@@ -2,59 +2,79 @@ import Link from "next/link";
 
 export function Footer() {
   return (
-    <footer className="border-t border-border bg-black">
-      <div className="container py-12">
-        <div className="grid gap-8 md:grid-cols-4">
-          <div className="md:col-span-2">
-            <h3 className="mb-4 text-2xl font-bold text-white">BlueTika</h3>
-            <p className="mb-4 text-gray-300">
-              Find Local Help. Get it Done.
-            </p>
+    <footer className="bg-black text-white py-12">
+      <div className="container">
+        <div className="grid md:grid-cols-4 gap-8 mb-8">
+          <div>
+            <h3 className="font-semibold text-lg mb-4">BlueTika</h3>
             <p className="text-sm text-gray-400">
-              100% NZ Owned · Kiwis Helping Kiwis · bluetika.co.nz
+              New Zealand's trusted marketplace for local services
             </p>
           </div>
 
           <div>
-            <h4 className="mb-4 font-semibold text-white">Platform</h4>
+            <h4 className="font-semibold mb-4">For Clients</h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="/projects" className="text-gray-300 hover:text-accent">
-                  Browse Projects
-                </Link>
-              </li>
-              <li>
-                <Link href="/post-project" className="text-gray-300 hover:text-accent">
+                <Link href="/post-project" className="text-gray-400 hover:text-white transition-colors">
                   Post a Project
                 </Link>
               </li>
               <li>
-                <Link href="/about" className="text-gray-300 hover:text-accent">
-                  About Us
+                <Link href="/projects" className="text-gray-400 hover:text-white transition-colors">
+                  Browse Projects
                 </Link>
               </li>
             </ul>
           </div>
 
           <div>
-            <h4 className="mb-4 font-semibold text-white">Legal</h4>
+            <h4 className="font-semibold mb-4">For Service Providers</h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="/terms" className="text-gray-300 hover:text-accent">
-                  Terms of Service
+                <Link href="/projects" className="text-gray-400 hover:text-white transition-colors">
+                  Find Work
                 </Link>
               </li>
               <li>
-                <Link href="/privacy" className="text-gray-300 hover:text-accent">
-                  Privacy Policy
+                <Link href="/contracts" className="text-gray-400 hover:text-white transition-colors">
+                  My Contracts
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="font-semibold mb-4">Company</h4>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <Link href="/about" className="text-gray-400 hover:text-white transition-colors">
+                  About Us
+                </Link>
+              </li>
+              <li>
+                <Link href="/register" className="text-gray-400 hover:text-white transition-colors">
+                  Register
+                </Link>
+              </li>
+              <li>
+                <Link href="/login" className="text-gray-400 hover:text-white transition-colors">
+                  Login
                 </Link>
               </li>
             </ul>
           </div>
         </div>
 
-        <div className="mt-8 border-t border-gray-800 pt-8 text-center text-sm text-gray-400">
-          <p>&copy; {new Date().getFullYear()} BlueTika. All rights reserved.</p>
+        <div className="border-t border-gray-800 pt-8">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-sm font-semibold">
+              100% NZ Owned · Kiwis Helping Kiwis · bluetika.co.nz
+            </p>
+            <p className="text-sm text-gray-400">
+              © {new Date().getFullYear()} BlueTika. All rights reserved.
+            </p>
+          </div>
         </div>
       </div>
     </footer>

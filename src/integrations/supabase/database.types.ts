@@ -135,43 +135,58 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          city_region: string | null
           created_at: string | null
+          driver_licence_verified: boolean | null
           email: string | null
+          first_name: string | null
           full_name: string | null
           gst_enabled: boolean | null
           id: string
           is_client: boolean | null
           is_provider: boolean | null
+          last_name: string | null
           location: string | null
           phone: string | null
+          phone_number: string | null
           updated_at: string | null
         }
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          city_region?: string | null
           created_at?: string | null
+          driver_licence_verified?: boolean | null
           email?: string | null
+          first_name?: string | null
           full_name?: string | null
           gst_enabled?: boolean | null
           id: string
           is_client?: boolean | null
           is_provider?: boolean | null
+          last_name?: string | null
           location?: string | null
           phone?: string | null
+          phone_number?: string | null
           updated_at?: string | null
         }
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          city_region?: string | null
           created_at?: string | null
+          driver_licence_verified?: boolean | null
           email?: string | null
+          first_name?: string | null
           full_name?: string | null
           gst_enabled?: boolean | null
           id?: string
           is_client?: boolean | null
           is_provider?: boolean | null
+          last_name?: string | null
           location?: string | null
           phone?: string | null
+          phone_number?: string | null
           updated_at?: string | null
         }
         Relationships: []
