@@ -140,30 +140,6 @@ export async function getUserReportHistory(userId: string): Promise<UserReportHi
 }
 
 /**
- * Resolve a report
- */
-export async function resolveReport(reportId: string) {
-  const { data: session } = await supabase.auth.getSession();
-  if (!session.session?.user) {
-    throw new Error("Must be logged in");
-  }
-
-  const { data, error } = await supabase
-    .from("reports")
-    .update({
-      status: "resolved",
-      resolved_at: new Date().toISOString(),
-      resolved_by: session.session.user.id,
-    })
-    .eq("id", reportId)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
-}
-
-/**
  * Resolve a report with outcome tracking
  */
 export async function resolveReport(reportId: string, outcome: "actioned" | "dismissed") {
