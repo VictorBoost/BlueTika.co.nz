@@ -24,11 +24,16 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     // Projects by category
     const { data: projectsData } = await supabase
       .from("projects")
-      .select("category")
+      .select(`
+        category_id,
+        categories (name)
+      `)
       .eq("status", "open");
 
     const categoryGroups = (projectsData || []).reduce((acc, p) => {
-      acc[p.category] = (acc[p.category] || 0) + 1;
+      // @ts-ignore - Supabase type for joined table
+      const catName = p.categories?.name || "Uncategorized";
+      acc[catName] = (acc[catName] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
@@ -47,6 +52,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       .gte("created_at", thirtyDaysAgo.toISOString());
 
     const signupsByDay = (signupsData || []).reduce((acc, s) => {
+      if (!s.created_at) return acc;
       const date = new Date(s.created_at).toISOString().split("T")[0];
       acc[date] = (acc[date] || 0) + 1;
       return acc;
@@ -61,34 +67,38 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     firstDayOfMonth.setDate(1);
     firstDayOfMonth.setHours(0, 0, 0, 0);
 
-    const { data: commissionsThisMonth } = await supabase
-      .from("commission_records")
-      .select("platform_fee_amount")
+    const { data: contractsThisMonth } = await supabase
+      .from("contracts")
+      .select("platform_fee")
       .gte("created_at", firstDayOfMonth.toISOString());
 
-    const revenueThisMonth = (commissionsThisMonth || []).reduce(
-      (sum, c) => sum + (c.platform_fee_amount || 0),
+    const revenueThisMonth = (contractsThisMonth || []).reduce(
+      (sum, c) => sum + (Number(c.platform_fee) || 0),
       0
     );
 
-    const { data: commissionsAllTime } = await supabase
-      .from("commission_records")
-      .select("platform_fee_amount");
+    const { data: contractsAllTime } = await supabase
+      .from("contracts")
+      .select("platform_fee");
 
-    const revenueAllTime = (commissionsAllTime || []).reduce(
-      (sum, c) => sum + (c.platform_fee_amount || 0),
+    const revenueAllTime = (contractsAllTime || []).reduce(
+      (sum, c) => sum + (Number(c.platform_fee) || 0),
       0
     );
 
     // Commission by tier this month
-    const { data: commissionsByTier } = await supabase
-      .from("commission_records")
-      .select("tier, platform_fee_amount")
+    const { data: contractsByTier } = await supabase
+      .from("contracts")
+      .select(`
+        platform_fee,
+        profiles!contracts_provider_id_fkey (commission_tier)
+      `)
       .gte("created_at", firstDayOfMonth.toISOString());
 
-    const tierGroups = (commissionsByTier || []).reduce((acc, c) => {
-      const tier = c.tier || "Basic";
-      acc[tier] = (acc[tier] || 0) + (c.platform_fee_amount || 0);
+    const tierGroups = (contractsByTier || []).reduce((acc, c) => {
+      // @ts-ignore - Supabase type for joined table
+      const tier = c.profiles?.commission_tier || "bronze";
+      acc[tier] = (acc[tier] || 0) + (Number(c.platform_fee) || 0);
       return acc;
     }, {} as Record<string, number>);
 
@@ -101,25 +111,26 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     const { count: openDisputesCount } = await supabase
       .from("disputes")
       .select("*", { count: "exact", head: true })
-      .eq("status", "open");
+      .is("resolved_at", null);
 
     // Pending fund releases count
     const { count: pendingFundReleasesCount } = await supabase
-      .from("fund_releases")
+      .from("contracts")
       .select("*", { count: "exact", head: true })
-      .eq("status", "pending");
+      .eq("status", "awaiting_fund_release");
 
     // Pending verifications count
     const { count: pendingVerificationsCount } = await supabase
-      .from("provider_verifications")
+      .from("profiles")
       .select("*", { count: "exact", head: true })
-      .eq("status", "pending");
+      .eq("verification_status", "pending");
 
     // Pending domestic helper verifications count
     const { count: pendingDomesticHelperVerificationsCount } = await supabase
-      .from("domestic_helper_verifications")
+      .from("verification_documents")
       .select("*", { count: "exact", head: true })
-      .eq("status", "pending");
+      .eq("status", "pending")
+      .eq("document_type", "police_check");
 
     // Open reports count
     const { count: openReportsCount } = await supabase
@@ -130,12 +141,18 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     // Active routine contracts and total monthly value
     const { data: routineContracts } = await supabase
       .from("routine_contracts")
-      .select("monthly_price")
+      .select(`
+        id,
+        contracts!routine_contracts_original_contract_id_fkey (final_amount)
+      `)
       .eq("status", "active");
 
     const activeRoutineContractsCount = routineContracts?.length || 0;
     const totalMonthlyRecurringValue = (routineContracts || []).reduce(
-      (sum, c) => sum + (c.monthly_price || 0),
+      (sum, c) => {
+        // @ts-ignore
+        return sum + (Number(c.contracts?.final_amount) || 0);
+      },
       0
     );
 
