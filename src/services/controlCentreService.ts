@@ -153,10 +153,31 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       0
     );
 
-    // Bot Lab stats (placeholder - adjust based on your bot implementation)
+    // Bot Lab stats
+    const { count: activeBots } = await supabase
+      .from("bot_accounts")
+      .select("*", { count: "exact", head: true })
+      .eq("is_active", true);
+
+    const { data: botProfiles } = await supabase
+      .from("bot_accounts")
+      .select("profile_id")
+      .eq("is_active", true);
+
+    const botProfileIds = (botProfiles || []).map(b => b.profile_id);
+
+    let listingsCreated = 0;
+    if (botProfileIds.length > 0) {
+      const { count: projectsCount } = await supabase
+        .from("projects")
+        .select("*", { count: "exact", head: true })
+        .in("client_id", botProfileIds);
+      listingsCreated = projectsCount || 0;
+    }
+
     const botLabStats = {
-      activeBots: 0,
-      listingsCreated: 0,
+      activeBots: activeBots || 0,
+      listingsCreated,
     };
 
     return {
