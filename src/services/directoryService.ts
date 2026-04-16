@@ -12,10 +12,11 @@ export interface DirectorySearchParams {
 }
 
 export interface ListingWithCategory extends DirectoryListing {
-  directory_categories: DirectoryCategory;
+  directory_categories?: DirectoryCategory | null;
   profiles?: {
-    verification_tier?: string;
-  };
+    verification_tier?: string | null;
+    full_name?: string | null;
+  } | null;
 }
 
 /**
@@ -28,8 +29,8 @@ export async function getDirectoryListings(
     .from("directory_listings")
     .select(`
       *,
-      directory_categories!directory_listings_category_id_fkey(id, name, slug),
-      profiles!directory_listings_provider_id_fkey(id, verification_tier)
+      directory_categories!directory_listings_category_id_fkey(*),
+      profiles!directory_listings_provider_id_fkey(id, verification_tier, full_name)
     `)
     .eq("is_active", true)
     .order("featured", { ascending: false })
@@ -53,7 +54,7 @@ export async function getDirectoryListings(
 
   const { data, error } = await query;
   console.log("Directory listings query:", { data, error, params });
-  return { data, error };
+  return { data: data as any, error };
 }
 
 /**
@@ -66,15 +67,15 @@ export async function getDirectoryListingBySlug(
     .from("directory_listings")
     .select(`
       *,
-      directory_categories!directory_listings_category_id_fkey(id, name, slug),
-      profiles!directory_listings_provider_id_fkey(id, verification_tier)
+      directory_categories!directory_listings_category_id_fkey(*),
+      profiles!directory_listings_provider_id_fkey(id, verification_tier, full_name)
     `)
     .eq("slug", slug)
     .eq("is_active", true)
     .single();
 
   console.log("Directory listing by slug:", { data, error, slug });
-  return { data, error };
+  return { data: data as any, error };
 }
 
 /**
@@ -149,6 +150,38 @@ export async function deactivateListing(
 }
 
 /**
+ * Get all active listings (for admin)
+ */
+export async function getAllDirectoryListings(): Promise<{
+  data: ListingWithCategory[] | null;
+  error: any;
+}> {
+  const { data, error } = await supabase
+    .from("directory_listings")
+    .select(`
+      *,
+      directory_categories!directory_listings_category_id_fkey(*),
+      profiles!directory_listings_provider_id_fkey(id, verification_tier, full_name)
+    `)
+    .order("created_at", { ascending: false });
+
+  return { data: data as any, error };
+}
+
+/**
+ * Delete a listing completely (admin only)
+ */
+export async function deleteDirectoryListing(
+  id: string
+): Promise<{ error: any }> {
+  const { error } = await supabase
+    .from("directory_listings")
+    .delete()
+    .eq("id", id);
+  return { error };
+}
+
+/**
  * Get listings claimed by current user
  */
 export async function getMyListings(): Promise<{
@@ -164,11 +197,11 @@ export async function getMyListings(): Promise<{
     .from("directory_listings")
     .select(`
       *,
-      directory_categories!directory_listings_category_id_fkey(id, name, slug)
+      directory_categories!directory_listings_category_id_fkey(*)
     `)
     .eq("claimed_by", session.session.user.id)
     .order("created_at", { ascending: false });
 
   console.log("My listings:", { data, error });
-  return { data, error };
+  return { data: data as any, error };
 }
