@@ -12,6 +12,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { CheckCircle, XCircle, Clock, Eye, ExternalLink, Bot, User } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 
 export default function AdminVerifyProviders() {
   const { toast } = useToast();
@@ -194,90 +196,131 @@ export default function AdminVerifyProviders() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {loading ? (
-                  <p className="text-center py-8 text-muted-foreground">Loading...</p>
-                ) : documents.length === 0 ? (
-                  <p className="text-center py-8 text-muted-foreground">No verification submissions yet</p>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Provider</TableHead>
-                        <TableHead>Document Type</TableHead>
-                        <TableHead>AI Confidence</TableHead>
-                        <TableHead>AI Reason</TableHead>
-                        <TableHead>Submitted</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {documents.map((doc) => (
-                        <TableRow key={doc.id}>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium">
-                                {doc.provider?.full_name || doc.provider?.first_name}
-                              </p>
-                              <p className="text-sm text-muted-foreground">{doc.provider?.email}</p>
-                              <Button
-                                variant="link"
-                                size="sm"
-                                className="h-auto p-0 text-xs"
-                                onClick={() => loadVerificationHistory(doc.provider_id)}
-                              >
-                                View History
-                              </Button>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium">{doc.document_type.replace(/_/g, " ")}</span>
-                              <a
-                                href={doc.file_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-primary hover:underline"
-                              >
-                                <ExternalLink className="h-4 w-4" />
-                              </a>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {getConfidenceBadge(doc.ai_confidence_score, doc.auto_approved)}
-                          </TableCell>
-                          <TableCell className="max-w-xs">
-                            <p className="text-sm text-muted-foreground truncate" title={doc.ai_scan_reason}>
-                              {doc.ai_scan_reason || "—"}
-                            </p>
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {new Date(doc.created_at).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleReview(doc, "approve")}
-                              >
-                                <CheckCircle className="h-4 w-4 mr-1" />
-                                Approve
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleReview(doc, "reject")}
-                              >
-                                <XCircle className="h-4 w-4 mr-1" />
-                                Reject
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
+                <Tabs defaultValue="queue" className="space-y-6">
+                  <TabsList>
+                    <TabsTrigger value="queue">Review Queue</TabsTrigger>
+                    <TabsTrigger value="settings">API Settings</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="queue">
+                    {loading ? (
+                      <p className="text-center py-8 text-muted-foreground">Loading...</p>
+                    ) : documents.length === 0 ? (
+                      <p className="text-center py-8 text-muted-foreground">No verification submissions yet</p>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Provider</TableHead>
+                            <TableHead>Document Type</TableHead>
+                            <TableHead>AI Confidence</TableHead>
+                            <TableHead>AI Reason</TableHead>
+                            <TableHead>Submitted</TableHead>
+                            <TableHead>Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {documents.map((doc) => (
+                            <TableRow key={doc.id}>
+                              <TableCell>
+                                <div>
+                                  <p className="font-medium">
+                                    {doc.provider?.full_name || doc.provider?.first_name}
+                                  </p>
+                                  <p className="text-sm text-muted-foreground">{doc.provider?.email}</p>
+                                  <Button
+                                    variant="link"
+                                    size="sm"
+                                    className="h-auto p-0 text-xs"
+                                    onClick={() => loadVerificationHistory(doc.provider_id)}
+                                  >
+                                    View History
+                                  </Button>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">{doc.document_type.replace(/_/g, " ")}</span>
+                                  <a
+                                    href={doc.file_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-primary hover:underline"
+                                  >
+                                    <ExternalLink className="h-4 w-4" />
+                                  </a>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                {getConfidenceBadge(doc.ai_confidence_score, doc.auto_approved)}
+                              </TableCell>
+                              <TableCell className="max-w-xs">
+                                <p className="text-sm text-muted-foreground truncate" title={doc.ai_scan_reason}>
+                                  {doc.ai_scan_reason || "—"}
+                                </p>
+                              </TableCell>
+                              <TableCell className="text-sm">
+                                {new Date(doc.created_at).toLocaleDateString()}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleReview(doc, "approve")}
+                                  >
+                                    <CheckCircle className="h-4 w-4 mr-1" />
+                                    Approve
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleReview(doc, "reject")}
+                                  >
+                                    <XCircle className="h-4 w-4 mr-1" />
+                                    Reject
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="settings">
+                    <Card className="border-primary/20">
+                      <CardHeader>
+                        <CardTitle>Government Verification API (Coming Soon)</CardTitle>
+                        <CardDescription>
+                          Connect to future NZ Government identity verification services for instant real-time document checks.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                          <Label>API Endpoint URL</Label>
+                          <Input 
+                            placeholder="https://api.identity.govt.nz/v1/verify" 
+                            disabled 
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>API Key</Label>
+                          <Input 
+                            type="password" 
+                            placeholder="••••••••••••••••" 
+                            disabled 
+                          />
+                        </div>
+                        <p className="text-sm text-muted-foreground italic">
+                          This feature is in active development pending government API release. When activated, it will automatically bypass AI and manual checks where possible.
+                        </p>
+                        <Button disabled>Save Credentials</Button>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                </Tabs>
               </CardContent>
             </Card>
           </div>
