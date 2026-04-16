@@ -39,7 +39,7 @@ import {
   createDirectoryCategory,
   updateDirectoryCategory,
   deleteDirectoryCategory,
-  reorderDirectoryCategories,
+  reorderCategories,
   type DirectoryCategory,
 } from "@/services/directoryCategoryService";
 
@@ -155,7 +155,7 @@ export default function DirectoryCategoriesAdmin() {
     const newCategories = [...categories];
     [newCategories[index - 1], newCategories[index]] = [newCategories[index], newCategories[index - 1]];
     const updates = newCategories.map((cat, idx) => ({ id: cat.id, display_order: idx }));
-    await reorderDirectoryCategories(updates);
+    await reorderCategories(updates.map(u => u.id));
     loadCategories();
   };
 
@@ -164,7 +164,7 @@ export default function DirectoryCategoriesAdmin() {
     const newCategories = [...categories];
     [newCategories[index], newCategories[index + 1]] = [newCategories[index + 1], newCategories[index]];
     const updates = newCategories.map((cat, idx) => ({ id: cat.id, display_order: idx }));
-    await reorderDirectoryCategories(updates);
+    await reorderCategories(updates.map(u => u.id));
     loadCategories();
   };
 

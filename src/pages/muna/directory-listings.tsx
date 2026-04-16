@@ -27,12 +27,12 @@ import { Loader2, Star, StarOff, Trash2, ExternalLink, Shield, Search } from "lu
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
-  getAllDirectoryListings,
+  getDirectoryListings,
   updateDirectoryListing,
   deleteDirectoryListing,
   type ListingWithCategory,
 } from "@/services/directoryService";
-import { getDirectoryAnalytics } from "@/services/directoryAnalyticsService";
+import { getOverallDirectoryAnalytics } from "@/services/directoryAnalyticsService";
 
 export default function DirectoryListingsAdmin() {
   const router = useRouter();
@@ -71,12 +71,12 @@ export default function DirectoryListingsAdmin() {
 
   const loadData = async () => {
     setLoading(true);
-    const { data: listingsData } = await getAllDirectoryListings();
+    const { data: listingsData } = await getDirectoryListings();
     if (listingsData) {
       setListings(listingsData);
     }
 
-    const { data: analyticsData } = await getDirectoryAnalytics();
+    const { data: analyticsData } = await getOverallDirectoryAnalytics();
     if (analyticsData) {
       const analyticsMap: Record<string, { clicks: number; conversions: number; rate: number }> = {};
       analyticsData.forEach((item) => {
@@ -245,7 +245,9 @@ export default function DirectoryListingsAdmin() {
                                 {listing.profiles?.full_name || "Unknown"}
                               </Badge>
                               {isSilverPlus && (
-                                <Shield className="w-4 h-4 text-success" title="Silver+ Provider" />
+                                <div title="Silver+ Provider">
+                                  <Shield className="w-4 h-4 text-success" />
+                                </div>
                               )}
                             </div>
                           ) : (
