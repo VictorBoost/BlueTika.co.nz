@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -623,6 +623,39 @@ export type Database = {
           },
         ]
       }
+      government_verification_api: {
+        Row: {
+          api_endpoint_url: string | null
+          api_key: string | null
+          enabled: boolean | null
+          id: string
+          last_tested_at: string | null
+          test_error_message: string | null
+          test_status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          api_endpoint_url?: string | null
+          api_key?: string | null
+          enabled?: boolean | null
+          id?: string
+          last_tested_at?: string | null
+          test_error_message?: string | null
+          test_status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          api_endpoint_url?: string | null
+          api_key?: string | null
+          enabled?: boolean | null
+          id?: string
+          last_tested_at?: string | null
+          test_error_message?: string | null
+          test_status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       moderation_queue: {
         Row: {
           content_type: string
@@ -844,6 +877,8 @@ export type Database = {
           phone: string | null
           phone_number: string | null
           response_rate: number | null
+          show_credentials_to_clients: boolean | null
+          show_verified_publicly: boolean | null
           tier_updated_at: string | null
           total_reviews: number | null
           updated_at: string | null
@@ -884,6 +919,8 @@ export type Database = {
           phone?: string | null
           phone_number?: string | null
           response_rate?: number | null
+          show_credentials_to_clients?: boolean | null
+          show_verified_publicly?: boolean | null
           tier_updated_at?: string | null
           total_reviews?: number | null
           updated_at?: string | null
@@ -924,6 +961,8 @@ export type Database = {
           phone?: string | null
           phone_number?: string | null
           response_rate?: number | null
+          show_credentials_to_clients?: boolean | null
+          show_verified_publicly?: boolean | null
           tier_updated_at?: string | null
           total_reviews?: number | null
           updated_at?: string | null
@@ -1592,6 +1631,10 @@ export type Database = {
       }
       verification_documents: {
         Row: {
+          ai_confidence_score: number | null
+          ai_scan_reason: string | null
+          ai_scan_result: string | null
+          auto_approved: boolean | null
           category_id: string | null
           created_at: string | null
           document_type: string
@@ -1601,11 +1644,16 @@ export type Database = {
           rejection_reason: string | null
           reviewed_at: string | null
           reviewed_by: string | null
+          scanned_at: string | null
           status: string | null
           subcategory_id: string | null
           updated_at: string | null
         }
         Insert: {
+          ai_confidence_score?: number | null
+          ai_scan_reason?: string | null
+          ai_scan_result?: string | null
+          auto_approved?: boolean | null
           category_id?: string | null
           created_at?: string | null
           document_type: string
@@ -1615,11 +1663,16 @@ export type Database = {
           rejection_reason?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          scanned_at?: string | null
           status?: string | null
           subcategory_id?: string | null
           updated_at?: string | null
         }
         Update: {
+          ai_confidence_score?: number | null
+          ai_scan_reason?: string | null
+          ai_scan_result?: string | null
+          auto_approved?: boolean | null
           category_id?: string | null
           created_at?: string | null
           document_type?: string
@@ -1629,6 +1682,7 @@ export type Database = {
           rejection_reason?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          scanned_at?: string | null
           status?: string | null
           subcategory_id?: string | null
           updated_at?: string | null
@@ -1660,6 +1714,70 @@ export type Database = {
             columns: ["subcategory_id"]
             isOneToOne: false
             referencedRelation: "subcategories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      verification_logs: {
+        Row: {
+          action: string
+          admin_id: string | null
+          confidence_score: number | null
+          created_at: string | null
+          decision_maker: string | null
+          document_id: string | null
+          document_type: string
+          id: string
+          metadata: Json | null
+          provider_id: string
+          reason: string | null
+        }
+        Insert: {
+          action: string
+          admin_id?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          decision_maker?: string | null
+          document_id?: string | null
+          document_type: string
+          id?: string
+          metadata?: Json | null
+          provider_id: string
+          reason?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          decision_maker?: string | null
+          document_id?: string | null
+          document_type?: string
+          id?: string
+          metadata?: Json | null
+          provider_id?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verification_logs_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "verification_logs_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "verification_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "verification_logs_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
