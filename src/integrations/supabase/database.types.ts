@@ -623,6 +623,98 @@ export type Database = {
           },
         ]
       }
+      moderation_queue: {
+        Row: {
+          content_type: string
+          created_at: string | null
+          decision: string | null
+          decision_reason: string | null
+          id: string
+          item_id: string
+          metadata: Json | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          content_type: string
+          created_at?: string | null
+          decision?: string | null
+          decision_reason?: string | null
+          id?: string
+          item_id: string
+          metadata?: Json | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          content_type?: string
+          created_at?: string | null
+          decision?: string | null
+          decision_reason?: string | null
+          id?: string
+          item_id?: string
+          metadata?: Json | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moderation_queue_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moderation_settings: {
+        Row: {
+          bot_content_auto: boolean | null
+          chat_message_auto: boolean | null
+          driver_licence_auto: boolean | null
+          id: string
+          police_check_auto: boolean | null
+          profile_photo_auto: boolean | null
+          project_listing_auto: boolean | null
+          project_media_auto: boolean | null
+          review_auto: boolean | null
+          trade_certificate_auto: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          bot_content_auto?: boolean | null
+          chat_message_auto?: boolean | null
+          driver_licence_auto?: boolean | null
+          id?: string
+          police_check_auto?: boolean | null
+          profile_photo_auto?: boolean | null
+          project_listing_auto?: boolean | null
+          project_media_auto?: boolean | null
+          review_auto?: boolean | null
+          trade_certificate_auto?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          bot_content_auto?: boolean | null
+          chat_message_auto?: boolean | null
+          driver_licence_auto?: boolean | null
+          id?: string
+          police_check_auto?: boolean | null
+          profile_photo_auto?: boolean | null
+          project_listing_auto?: boolean | null
+          project_media_auto?: boolean | null
+          review_auto?: boolean | null
+          trade_certificate_auto?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string | null

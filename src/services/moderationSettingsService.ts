@@ -1,9 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
-type ModerationSetting = Database["public"]["Tables"]["moderation_settings"]["Row"];
-type ModerationSettingInsert = Database["public"]["Tables"]["moderation_settings"]["Insert"];
-
 export type ContentType =
   | "project_listing"
   | "profile_photo"
@@ -18,35 +15,24 @@ export type ContentType =
 export interface ModerationSettings {
   project_listing: boolean;
   profile_photo: boolean;
-  driver_licence: boolean; // Always manual - cannot be changed
-  police_check: boolean; // Always manual - cannot be changed
-  trade_certificate: boolean; // Always manual - cannot be changed
+  driver_licence: boolean;
+  police_check: boolean;
+  trade_certificate: boolean;
   project_media: boolean;
   chat_message: boolean;
   review: boolean;
   bot_content: boolean;
 }
 
-const FIXED_MANUAL_TYPES: ContentType[] = [
+// Locked types that cannot be changed to auto
+const LOCKED_MANUAL_TYPES: ContentType[] = [
   "driver_licence",
   "police_check",
   "trade_certificate",
 ];
 
-const DEFAULT_SETTINGS: ModerationSettings = {
-  project_listing: true, // Auto-approve with safety filter
-  profile_photo: true, // Auto-approve
-  driver_licence: false, // Manual always
-  police_check: false, // Manual always
-  trade_certificate: false, // Manual always
-  project_media: true, // Auto-approve
-  chat_message: true, // Auto-filter
-  review: true, // Auto-publish
-  bot_content: true, // Auto
-};
-
 /**
- * Get current moderation settings
+ * Get current moderation settings (singleton row)
  */
 export async function getModerationSettings(): Promise<ModerationSettings> {
   const { data, error } = await supabase
@@ -56,138 +42,109 @@ export async function getModerationSettings(): Promise<ModerationSettings> {
 
   console.log("Get moderation settings:", { data, error });
 
-  if (error || !data) {
-    // Return defaults if no settings exist
-    return DEFAULT_SETTINGS;
+  if (error) {
+    console.error("Failed to fetch moderation settings:", error);
+    // Return defaults on error
+    return {
+      project_listing: true,
+      profile_photo: true,
+      driver_licence: false,
+      police_check: false,
+      trade_certificate: false,
+      project_media: true,
+      chat_message: true,
+      review: true,
+      bot_content: true,
+    };
   }
 
   return {
-    project_listing: data.project_listing_auto,
-    profile_photo: data.profile_photo_auto,
-    driver_licence: data.driver_licence_auto,
-    police_check: data.police_check_auto,
-    trade_certificate: data.trade_certificate_auto,
-    project_media: data.project_media_auto,
-    chat_message: data.chat_message_auto,
-    review: data.review_auto,
-    bot_content: data.bot_content_auto,
+    project_listing: data.project_listing_auto ?? true,
+    profile_photo: data.profile_photo_auto ?? true,
+    driver_licence: data.driver_licence_auto ?? false,
+    police_check: data.police_check_auto ?? false,
+    trade_certificate: data.trade_certificate_auto ?? false,
+    project_media: data.project_media_auto ?? true,
+    chat_message: data.chat_message_auto ?? true,
+    review: data.review_auto ?? true,
+    bot_content: data.bot_content_auto ?? true,
   };
 }
 
 /**
- * Initialize default settings (call once on app setup)
- */
-export async function initializeModerationSettings(): Promise<void> {
-  const { data: existing } = await supabase
-    .from("moderation_settings")
-    .select("id")
-    .single();
-
-  if (existing) {
-    console.log("Moderation settings already exist");
-    return;
-  }
-
-  const settingsData: ModerationSettingInsert = {
-    project_listing_auto: DEFAULT_SETTINGS.project_listing,
-    profile_photo_auto: DEFAULT_SETTINGS.profile_photo,
-    driver_licence_auto: DEFAULT_SETTINGS.driver_licence,
-    police_check_auto: DEFAULT_SETTINGS.police_check,
-    trade_certificate_auto: DEFAULT_SETTINGS.trade_certificate,
-    project_media_auto: DEFAULT_SETTINGS.project_media,
-    chat_message_auto: DEFAULT_SETTINGS.chat_message,
-    review_auto: DEFAULT_SETTINGS.review,
-    bot_content_auto: DEFAULT_SETTINGS.bot_content,
-  };
-
-  const { error } = await supabase
-    .from("moderation_settings")
-    .insert(settingsData);
-
-  console.log("Initialize moderation settings:", { error });
-}
-
-/**
- * Update a specific moderation setting
+ * Update a single moderation setting
  */
 export async function updateModerationSetting(
   contentType: ContentType,
   autoApprove: boolean
 ): Promise<{ success: boolean; error?: string }> {
-  // Prevent changing fixed manual types
-  if (FIXED_MANUAL_TYPES.includes(contentType)) {
+  // Prevent changing locked types to auto
+  if (LOCKED_MANUAL_TYPES.includes(contentType) && autoApprove) {
     return {
       success: false,
-      error: `${contentType.replace(/_/g, " ")} must always be reviewed manually for compliance and safety.`,
+      error: `${contentType.replace(/_/g, " ")} must always use manual review for compliance and safety`,
     };
   }
 
-  const columnMap: Record<ContentType, string> = {
-    project_listing: "project_listing_auto",
-    profile_photo: "profile_photo_auto",
-    driver_licence: "driver_licence_auto",
-    police_check: "police_check_auto",
-    trade_certificate: "trade_certificate_auto",
-    project_media: "project_media_auto",
-    chat_message: "chat_message_auto",
-    review: "review_auto",
-    bot_content: "bot_content_auto",
-  };
-
-  const columnName = columnMap[contentType];
-
+  const columnName = `${contentType}_auto`;
+  
   const { error } = await supabase
     .from("moderation_settings")
-    .update({ [columnName]: autoApprove })
-    .eq("id", 1); // Single row config
+    .update({ 
+      [columnName]: autoApprove,
+      updated_at: new Date().toISOString() 
+    })
+    .eq("id", "00000000-0000-0000-0000-000000000000");
 
-  console.log("Update moderation setting:", {
-    contentType,
-    autoApprove,
-    error,
-  });
+  console.log("Update moderation setting:", { contentType, autoApprove, error });
 
   if (error) {
-    return { success: false, error: error.message };
+    console.error("Failed to update moderation setting:", error);
+    return { success: false, error: "Failed to update setting" };
   }
 
   return { success: true };
 }
 
 /**
- * Check if a content type should auto-approve
+ * Check if content type uses auto-approval
  */
-export async function shouldAutoApprove(
-  contentType: ContentType
-): Promise<boolean> {
+export async function isAutoApproved(contentType: ContentType): Promise<boolean> {
   const settings = await getModerationSettings();
   return settings[contentType];
 }
 
 /**
- * Queue item for manual review
+ * Add item to moderation queue
  */
-export async function queueForReview(
+export async function addToModerationQueue(
   contentType: ContentType,
   itemId: string,
   metadata?: Record<string, unknown>
-): Promise<void> {
-  const { error } = await supabase.from("moderation_queue").insert({
-    content_type: contentType,
-    item_id: itemId,
-    status: "pending",
-    metadata: metadata || {},
-  });
+): Promise<{ success: boolean; queueId?: string }> {
+  const { data, error } = await supabase
+    .from("moderation_queue")
+    .insert({
+      content_type: contentType,
+      item_id: itemId,
+      status: "pending",
+      metadata: metadata || {},
+    })
+    .select("id")
+    .single();
 
-  console.log("Queue for review:", { contentType, itemId, error });
+  console.log("Add to moderation queue:", { contentType, itemId, data, error });
 
   if (error) {
-    console.error("Failed to queue for review:", error);
+    console.error("Failed to add to moderation queue:", error);
+    return { success: false };
   }
+
+  return { success: true, queueId: data.id };
 }
 
 /**
- * Get pending review queue count
+ * Get pending review count
  */
 export async function getPendingReviewCount(): Promise<number> {
   const { count, error } = await supabase
@@ -207,9 +164,7 @@ export async function getPendingReviewCount(): Promise<number> {
 /**
  * Get pending items by content type
  */
-export async function getPendingByType(
-  contentType: ContentType
-): Promise<number> {
+export async function getPendingByType(contentType: ContentType): Promise<number> {
   const { count, error } = await supabase
     .from("moderation_queue")
     .select("*", { count: "exact", head: true })
@@ -223,4 +178,84 @@ export async function getPendingByType(
   }
 
   return count;
+}
+
+/**
+ * Get all pending items for review
+ */
+export async function getPendingItems() {
+  const { data, error } = await supabase
+    .from("moderation_queue")
+    .select("*")
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+
+  console.log("Get pending items:", { data, error });
+
+  if (error) {
+    console.error("Failed to fetch pending items:", error);
+    return [];
+  }
+
+  return data || [];
+}
+
+/**
+ * Approve an item in the queue
+ */
+export async function approveQueueItem(
+  queueId: string,
+  reviewerId: string,
+  reason?: string
+): Promise<{ success: boolean }> {
+  const { error } = await supabase
+    .from("moderation_queue")
+    .update({
+      status: "approved",
+      decision: "approve",
+      decision_reason: reason,
+      reviewed_by: reviewerId,
+      reviewed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", queueId);
+
+  console.log("Approve queue item:", { queueId, error });
+
+  if (error) {
+    console.error("Failed to approve queue item:", error);
+    return { success: false };
+  }
+
+  return { success: true };
+}
+
+/**
+ * Reject an item in the queue
+ */
+export async function rejectQueueItem(
+  queueId: string,
+  reviewerId: string,
+  reason: string
+): Promise<{ success: boolean }> {
+  const { error } = await supabase
+    .from("moderation_queue")
+    .update({
+      status: "rejected",
+      decision: "reject",
+      decision_reason: reason,
+      reviewed_by: reviewerId,
+      reviewed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", queueId);
+
+  console.log("Reject queue item:", { queueId, error });
+
+  if (error) {
+    console.error("Failed to reject queue item:", error);
+    return { success: false };
+  }
+
+  return { success: true };
 }
