@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { SEO } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Bot, Trash2, Activity, AlertTriangle, TrendingUp, Zap, Skull } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Bot, Trash2, Activity, AlertTriangle, TrendingUp, Zap, Skull, Power } from "lucide-react";
 import { botLabService } from "@/services/botLabService";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -23,12 +24,41 @@ import {
 export default function BotLab() {
   const router = useRouter();
   const { toast } = useToast();
+  const [isOwner, setIsOwner] = useState(false);
+  const [checkingOwner, setCheckingOwner] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
   const [isKilling, setIsKilling] = useState(false);
   const [stats, setStats] = useState<any>(null);
   const [loadingStats, setLoadingStats] = useState(false);
   const [automationStatus, setAutomationStatus] = useState<any>(null);
+  const [isTogglingAutomation, setIsTogglingAutomation] = useState(false);
+
+  useEffect(() => {
+    checkOwnerAccess();
+  }, []);
+
+  const checkOwnerAccess = async () => {
+    setCheckingOwner(true);
+    try {
+      const hasAccess = await botLabService.checkOwnerAccess();
+      setIsOwner(hasAccess);
+      
+      if (!hasAccess) {
+        toast({
+          title: "Access Denied",
+          description: "Bot Lab is only accessible to the platform owner.",
+          variant: "destructive"
+        });
+        router.push("/muna");
+      }
+    } catch (error) {
+      console.error("Failed to check owner access:", error);
+      router.push("/muna");
+    } finally {
+      setCheckingOwner(false);
+    }
+  };
 
   const loadStats = async () => {
     setLoadingStats(true);
@@ -43,6 +73,39 @@ export default function BotLab() {
       console.error("Failed to load bot stats:", error);
     } finally {
       setLoadingStats(false);
+    }
+  };
+
+  const handleToggleAutomation = async (enabled: boolean) => {
+    setIsTogglingAutomation(true);
+    try {
+      const success = await botLabService.toggleAutomation(enabled);
+      
+      if (success) {
+        toast({
+          title: enabled ? "Automation Enabled" : "Automation Disabled",
+          description: enabled 
+            ? "Daily bot generation will resume at random times"
+            : "Daily bot generation has been stopped",
+        });
+        
+        // Reload status
+        await loadStats();
+      } else {
+        toast({
+          title: "Toggle Failed",
+          description: "Failed to update automation status",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Toggle Failed",
+        description: error instanceof Error ? error.message : "Unknown error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setIsTogglingAutomation(false);
     }
   };
 
@@ -108,7 +171,7 @@ export default function BotLab() {
       if (result.success) {
         toast({
           title: "Kill Switch Activated",
-          description: result.message || `Deleted ${result.deleted} bots and all their content`,
+          description: result.message || `Deleted ${result.deleted} bots and all their content. Automation disabled.`,
         });
       } else {
         toast({
@@ -130,6 +193,18 @@ export default function BotLab() {
       setIsKilling(false);
     }
   };
+
+  if (checkingOwner) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Verifying access...</p>
+      </div>
+    );
+  }
+
+  if (!isOwner) {
+    return null;
+  }
 
   return (
     <>
@@ -153,11 +228,41 @@ export default function BotLab() {
             <div className="flex items-center gap-3 mb-2">
               <Bot className="w-8 h-8 text-primary" />
               <h1 className="text-3xl font-bold">Bot Lab</h1>
+              <Badge variant="destructive" className="ml-auto">OWNER ONLY</Badge>
             </div>
             <p className="text-muted-foreground">
               Generate realistic test data to populate the marketplace
             </p>
           </div>
+
+          {/* Automation Toggle */}
+          <Card className="mb-6 border-primary">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Power className="w-6 h-6 text-primary" />
+                  <div>
+                    <CardTitle>Automation Control</CardTitle>
+                    <CardDescription>
+                      {automationStatus?.isActive 
+                        ? "Daily bot generation is ACTIVE" 
+                        : "Daily bot generation is OFF"}
+                    </CardDescription>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium">
+                    {automationStatus?.isActive ? "ON" : "OFF"}
+                  </span>
+                  <Switch
+                    checked={automationStatus?.isActive || false}
+                    onCheckedChange={handleToggleAutomation}
+                    disabled={isTogglingAutomation}
+                  />
+                </div>
+              </div>
+            </CardHeader>
+          </Card>
 
           {/* Warning Banner */}
           <Alert className="mb-6 border-yellow-500 bg-yellow-500/10">
@@ -231,7 +336,7 @@ export default function BotLab() {
                   Kill Switch
                 </CardTitle>
                 <CardDescription className="text-red-600 dark:text-red-400">
-                  ⚠️ DESTRUCTIVE: Permanently deletes ALL bots and ALL their content (listings, bids, contracts, photos, reviews). This action cannot be undone.
+                  ⚠️ DESTRUCTIVE: Permanently deletes ALL bots and ALL their content (listings, bids, contracts, photos, reviews). Disables automation. This action cannot be undone.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -266,6 +371,9 @@ export default function BotLab() {
                           <li>All bot activity logs</li>
                         </ul>
                         <p className="font-semibold text-red-600 dark:text-red-400 mt-4">
+                          Automation will be DISABLED. Daily bot generation will stop.
+                        </p>
+                        <p className="font-semibold text-red-600 dark:text-red-400">
                           This action cannot be undone. Real user data will NOT be affected.
                         </p>
                       </AlertDialogDescription>

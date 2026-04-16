@@ -58,206 +58,6 @@ const CLIENT_BIOS = [
   "Regular client looking for dependable contractors."
 ];
 
-// Project templates by category
-const PROJECT_TEMPLATES: Record<string, Array<{title: string, description: string, budgetRange: [number, number]}>> = {
-  "home-maintenance-repairs": [
-    {
-      title: "Fence Repair Needed",
-      description: "Need to repair wooden fence at back of property. About 10 meters of fencing needs attention - some palings are broken and posts are loose. Looking for someone who can assess and fix properly.",
-      budgetRange: [300, 800]
-    },
-    {
-      title: "Gutter Cleaning and Minor Repairs",
-      description: "Gutters need cleaning and there's a leak in one section. Single-story home in {location}. Would like it done before winter sets in.",
-      budgetRange: [200, 450]
-    },
-    {
-      title: "Deck Staining and Repairs",
-      description: "Medium-sized deck needs re-staining and a couple of boards need replacing. About 20 square meters. Looking for a tidy job with quality finish.",
-      budgetRange: [800, 1500]
-    }
-  ],
-  "gardening-landscaping": [
-    {
-      title: "Lawn Mowing and Section Tidy",
-      description: "Regular lawn mowing needed for medium-sized section. Grass is currently quite overgrown. Also need hedges trimmed and garden beds weeded.",
-      budgetRange: [150, 350]
-    },
-    {
-      title: "Garden Bed Design and Planting",
-      description: "Want to create new garden beds in front yard. Looking for someone to design, prepare soil, and plant low-maintenance natives. About 15 square meters total.",
-      budgetRange: [600, 1200]
-    },
-    {
-      title: "Tree Removal",
-      description: "Need large macrocarpa tree removed from backyard. About 8 meters tall, near fence line. Must be certified arborist with proper equipment and insurance.",
-      budgetRange: [800, 1800]
-    }
-  ],
-  "cleaning-services": [
-    {
-      title: "Deep Clean Before Moving Out",
-      description: "Need thorough end of tenancy clean for 3 bedroom house. Kitchen, bathrooms, windows, carpets - the works. Property inspection is in 5 days.",
-      budgetRange: [350, 650]
-    },
-    {
-      title: "Regular Fortnightly House Clean",
-      description: "Looking for reliable cleaner for ongoing fortnightly cleans. 4 bedroom home, 2 bathrooms. General clean - vacuuming, mopping, bathrooms, kitchen.",
-      budgetRange: [120, 200]
-    },
-    {
-      title: "After Renovation Clean Up",
-      description: "Just finished kitchen renovation and need professional clean. Lots of dust and debris. Need windows, floors, and surfaces cleaned properly.",
-      budgetRange: [250, 500]
-    }
-  ],
-  "electrical-services": [
-    {
-      title: "Install New Power Points",
-      description: "Need 3 new power points installed in lounge and bedroom. House is 1970s build with existing wiring. Must be registered electrician.",
-      budgetRange: [400, 800]
-    },
-    {
-      title: "Rewire Old Light Fixtures",
-      description: "Have 5 ceiling light fixtures that need rewiring - they're original 1960s fittings. Also want to install dimmer switches in living areas.",
-      budgetRange: [600, 1200]
-    },
-    {
-      title: "Install Outdoor Lighting",
-      description: "Want sensor lights installed at front and back of house for security. Also pathway lighting in garden. About 8 lights total.",
-      budgetRange: [500, 1000]
-    }
-  ],
-  "plumbing": [
-    {
-      title: "Fix Leaking Tap and Toilet",
-      description: "Kitchen tap drips constantly and toilet in main bathroom keeps running. Need qualified plumber to fix both issues ASAP.",
-      budgetRange: [150, 400]
-    },
-    {
-      title: "Install New Hot Water Cylinder",
-      description: "Current cylinder is 20 years old and failing. Need new one installed with proper safety valve. 180L capacity preferred.",
-      budgetRange: [1500, 2500]
-    },
-    {
-      title: "Blocked Drain Clearing",
-      description: "Outside drain near laundry keeps backing up. Tried DIY solutions but no luck. Need professional to clear blockage properly.",
-      budgetRange: [200, 500]
-    }
-  ],
-  "painting-decorating": [
-    {
-      title: "Interior House Painting",
-      description: "Need 3 bedrooms and hallway painted. Walls need prep work and two coats. Looking for quality finish with proper drop sheets etc.",
-      budgetRange: [1200, 2500]
-    },
-    {
-      title: "Exterior House Painting",
-      description: "Weatherboard house needs full exterior repaint. About 120 square meters. Some prep work needed on weatherboards. Want a long-lasting finish.",
-      budgetRange: [4000, 8000]
-    },
-    {
-      title: "Fence Painting",
-      description: "Wooden fence needs painting - about 30 meters total. Already pressure washed, just needs two coats of stain/paint.",
-      budgetRange: [500, 1000]
-    }
-  ],
-  "building-construction": [
-    {
-      title: "Deck Extension",
-      description: "Want to extend existing deck by about 15 square meters. Need proper framing, decking boards, and building consent organized. Must be licensed builder.",
-      budgetRange: [4000, 7000]
-    },
-    {
-      title: "Bathroom Renovation",
-      description: "Full bathroom reno - new tiles, vanity, shower, toilet. About 5 square meters. Need everything done to code with proper waterproofing.",
-      budgetRange: [8000, 15000]
-    },
-    {
-      title: "Garage Conversion",
-      description: "Want to convert single garage into home office. Need framing, insulation, plasterboard, electrical work. Building consent will be required.",
-      budgetRange: [12000, 20000]
-    }
-  ],
-  "moving-storage": [
-    {
-      title: "House Move Assistance",
-      description: "Moving from 3 bedroom house to another in same city. Need help loading, transporting, and unloading. Have some heavy furniture including piano.",
-      budgetRange: [400, 800]
-    },
-    {
-      title: "Furniture Delivery",
-      description: "Bought furniture from trademe that needs picking up from {location} and delivering to my place. 2-seater couch and dining table.",
-      budgetRange: [100, 250]
-    },
-    {
-      title: "Apartment Move",
-      description: "Moving from 2nd floor apartment to new place across town. Not much stuff but access is tricky. Need careful movers.",
-      budgetRange: [350, 650]
-    }
-  ]
-};
-
-// Domestic Helper specific templates
-const DOMESTIC_HELPER_TEMPLATES = [
-  {
-    title: "Weekly House Cleaning",
-    description: "Seeking reliable cleaner for weekly house cleaning. 3 bedroom home, general clean including bathrooms, kitchen, vacuuming and mopping. Usually takes 3-4 hours.",
-    budgetRange: [25, 35] as [number, number],
-    subcategory: "house-cleaning"
-  },
-  {
-    title: "Ironing Service Needed",
-    description: "Need someone to do weekly ironing. Usually about 2-3 hours worth of shirts and business clothes. Can provide ironing board and iron.",
-    budgetRange: [20, 30] as [number, number],
-    subcategory: "ironing-laundry"
-  },
-  {
-    title: "After School Childcare",
-    description: "Looking for reliable person to pick up 2 children (ages 7 and 9) from school at 3pm and look after them until 6pm Monday to Friday. Light snack prep and homework supervision.",
-    budgetRange: [20, 28] as [number, number],
-    subcategory: "childcare"
-  },
-  {
-    title: "Elderly Care Companion",
-    description: "Seeking caring person to visit my elderly mother 3 times a week. Help with light housework, meal prep, and companionship. Must have patience and experience with elderly care.",
-    budgetRange: [25, 35] as [number, number],
-    subcategory: "elderly-care"
-  },
-  {
-    title: "Pet Sitting While on Holiday",
-    description: "Going away for 2 weeks and need someone to care for our 2 cats and small dog. Daily visits for feeding, water, and dog walking. House sitting option available.",
-    budgetRange: [30, 45] as [number, number],
-    subcategory: "pet-care"
-  }
-];
-
-const BID_MESSAGES = [
-  "Hi, I'd be happy to help with this project. I have {years} years experience and can provide references. I'm available to start {timing}. Please let me know if you'd like to discuss further.",
-  "Kia ora! I've done similar work in {location} and would love to quote on this. I can provide photos of previous jobs and happy to meet onsite for a proper assessment. {timing}",
-  "G'day, I'm a qualified professional with all necessary insurance and licenses. I've completed many similar projects and can guarantee quality workmanship. Available {timing}.",
-  "Hello, I have extensive experience in this type of work. I pride myself on tidy workmanship and clear communication. Can provide detailed quote after site visit. {timing}",
-  "Hi there, I'd like to quote on this job. I've been in the trade for {years} years and have excellent references from satisfied customers. {timing}",
-  "Kia ora, happy to provide a competitive quote. I'm local to {location}, fully insured, and can provide examples of similar completed work. {timing}",
-  "Hello, I specialise in this type of project and would do a great job for you. I can provide free quote and am flexible with timing. {timing}",
-  "Hi, I have the skills and experience needed for this work. I'm reliable, professional, and focused on customer satisfaction. {timing}",
-  "G'day, I'd be interested in quoting. I'm a licensed professional with positive reviews from previous clients. Available {timing}.",
-  "Hi there, I can definitely help with this. I have {years} years experience and all necessary qualifications. {timing}"
-];
-
-const REVIEW_COMMENTS = [
-  "Excellent work! Very professional and tidy. Would definitely hire again.",
-  "Great job, finished on time and on budget. Highly recommend.",
-  "Top quality work and great communication throughout. Very happy with the result.",
-  "Fantastic service! Went above and beyond. Will be using again for sure.",
-  "Professional, reliable, and did exactly what was promised. Very pleased.",
-  "Really happy with the outcome. Showed up on time and cleaned up after themselves.",
-  "Outstanding work. Attention to detail was impressive. Highly recommend!",
-  "Couldn't be happier! Quality workmanship at a fair price.",
-  "Excellent tradesman. Would recommend to anyone needing this type of work.",
-  "Very satisfied with the work done. Professional and courteous throughout."
-];
-
 // Helper functions
 const randomItem = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
 
@@ -275,50 +75,57 @@ const generateBio = (isProvider: boolean, city: string): string => {
 };
 
 export const botLabService = {
+  async checkOwnerAccess(): Promise<boolean> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("email")
+      .eq("id", user.id)
+      .single();
+
+    return profile?.email?.endsWith("@bluetika.co.nz") || false;
+  },
+
   async getAutomationStatus() {
-    // Check if Edge Functions are deployed by attempting to list them
-    try {
-      const { data: functions } = await supabase.functions.invoke("list-functions");
-      
-      const requiredFunctions = [
-        "daily-bot-generation",
-        "bot-post-projects", 
-        "bot-submit-bids",
-        "bot-accept-bids",
-        "bot-complete-contracts"
-      ];
+    const { data: setting } = await supabase
+      .from("platform_settings")
+      .select("setting_value")
+      .eq("setting_key", "bot_automation_enabled")
+      .single();
 
-      // Check if all required functions exist
-      const isActive = requiredFunctions.every(fn => 
-        functions?.some((f: any) => f.name === fn)
-      );
+    const isEnabled = setting?.setting_value === "true";
 
-      return {
-        isActive,
-        schedule: "Daily at random times between 6am-10pm NZST",
-        dailyBotCount: "20-30 bots per day",
-        actions: [
-          "Generate 20-30 new bot accounts",
-          "Bots post 1-3 project listings",
-          "Bots submit 2-5 bids on other listings", 
-          "Bots accept bids and create contracts",
-          "Bots complete contracts with photos and reviews"
-        ]
-      };
-    } catch (error) {
-      return {
-        isActive: true, // Assume active since functions are deployed
-        schedule: "Daily at random times between 6am-10pm NZST",
-        dailyBotCount: "20-30 bots per day",
-        actions: [
-          "Generate 20-30 new bot accounts",
-          "Bots post 1-3 project listings",
-          "Bots submit 2-5 bids on other listings",
-          "Bots accept bids and create contracts", 
-          "Bots complete contracts with photos and reviews"
-        ]
-      };
+    return {
+      isActive: isEnabled,
+      schedule: "Daily at random times between 6am-10pm NZST",
+      dailyBotCount: "20-30 bots per day",
+      actions: [
+        "Generate 20-30 new bot accounts",
+        "Bots post 1-3 project listings",
+        "Bots submit 2-5 bids on other listings", 
+        "Bots accept bids and create contracts",
+        "Bots complete contracts with photos and reviews"
+      ]
+    };
+  },
+
+  async toggleAutomation(enabled: boolean): Promise<boolean> {
+    const { error } = await supabase
+      .from("platform_settings")
+      .update({ 
+        setting_value: enabled ? "true" : "false",
+        updated_at: new Date().toISOString()
+      })
+      .eq("setting_key", "bot_automation_enabled");
+
+    if (error) {
+      console.error("Failed to toggle automation:", error);
+      return false;
     }
+
+    return true;
   },
 
   async generateBots(count: number = 50) {
@@ -498,27 +305,27 @@ export const botLabService = {
     const profileIds = bots.map(b => b.profile_id);
     const totalBots = profileIds.length;
 
-    // Delete all bot profiles at once
-    // This cascades to:
-    // - All projects they created (client_id)
-    // - All bids they submitted (provider_id)
-    // - All contracts they're in (client_id, provider_id)
-    // - All reviews they left (client_id, provider_id)
-    // - All additional charges (client_id, provider_id)
-    // - All routine contracts, bookings, etc.
-    // - The bot_accounts rows themselves
+    // Disable automation first
+    await this.toggleAutomation(false);
+
+    // Delete all bot profiles at once via RPC
     const { error: deleteError } = await supabase.rpc("delete_bot_profiles", {
       profile_ids: profileIds
     });
 
     if (deleteError) {
-      // Fallback: delete one by one if RPC doesn't exist
+      // Fallback: delete profiles directly (cascades to all content)
       let deleted = 0;
       const errors = [];
       
       for (const profileId of profileIds) {
         try {
-          const { error } = await supabase.auth.admin.deleteUser(profileId);
+          // Delete profile (cascades to bot_accounts and all content)
+          const { error } = await supabase
+            .from("profiles")
+            .delete()
+            .eq("id", profileId);
+            
           if (!error) {
             deleted++;
           } else {
@@ -533,6 +340,7 @@ export const botLabService = {
         success: deleted > 0,
         deleted,
         total: totalBots,
+        automationDisabled: true,
         errors: errors.length > 0 ? errors : undefined
       };
     }
@@ -540,7 +348,8 @@ export const botLabService = {
     return {
       success: true,
       deleted: totalBots,
-      message: `Successfully deleted ${totalBots} bots and all their content`
+      automationDisabled: true,
+      message: `Successfully deleted ${totalBots} bots and all their content. Automation disabled.`
     };
   },
 

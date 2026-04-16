@@ -1,12 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
 serve(async (req) => {
+  const corsHeaders = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  };
+
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -16,6 +16,23 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
+
+    // Check if automation is enabled
+    const { data: setting, error: settingError } = await supabaseClient
+      .from("platform_settings")
+      .select("setting_value")
+      .eq("setting_key", "bot_automation_enabled")
+      .single();
+
+    if (settingError || !setting || setting.setting_value !== "true") {
+      return new Response(
+        JSON.stringify({ 
+          message: "Bot automation is disabled",
+          botsCreated: 0 
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
+    }
 
     // Generate random number of bots (20-30)
     const botCount = Math.floor(Math.random() * 11) + 20;
