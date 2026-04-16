@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Shield, LogIn, CheckCircle2, X } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { SEO } from "@/components/SEO";
 import { staffService } from "@/services/staffService";
 
@@ -28,7 +28,8 @@ export default function StaffLogin() {
     setIsLoading(true);
 
     try {
-      const staff = await staffService.staffLogin(email, password);
+      const passwordHash = btoa(password); // Simple hash for demo
+      const staff = await staffService.authenticateStaff(email, passwordHash);
 
       toast({
         title: "Login Successful",

@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Users, Plus, Shield, UserX, CheckCircle, Clock, AlertTriangle } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { SEO } from "@/components/SEO";
 import { staffService } from "@/services/staffService";
 
@@ -92,12 +92,16 @@ export default function StaffManagement() {
     }
 
     try {
-      await staffService.createStaff({
-        name: newStaff.name,
-        email: newStaff.email,
-        password: newStaff.password,
-        role: newStaff.role as "verifier" | "support" | "finance" | "moderator",
-      });
+      const session = await supabase.auth.getSession();
+      const adminId = session.data.session?.user.id || "admin";
+      
+      await staffService.createStaff(
+        newStaff.name,
+        newStaff.email,
+        btoa(newStaff.password), // simple base64 hash for demo
+        newStaff.role as "verifier" | "support" | "finance" | "moderator",
+        adminId
+      );
 
       toast({
         title: "Staff Created",

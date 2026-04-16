@@ -1,12 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { Tables } from "@/integrations/supabase/types";
-
-type EmailLog = Tables<"email_logs">;
 
 export const emailLogService = {
-  /**
-   * Log an email that was sent
-   */
+  // Log an email that was sent
   async logEmail(
     recipient: string,
     subject: string,
@@ -21,7 +16,6 @@ export const emailLogService = {
         message_id: messageId,
         delivery_status: "sent",
       });
-
       if (error) throw error;
     } catch (error) {
       throw error;
@@ -38,7 +32,6 @@ export const emailLogService = {
         .from("email_logs" as any)
         .update({ delivery_status: status })
         .eq("message_id", messageId);
-
       if (error) throw error;
     } catch (error) {
       throw error;
@@ -53,7 +46,6 @@ export const emailLogService = {
         .select("*")
         .order("created_at", { ascending: false })
         .limit(limit);
-
       if (error) throw error;
       return data || [];
     } catch (error) {
@@ -64,11 +56,10 @@ export const emailLogService = {
   // Get email log by ID
   async getEmailLogById(id: string) {
     const { data, error } = await supabase
-      .from("email_logs")
+      .from("email_logs" as any)
       .select("*")
       .eq("id", id)
       .single();
-
     if (error) throw error;
     return data;
   },
@@ -76,12 +67,11 @@ export const emailLogService = {
   // Search email logs
   async searchEmailLogs(searchTerm: string) {
     const { data, error } = await supabase
-      .from("email_logs")
+      .from("email_logs" as any)
       .select("*")
       .or(`recipient.ilike.%${searchTerm}%,subject.ilike.%${searchTerm}%`)
-      .order("sent_at", { ascending: false })
+      .order("created_at", { ascending: false })
       .limit(100);
-
     if (error) throw error;
     return data || [];
   },
