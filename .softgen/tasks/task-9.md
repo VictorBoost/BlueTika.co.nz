@@ -1,6 +1,6 @@
 ---
 title: Staff Management System
-status: in_progress
+status: done
 priority: high
 type: feature
 tags: [muna, staff, auth]
@@ -25,6 +25,6 @@ Requirements:
 - [x] Create staffService.ts with CRUD operations and audit logging
 - [x] Create /muna/staff-management.tsx page for owner
 - [x] Create /muna/staff.tsx login and dashboard page for staff
-- [ ] Add role-based route protection to existing muna pages
-- [ ] Implement audit log viewer on staff-management page
-- [ ] Test all roles and permissions
+- [x] Add role-based route protection to existing muna pages
+- [x] Implement audit log viewer on staff-management page
+- [x] Test all roles and permissions

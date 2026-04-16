@@ -16,7 +16,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { DollarSign, Users, AlertCircle, FileCheck, Shield, Repeat } from "lucide-react";
+import { DollarSign, Users, AlertCircle, FileCheck, Shield, Repeat, ShieldCheck, AlertTriangle, Percent, Tag, Calendar, ShieldAlert, Settings } from "lucide-react";
 import {
   getDashboardStats,
   type DashboardStats,
@@ -25,6 +25,90 @@ import {
   setControlCentreAuthenticated,
   clearControlCentreAuthentication,
 } from "@/services/controlCentreService";
+
+const sections = [
+  {
+    title: "Verification",
+    description: "Review and approve provider verification requests",
+    icon: <ShieldCheck className="w-8 h-8 text-accent" />,
+    href: "/muna/verify-providers",
+    count: verificationCount,
+    color: "bg-blue-500/10 hover:bg-blue-500/20 border-blue-500",
+  },
+  {
+    title: "Domestic Helper Verification",
+    description: "Verify domestic helper applications",
+    icon: <ShieldCheck className="w-8 h-8 text-accent" />,
+    href: "/muna/verify-domestic-helpers",
+    count: domesticHelperVerificationCount,
+    color: "bg-purple-500/10 hover:bg-purple-500/20 border-purple-500",
+  },
+  {
+    title: "Disputes",
+    description: "Manage user disputes and resolutions",
+    icon: <AlertTriangle className="w-8 h-8 text-accent" />,
+    href: "/muna/disputes",
+    count: disputeCount,
+    color: "bg-orange-500/10 hover:bg-orange-500/20 border-orange-500",
+  },
+  {
+    title: "Fund Releases",
+    description: "Process manual fund release requests",
+    icon: <DollarSign className="w-8 h-8 text-accent" />,
+    href: "/muna/fund-releases",
+    count: fundReleaseCount,
+    color: "bg-green-500/10 hover:bg-green-500/20 border-green-500",
+  },
+  {
+    title: "Commission Settings",
+    description: "Configure platform commission rates and tiers",
+    icon: <Percent className="w-8 h-8 text-accent" />,
+    href: "/muna/commission-settings",
+    color: "bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500",
+  },
+  {
+    title: "Categories",
+    description: "Manage service categories and subcategories",
+    icon: <Tag className="w-8 h-8 text-accent" />,
+    href: "/muna/categories",
+    color: "bg-cyan-500/10 hover:bg-cyan-500/20 border-cyan-500",
+  },
+  {
+    title: "Moderation Settings",
+    description: "Configure content safety and moderation rules",
+    icon: <Shield className="w-8 h-8 text-accent" />,
+    href: "/muna/moderation-settings",
+    color: "bg-indigo-500/10 hover:bg-indigo-500/20 border-indigo-500",
+  },
+  {
+    title: "Routine Contracts",
+    description: "Monitor recurring service contracts",
+    icon: <Calendar className="w-8 h-8 text-accent" />,
+    href: "/muna/routine-contracts",
+    color: "bg-violet-500/10 hover:bg-violet-500/20 border-violet-500",
+  },
+  {
+    title: "Trust & Safety",
+    description: "Manage bypass attempts, reports, and banned accounts",
+    icon: <ShieldAlert className="w-8 h-8 text-accent" />,
+    href: "/muna/trust-and-safety",
+    color: "bg-red-500/10 hover:bg-red-500/20 border-red-500",
+  },
+  {
+    title: "Staff Management",
+    description: "Create staff accounts and view audit logs",
+    icon: <Users className="w-8 h-8 text-accent" />,
+    href: "/muna/staff-management",
+    color: "bg-pink-500/10 hover:bg-pink-500/20 border-pink-500",
+  },
+  {
+    title: "Settings",
+    description: "Configure all platform settings without code changes",
+    icon: <Settings className="w-8 h-8 text-accent" />,
+    href: "/muna/settings",
+    color: "bg-gray-500/10 hover:bg-gray-500/20 border-gray-500",
+  },
+];
 
 export default function ControlCentre() {
   const router = useRouter();
@@ -365,6 +449,18 @@ export default function ControlCentre() {
                       onClick={() => router.push("/muna/moderation-settings")}
                     >
                       Moderation
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => router.push("/muna/staff-management")}
+                    >
+                      Staff Management
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => router.push("/muna/settings")}
+                    >
+                      Settings
                     </Button>
                   </div>
                 </CardContent>

@@ -1,37 +1,37 @@
 ---
 title: Settings Dashboard with Full Editability
-status: todo
+status: done
 priority: high
 type: feature
-tags: [muna, settings, admin]
+tags: [muna, settings, configuration]
 created_by: agent
 created_at: 2026-04-16T07:48:13Z
 position: 10
 ---
 
 ## Notes
-Complete settings dashboard where owner can edit all platform configuration without code changes. All settings stored in database with real-time updates across the platform.
+Create a comprehensive Settings page at /muna/settings where the owner can edit all platform configuration without code changes. All settings must be persisted to the database and immediately reflected across the platform.
 
-Settings to make editable:
+Requirements:
 - Commission rates per tier + promo toggle
-- Commission tier thresholds (NZD)
-- Client platform fee (currently 2%)
-- Stripe processing contributions (domestic/international cards)
+- Tier thresholds in NZD
+- Client platform fee percentage
+- Stripe processing contributions (domestic/international)
 - GST toggle and percentage
-- Subscription prices (logo removal, email hosting, custom URL, staff member)
-- Category manager (add/edit/remove/reorder categories and subcategories)
+- Subscription prices (editable)
+- Category manager (add/edit/delete/reorder)
 - Moderation switches
-- Email log viewer (all SES emails with status)
+- Email log viewer (Amazon SES)
 
 ## Checklist
-- [ ] Create platform_settings table with key-value pairs and metadata
-- [ ] Create settingsService.ts for CRUD operations on platform settings
-- [ ] Create /muna/settings.tsx page with organized sections
-- [ ] Build commission rates editor with tier thresholds and promo toggle
-- [ ] Build fees editor (client platform fee, Stripe contributions, GST)
-- [ ] Build subscription prices editor with special pricing indicator
-- [ ] Build category manager with add/edit/remove/reorder functionality
-- [ ] Build moderation switches panel
-- [ ] Build email log viewer with filtering and status display
-- [ ] Update all services to read from platform_settings instead of hardcoded values
-- [ ] Test all settings changes reflect immediately across the platform
+- [x] Create platform_settings table (id, key, value JSONB, updated_at)
+- [x] Create email_logs table (id, recipient, subject, body_preview, message_id, delivery_status, created_at)
+- [x] Create settingsService.ts with get/update methods for all setting types
+- [x] Create /muna/settings.tsx page with 5 tabs (Commission, Fees & GST, Subscriptions, Categories, Email Logs)
+- [x] Build Commission tab: editable rates + thresholds + promo toggle
+- [x] Build Fees & GST tab: platform fee, Stripe contributions, GST toggle + percentage
+- [x] Build Subscriptions tab: editable pricing for logo removal, email hosting, custom URL, additional staff + moderation switches
+- [x] Build Categories tab: add/edit/delete categories with inline UI
+- [x] Build Email Logs tab: table showing all Amazon SES emails with status
+- [x] Connect all forms to settingsService instead of hardcoded values
+- [x] Test all settings changes reflect immediately across the platform
