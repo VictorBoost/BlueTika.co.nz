@@ -16,7 +16,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { DollarSign, Users, AlertCircle, FileCheck, Shield, Repeat, ShieldCheck, AlertTriangle, Percent, Tag, Calendar, ShieldAlert, Settings } from "lucide-react";
+import { DollarSign, Users, AlertCircle, FileCheck, Shield, Repeat, ShieldCheck, AlertTriangle, Percent, Tag, Calendar, ShieldAlert, Settings, Bot } from "lucide-react";
 import {
   getDashboardStats,
   type DashboardStats,
@@ -103,6 +103,13 @@ const sections = [
     icon: <Settings className="w-8 h-8 text-accent" />,
     href: "/muna/settings",
     color: "bg-gray-500/10 hover:bg-gray-500/20 border-gray-500",
+  },
+  {
+    title: "Bot Lab",
+    description: "Generate realistic test data to populate the marketplace",
+    icon: <Bot className="w-8 h-8 text-accent" />,
+    href: "/muna/bot-lab",
+    color: "bg-teal-500/10 hover:bg-teal-500/20 border-teal-500",
   },
 ];
 
@@ -457,6 +464,9 @@ export default function ControlCentre() {
                       onClick={() => router.push("/muna/settings")}
                     >
                       Settings
+                    </Button>
+                    <Button variant="outline" onClick={() => router.push("/muna/bot-lab")}>
+                      Bot Lab
                     </Button>
                   </div>
                 </CardContent>
