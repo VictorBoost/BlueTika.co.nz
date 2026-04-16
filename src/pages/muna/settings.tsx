@@ -134,8 +134,8 @@ export default function SettingsPage() {
       }
       
       // Map subscription_plans data to subscriptionPrices state
-      if (subscriptionData?.data) {
-        const priceMap: any = {
+      if (subscriptionData && 'data' in subscriptionData && subscriptionData.data) {
+        const priceMap = {
           remove_logo: 5,
           email_hosting: 5,
           custom_url: 5,
@@ -143,7 +143,7 @@ export default function SettingsPage() {
         };
         
         subscriptionData.data.forEach((plan: any) => {
-          const price = parseFloat(plan.monthly_price);
+          const price = typeof plan.monthly_price === 'string' ? parseFloat(plan.monthly_price) : plan.monthly_price;
           switch (plan.feature_key) {
             case "remove_logo":
               priceMap.remove_logo = price;
@@ -161,8 +161,9 @@ export default function SettingsPage() {
         });
         
         setSubscriptionPrices(priceMap);
-      } else if (subscriptionData) {
-        setSubscriptionPrices(subscriptionData);
+      } else if (subscriptionData && !('error' in subscriptionData) && !('data' in subscriptionData)) {
+        // Fallback if it came from settings
+        setSubscriptionPrices(subscriptionData as any);
       }
       
       if (moderationData) setModerationSwitches(moderationData);
@@ -250,19 +251,19 @@ export default function SettingsPage() {
       await Promise.all([
         supabase
           .from("subscription_plans")
-          .update({ monthly_price: subscriptionPrices.remove_logo.toString() })
+          .update({ monthly_price: subscriptionPrices.remove_logo })
           .eq("feature_key", "remove_logo"),
         supabase
           .from("subscription_plans")
-          .update({ monthly_price: subscriptionPrices.email_hosting.toString() })
+          .update({ monthly_price: subscriptionPrices.email_hosting })
           .eq("feature_key", "email_hosting"),
         supabase
           .from("subscription_plans")
-          .update({ monthly_price: subscriptionPrices.custom_url.toString() })
+          .update({ monthly_price: subscriptionPrices.custom_url })
           .eq("feature_key", "custom_url"),
         supabase
           .from("subscription_plans")
-          .update({ monthly_price: subscriptionPrices.additional_staff.toString() })
+          .update({ monthly_price: subscriptionPrices.additional_staff })
           .eq("feature_key", "staff_member"),
       ]);
 
