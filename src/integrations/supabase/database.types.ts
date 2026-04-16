@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -15,6 +15,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_suspensions: {
+        Row: {
+          bypass_attempt_count: number
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          suspension_ends_at: string | null
+          suspension_started_at: string | null
+          suspension_type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          bypass_attempt_count?: number
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          suspension_ends_at?: string | null
+          suspension_started_at?: string | null
+          suspension_type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          bypass_attempt_count?: number
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          suspension_ends_at?: string | null
+          suspension_started_at?: string | null
+          suspension_type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_suspensions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       additional_charges: {
         Row: {
           amount: number
@@ -154,6 +198,44 @@ export type Database = {
           {
             foreignKeyName: "bids_provider_id_fkey"
             columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bypass_attempts: {
+        Row: {
+          content_attempted: string
+          created_at: string | null
+          detected_patterns: string[]
+          escalation_level: number
+          id: string
+          page_location: string
+          user_id: string
+        }
+        Insert: {
+          content_attempted: string
+          created_at?: string | null
+          detected_patterns: string[]
+          escalation_level?: number
+          id?: string
+          page_location: string
+          user_id: string
+        }
+        Update: {
+          content_attempted?: string
+          created_at?: string | null
+          detected_patterns?: string[]
+          escalation_level?: number
+          id?: string
+          page_location?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bypass_attempts_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
