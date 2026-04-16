@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -623,6 +623,161 @@ export type Database = {
           {
             foreignKeyName: "contracts_released_by_fkey"
             columns: ["released_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      directory_analytics: {
+        Row: {
+          clicked_at: string | null
+          converted_to_project: boolean | null
+          id: string
+          listing_id: string
+          project_id: string | null
+          visitor_id: string | null
+        }
+        Insert: {
+          clicked_at?: string | null
+          converted_to_project?: boolean | null
+          id?: string
+          listing_id: string
+          project_id?: string | null
+          visitor_id?: string | null
+        }
+        Update: {
+          clicked_at?: string | null
+          converted_to_project?: boolean | null
+          id?: string
+          listing_id?: string
+          project_id?: string | null
+          visitor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "directory_analytics_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "directory_listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "directory_analytics_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "directory_analytics_visitor_id_fkey"
+            columns: ["visitor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      directory_categories: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          id: string
+          name: string
+          slug: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          name: string
+          slug: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          name?: string
+          slug?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      directory_listings: {
+        Row: {
+          business_name: string
+          category_id: string
+          city: string
+          claimed_by: string | null
+          created_at: string | null
+          description: string
+          featured: boolean | null
+          id: string
+          is_active: boolean | null
+          phone: string
+          photos: string[] | null
+          provider_id: string | null
+          slug: string
+          updated_at: string | null
+          website: string | null
+        }
+        Insert: {
+          business_name: string
+          category_id: string
+          city: string
+          claimed_by?: string | null
+          created_at?: string | null
+          description: string
+          featured?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          phone: string
+          photos?: string[] | null
+          provider_id?: string | null
+          slug: string
+          updated_at?: string | null
+          website?: string | null
+        }
+        Update: {
+          business_name?: string
+          category_id?: string
+          city?: string
+          claimed_by?: string | null
+          created_at?: string | null
+          description?: string
+          featured?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          phone?: string
+          photos?: string[] | null
+          provider_id?: string | null
+          slug?: string
+          updated_at?: string | null
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "directory_listings_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "directory_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "directory_listings_claimed_by_fkey"
+            columns: ["claimed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "directory_listings_provider_id_fkey"
+            columns: ["provider_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]

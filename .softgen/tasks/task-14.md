@@ -18,8 +18,8 @@ Create database tables for the business directory feature:
 All tables need RLS policies. Directory browsing is public, but creating/claiming requires auth.
 
 ## Checklist
-- [ ] Create directory_categories table with name, slug, description, display_order
-- [ ] Create directory_listings table with business_name, category_id FK, city, description (max 300), phone, website, photos array, featured flag, provider_id FK (nullable), slug (unique), claimed_by FK (nullable)
-- [ ] Create directory_analytics table to track directory → post project conversions
-- [ ] Add RLS policies: public read, auth required for insert/update, owner can manage own listings
-- [ ] Add check constraint for description length (300 chars max)
+- [x] Create directory_categories table with name, slug, description, display_order
+- [x] Create directory_listings table with business_name, category_id FK, city, description (max 300), phone, website, photos array, featured flag, provider_id FK (nullable), slug (unique), claimed_by FK (nullable)
+- [x] Create directory_analytics table to track directory → post project conversions
+- [x] Add RLS policies: public read, auth required for insert/update, owner can manage own listings
+- [x] Add check constraint for description length (300 chars max)
