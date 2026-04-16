@@ -1,6 +1,6 @@
 ---
 title: Trust and Safety Section Enhancement
-status: todo
+status: done
 priority: high
 type: feature
 tags: [muna, trust-and-safety]
@@ -18,9 +18,9 @@ Requirements:
 - Tab 3: Banned Accounts - view all banned users with unban option
 
 ## Checklist
-- [ ] Add tab navigation to trust-and-safety.tsx (Bypass Attempts, Reports, Banned Accounts)
-- [ ] Build Bypass Attempts tab: table with user, content, page, date, escalation level, actions (Warn, Suspend 24hr, Ban, Clear flag)
-- [ ] Build Reports tab: table with reporter, reported party, reason, date, status, actions (Resolve, Remove listing, Warn user, Suspend, Ban)
-- [ ] Build Banned Accounts tab: table with user, reason, date, banned by, unban action
-- [ ] Connect to existing contentSafetyService and reportService
-- [ ] Test all quick actions and ensure they work correctly
+- [x] Add tab navigation to trust-and-safety.tsx (Bypass Attempts, Reports, Banned Accounts)
+- [x] Build Bypass Attempts tab: table with user, content, page, date, escalation level, actions (Warn, Suspend 24hr, Ban, Clear flag)
+- [x] Build Reports tab: table with reporter, reported party, reason, date, status, actions (Resolve, Remove listing, Warn user, Suspend, Ban)
+- [x] Build Banned Accounts tab: table with user, reason, date, banned by, unban action
+- [x] Connect to existing contentSafetyService and reportService
+- [x] Test all quick actions and ensure they work correctly

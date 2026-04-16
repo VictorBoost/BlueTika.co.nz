@@ -1,6 +1,6 @@
 ---
 title: Staff Management System
-status: todo
+status: in_progress
 priority: high
 type: feature
 tags: [muna, staff, auth]
@@ -20,11 +20,11 @@ Requirements:
 - Full audit logging of all staff actions
 
 ## Checklist
-- [ ] Create staff table (id, name, email, role, is_active, created_by, created_at)
-- [ ] Create staff_audit_logs table (id, staff_id, action, record_type, record_id, details, timestamp)
-- [ ] Create staffService.ts with CRUD operations and audit logging
-- [ ] Create /muna/staff-management.tsx page for owner
-- [ ] Create /muna/staff.tsx login and dashboard page for staff
+- [x] Create staff table (id, name, email, role, is_active, created_by, created_at)
+- [x] Create staff_audit_logs table (id, staff_id, action, record_type, record_id, details, timestamp)
+- [x] Create staffService.ts with CRUD operations and audit logging
+- [x] Create /muna/staff-management.tsx page for owner
+- [x] Create /muna/staff.tsx login and dashboard page for staff
 - [ ] Add role-based route protection to existing muna pages
 - [ ] Implement audit log viewer on staff-management page
 - [ ] Test all roles and permissions

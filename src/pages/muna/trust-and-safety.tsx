@@ -130,6 +130,26 @@ export default function TrustAndSafety() {
     }
   };
 
+  const handleBypassAction = async (attemptId: string, userId: string, action: string) => {
+    try {
+      if (action === "warn") {
+        toast({ title: "Warning Issued", description: "User has been warned about bypass attempts." });
+      } else if (action === "suspend_24hr") {
+        await contentSafetyService.suspendUser(userId, "chat_suspended", "24-hour chat suspension for bypass attempts");
+        toast({ title: "User Suspended", description: "24-hour chat suspension applied." });
+      } else if (action === "ban") {
+        await contentSafetyService.suspendUser(userId, "permanently_banned", "Permanent ban for repeated bypass attempts");
+        toast({ title: "User Banned", description: "User has been permanently banned." });
+      } else if (action === "clear") {
+        toast({ title: "Flag Cleared", description: "Bypass attempt flag cleared." });
+      }
+      await loadData();
+    } catch (error) {
+      console.error("Error handling bypass action:", error);
+      toast({ title: "Error", description: "Failed to process action", variant: "destructive" });
+    }
+  };
+
   const handleLiftSuspension = async (userId: string) => {
     try {
       const { error } = await supabase
@@ -220,7 +240,7 @@ export default function TrustAndSafety() {
 
   const getSuspensionBadge = (type: string) => {
     switch (type) {
-      case "chat_suspension":
+      case "chat_suspended":
         return <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 border-yellow-600"><Clock className="w-3 h-3 mr-1" />24h Chat Ban</Badge>;
       case "auto_suspended":
         return <Badge variant="outline" className="bg-orange-500/10 text-orange-600 border-orange-600"><AlertTriangle className="w-3 h-3 mr-1" />Auto-Suspended</Badge>;
@@ -272,7 +292,7 @@ export default function TrustAndSafety() {
               Trust and Safety
             </h1>
             <p className="text-muted-foreground">
-              Monitor bypass attempts, manage suspended accounts, review user reports, and maintain platform integrity
+              Monitor bypass attempts, review reports, and manage suspended accounts
             </p>
           </div>
 
@@ -283,25 +303,109 @@ export default function TrustAndSafety() {
             </AlertDescription>
           </Alert>
 
-          <Tabs defaultValue="reports" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+          <Tabs defaultValue="bypass" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="bypass" className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" />
+                Bypass Attempts ({bypassAttempts.length})
+              </TabsTrigger>
               <TabsTrigger value="reports" className="flex items-center gap-2">
                 <Flag className="w-4 h-4" />
                 Reports ({reportStats.openReports})
               </TabsTrigger>
-              <TabsTrigger value="leaderboard" className="flex items-center gap-2">
-                <Trophy className="w-4 h-4" />
-                Reporter Analytics
-              </TabsTrigger>
-              <TabsTrigger value="attempts" className="flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4" />
-                Bypass Attempts ({bypassAttempts.length})
-              </TabsTrigger>
-              <TabsTrigger value="suspensions" className="flex items-center gap-2">
+              <TabsTrigger value="banned" className="flex items-center gap-2">
                 <UserX className="w-4 h-4" />
-                Suspended Accounts ({suspendedAccounts.filter(s => s.is_active).length})
+                Banned Accounts ({suspendedAccounts.filter(s => s.is_active).length})
               </TabsTrigger>
             </TabsList>
+
+            <TabsContent value="bypass">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Bypass Attempt Log</CardTitle>
+                  <CardDescription>
+                    All attempts to share contact details, sorted by most recent
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <p className="text-center py-8 text-muted-foreground">Loading...</p>
+                  ) : bypassAttempts.length === 0 ? (
+                    <div className="text-center py-12">
+                      <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
+                      <p className="text-muted-foreground">No bypass attempts recorded</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Date & Time</TableHead>
+                            <TableHead>User</TableHead>
+                            <TableHead>Context</TableHead>
+                            <TableHead>Patterns</TableHead>
+                            <TableHead>Escalation</TableHead>
+                            <TableHead>Content Sample</TableHead>
+                            <TableHead>Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {bypassAttempts.map((attempt) => (
+                            <TableRow key={attempt.id}>
+                              <TableCell className="font-mono text-sm">
+                                {formatDate(attempt.created_at)}
+                              </TableCell>
+                              <TableCell>
+                                <div>
+                                  <p className="font-medium">{attempt.user_name}</p>
+                                  <p className="text-xs text-muted-foreground">{attempt.user_email}</p>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline">{attempt.context.replace(/_/g, " ")}</Badge>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex flex-wrap gap-1">
+                                  {attempt.detected_patterns.map((pattern, idx) => (
+                                    <Badge key={idx} variant="destructive" className="text-xs">
+                                      {pattern}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant={
+                                    attempt.attempt_count >= 5 ? "destructive" :
+                                    attempt.attempt_count >= 3 ? "default" :
+                                    "outline"
+                                  }
+                                >
+                                  #{attempt.attempt_count}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="max-w-xs">
+                                <p className="text-sm truncate text-muted-foreground">
+                                  {attempt.content.substring(0, 60)}...
+                                </p>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex gap-1">
+                                  <Button size="sm" variant="outline" onClick={() => handleBypassAction(attempt.id, attempt.user_id, "warn")}>Warn</Button>
+                                  <Button size="sm" variant="outline" onClick={() => handleBypassAction(attempt.id, attempt.user_id, "suspend_24hr")}>Suspend 24hr</Button>
+                                  <Button size="sm" variant="destructive" onClick={() => handleBypassAction(attempt.id, attempt.user_id, "ban")}>Ban</Button>
+                                  <Button size="sm" variant="ghost" onClick={() => handleBypassAction(attempt.id, attempt.user_id, "clear")}>Clear</Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
 
             <TabsContent value="reports">
               <Card>
@@ -325,10 +429,9 @@ export default function TrustAndSafety() {
                         <TableHeader>
                           <TableRow>
                             <TableHead>Status</TableHead>
-                            <TableHead>Outcome</TableHead>
-                            <TableHead>Date & Time</TableHead>
+                            <TableHead>Date</TableHead>
                             <TableHead>Reporter</TableHead>
-                            <TableHead>Target</TableHead>
+                            <TableHead>Reported Party</TableHead>
                             <TableHead>Reason</TableHead>
                             <TableHead>Note</TableHead>
                             <TableHead>Actions</TableHead>
@@ -341,14 +444,8 @@ export default function TrustAndSafety() {
                                 {report.status === "open" ? (
                                   <Badge variant="destructive">Open</Badge>
                                 ) : (
-                                  <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-600">
-                                    <FileCheck className="w-3 h-3 mr-1" />
-                                    Resolved
-                                  </Badge>
+                                  getOutcomeBadge(report.outcome)
                                 )}
-                              </TableCell>
-                              <TableCell>
-                                {getOutcomeBadge(report.outcome)}
                               </TableCell>
                               <TableCell className="font-mono text-sm">
                                 {formatDate(report.created_at)}
@@ -418,209 +515,12 @@ export default function TrustAndSafety() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="leaderboard">
-              <div className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Trophy className="w-5 h-5 text-yellow-500" />
-                      Reporter Leaderboard
-                    </CardTitle>
-                    <CardDescription>
-                      Most active reporters with accuracy rates (actioned reports / total resolved reports)
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {loading ? (
-                      <p className="text-center py-8 text-muted-foreground">Loading...</p>
-                    ) : reporterLeaderboard.length === 0 ? (
-                      <div className="text-center py-12">
-                        <Flag className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-muted-foreground">No reports filed yet</p>
-                      </div>
-                    ) : (
-                      <div className="overflow-x-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Rank</TableHead>
-                              <TableHead>Reporter</TableHead>
-                              <TableHead>Total Reports</TableHead>
-                              <TableHead>Actioned</TableHead>
-                              <TableHead>Dismissed</TableHead>
-                              <TableHead>Pending</TableHead>
-                              <TableHead>Accuracy Rate</TableHead>
-                              <TableHead>Status</TableHead>
-                              <TableHead>Actions</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {reporterLeaderboard.map((reporter, index) => (
-                              <TableRow key={reporter.reporter_id} className={reporter.flagged_for_review ? "bg-destructive/5" : ""}>
-                                <TableCell className="font-semibold">
-                                  {index === 0 && <Trophy className="w-4 h-4 text-yellow-500 inline mr-1" />}
-                                  {index === 1 && <Trophy className="w-4 h-4 text-gray-400 inline mr-1" />}
-                                  {index === 2 && <Trophy className="w-4 h-4 text-amber-700 inline mr-1" />}
-                                  #{index + 1}
-                                </TableCell>
-                                <TableCell>
-                                  <div>
-                                    <p className="font-medium">{reporter.reporter_name}</p>
-                                    <p className="text-xs text-muted-foreground">{reporter.reporter_email}</p>
-                                  </div>
-                                </TableCell>
-                                <TableCell className="font-semibold">{reporter.total_reports}</TableCell>
-                                <TableCell>
-                                  <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-600">
-                                    {reporter.actioned_reports}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell>
-                                  <Badge variant="outline" className="bg-gray-500/10 text-gray-600 border-gray-600">
-                                    {reporter.dismissed_reports}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell>
-                                  <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-600">
-                                    {reporter.pending_reports}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell>
-                                  <div className="flex items-center gap-2">
-                                    {reporter.accuracy_rate > 0 ? (
-                                      <>
-                                        <TrendingUp className={`w-4 h-4 ${reporter.accuracy_rate >= 70 ? "text-green-500" : reporter.accuracy_rate >= 50 ? "text-yellow-500" : "text-red-500"}`} />
-                                        <span className={`font-semibold ${reporter.accuracy_rate >= 70 ? "text-green-600" : reporter.accuracy_rate >= 50 ? "text-yellow-600" : "text-red-600"}`}>
-                                          {reporter.accuracy_rate}%
-                                        </span>
-                                      </>
-                                    ) : (
-                                      <span className="text-muted-foreground">—</span>
-                                    )}
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  {reporter.flagged_for_review && (
-                                    <Badge variant="destructive" className="flex items-center gap-1 w-fit">
-                                      <AlertCircle className="w-3 h-3" />
-                                      Review Required
-                                    </Badge>
-                                  )}
-                                </TableCell>
-                                <TableCell>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleViewReporterHistory(reporter)}
-                                  >
-                                    View History
-                                  </Button>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {reporterLeaderboard.filter(r => r.flagged_for_review).length > 0 && (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      <strong>{reporterLeaderboard.filter(r => r.flagged_for_review).length} reporter(s)</strong> have more than 5 dismissed reports and require admin review
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="attempts">
+            <TabsContent value="banned">
               <Card>
                 <CardHeader>
-                  <CardTitle>Bypass Attempt Log</CardTitle>
+                  <CardTitle>Banned Accounts</CardTitle>
                   <CardDescription>
-                    All attempts to share contact details, sorted by most recent
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {loading ? (
-                    <p className="text-center py-8 text-muted-foreground">Loading...</p>
-                  ) : bypassAttempts.length === 0 ? (
-                    <div className="text-center py-12">
-                      <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
-                      <p className="text-muted-foreground">No bypass attempts recorded</p>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Date & Time</TableHead>
-                            <TableHead>User</TableHead>
-                            <TableHead>Context</TableHead>
-                            <TableHead>Detected Patterns</TableHead>
-                            <TableHead>Attempt #</TableHead>
-                            <TableHead>Content Sample</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {bypassAttempts.map((attempt) => (
-                            <TableRow key={attempt.id}>
-                              <TableCell className="font-mono text-sm">
-                                {formatDate(attempt.created_at)}
-                              </TableCell>
-                              <TableCell>
-                                <div>
-                                  <p className="font-medium">{attempt.user_name}</p>
-                                  <p className="text-xs text-muted-foreground">{attempt.user_email}</p>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant="outline">{attempt.context.replace(/_/g, " ")}</Badge>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex flex-wrap gap-1">
-                                  {attempt.detected_patterns.map((pattern, idx) => (
-                                    <Badge key={idx} variant="destructive" className="text-xs">
-                                      {pattern}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <Badge
-                                  variant={
-                                    attempt.attempt_count >= 5 ? "destructive" :
-                                    attempt.attempt_count >= 3 ? "default" :
-                                    "outline"
-                                  }
-                                >
-                                  #{attempt.attempt_count}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="max-w-xs">
-                                <p className="text-sm truncate text-muted-foreground">
-                                  {attempt.content.substring(0, 60)}...
-                                </p>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="suspensions">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Suspended Accounts</CardTitle>
-                  <CardDescription>
-                    Active and historical account suspensions
+                    Active and historical account suspensions and bans
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -629,7 +529,7 @@ export default function TrustAndSafety() {
                   ) : suspendedAccounts.length === 0 ? (
                     <div className="text-center py-12">
                       <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
-                      <p className="text-muted-foreground">No suspended accounts</p>
+                      <p className="text-muted-foreground">No banned accounts</p>
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
@@ -639,8 +539,7 @@ export default function TrustAndSafety() {
                             <TableHead>Status</TableHead>
                             <TableHead>User</TableHead>
                             <TableHead>Type</TableHead>
-                            <TableHead>Reason</TableHead>
-                            <TableHead>Suspended At</TableHead>
+                            <TableHead>Banned At</TableHead>
                             <TableHead>Expires</TableHead>
                             <TableHead>Actions</TableHead>
                           </TableRow>
@@ -664,9 +563,6 @@ export default function TrustAndSafety() {
                               <TableCell>
                                 {getSuspensionBadge(suspension.suspension_type)}
                               </TableCell>
-                              <TableCell className="max-w-xs">
-                                <p className="text-sm">{suspension.reason}</p>
-                              </TableCell>
                               <TableCell className="font-mono text-sm">
                                 {formatDate(suspension.suspended_at)}
                               </TableCell>
@@ -678,17 +574,14 @@ export default function TrustAndSafety() {
                                   : "—"}
                               </TableCell>
                               <TableCell>
-                                {suspension.is_active && suspension.suspension_type !== "permanently_banned" && (
+                                {suspension.is_active && (
                                   <Button
                                     size="sm"
                                     variant="outline"
                                     onClick={() => handleLiftSuspension(suspension.user_id)}
                                   >
-                                    Lift Suspension
+                                    Unban
                                   </Button>
-                                )}
-                                {suspension.suspension_type === "permanently_banned" && (
-                                  <span className="text-xs text-muted-foreground">Permanent</span>
                                 )}
                               </TableCell>
                             </TableRow>
@@ -703,96 +596,6 @@ export default function TrustAndSafety() {
           </Tabs>
         </div>
       </div>
-
-      {/* Reporter History Dialog */}
-      <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Reporter History</DialogTitle>
-            <DialogDescription>
-              Complete report history for {selectedReporter?.reporter_name}
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedReporter && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-4 gap-4">
-                <Card>
-                  <CardContent className="pt-6">
-                    <p className="text-2xl font-bold">{selectedReporter.total_reports}</p>
-                    <p className="text-sm text-muted-foreground">Total Reports</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-6">
-                    <p className="text-2xl font-bold text-green-600">{selectedReporter.actioned_reports}</p>
-                    <p className="text-sm text-muted-foreground">Actioned</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-6">
-                    <p className="text-2xl font-bold text-gray-600">{selectedReporter.dismissed_reports}</p>
-                    <p className="text-sm text-muted-foreground">Dismissed</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-6">
-                    <p className="text-2xl font-bold">{selectedReporter.accuracy_rate}%</p>
-                    <p className="text-sm text-muted-foreground">Accuracy</p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Target</TableHead>
-                      <TableHead>Reason</TableHead>
-                      <TableHead>Note</TableHead>
-                      <TableHead>Outcome</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {reporterHistory.map((report) => (
-                      <TableRow key={report.id}>
-                        <TableCell className="font-mono text-sm">
-                          {formatDate(report.created_at)}
-                        </TableCell>
-                        <TableCell>
-                          {report.reported_user ? (
-                            <div>
-                              <Badge variant="outline" className="mb-1">User</Badge>
-                              <p className="text-sm">{report.reported_user.full_name || "Unknown"}</p>
-                            </div>
-                          ) : report.reported_project ? (
-                            <div>
-                              <Badge variant="outline" className="mb-1">Project</Badge>
-                              <p className="text-sm">{report.reported_project.title}</p>
-                            </div>
-                          ) : (
-                            "—"
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {getReasonBadge(report.reason)}
-                        </TableCell>
-                        <TableCell className="max-w-xs">
-                          {report.note || <span className="text-muted-foreground">—</span>}
-                        </TableCell>
-                        <TableCell>
-                          {getOutcomeBadge(report.outcome)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
