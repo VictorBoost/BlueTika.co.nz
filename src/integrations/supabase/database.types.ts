@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -53,6 +53,60 @@ export type Database = {
           {
             foreignKeyName: "account_suspensions_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accounting_entries: {
+        Row: {
+          amount: number
+          contract_id: string | null
+          created_at: string | null
+          description: string
+          entry_date: string
+          entry_type: string
+          gst_included: boolean | null
+          id: string
+          provider_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          contract_id?: string | null
+          created_at?: string | null
+          description: string
+          entry_date: string
+          entry_type: string
+          gst_included?: boolean | null
+          id?: string
+          provider_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          contract_id?: string | null
+          created_at?: string | null
+          description?: string
+          entry_date?: string
+          entry_type?: string
+          gst_included?: boolean | null
+          id?: string
+          provider_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_entries_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_entries_provider_id_fkey"
+            columns: ["provider_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -732,6 +786,63 @@ export type Database = {
         }
         Relationships: []
       }
+      invoices: {
+        Row: {
+          company_logo_url: string | null
+          company_name: string
+          contract_id: string
+          created_at: string | null
+          custom_colors: Json | null
+          id: string
+          invoice_number: string
+          issued_date: string
+          provider_id: string
+          sent_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          company_logo_url?: string | null
+          company_name: string
+          contract_id: string
+          created_at?: string | null
+          custom_colors?: Json | null
+          id?: string
+          invoice_number: string
+          issued_date: string
+          provider_id: string
+          sent_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          company_logo_url?: string | null
+          company_name?: string
+          contract_id?: string
+          created_at?: string | null
+          custom_colors?: Json | null
+          id?: string
+          invoice_number?: string
+          issued_date?: string
+          provider_id?: string
+          sent_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       moderation_queue: {
         Row: {
           content_type: string
@@ -1236,6 +1347,57 @@ export type Database = {
           },
         ]
       }
+      provider_subscriptions: {
+        Row: {
+          billing_date: number
+          created_at: string | null
+          grace_period_ends_at: string | null
+          id: string
+          plan_id: string
+          provider_id: string
+          status: string
+          stripe_subscription_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          billing_date: number
+          created_at?: string | null
+          grace_period_ends_at?: string | null
+          id?: string
+          plan_id: string
+          provider_id: string
+          status?: string
+          stripe_subscription_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          billing_date?: number
+          created_at?: string | null
+          grace_period_ends_at?: string | null
+          id?: string
+          plan_id?: string
+          provider_id?: string
+          status?: string
+          stripe_subscription_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_subscriptions_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reports: {
         Row: {
           created_at: string | null
@@ -1588,6 +1750,53 @@ export type Database = {
           },
         ]
       }
+      staff_members: {
+        Row: {
+          created_at: string | null
+          custom_role_label: string | null
+          email: string
+          id: string
+          is_active: boolean | null
+          name: string
+          password_hash: string
+          provider_id: string
+          role: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          custom_role_label?: string | null
+          email: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          password_hash: string
+          provider_id: string
+          role: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          custom_role_label?: string | null
+          email?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          password_hash?: string
+          provider_id?: string
+          role?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_members_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subcategories: {
         Row: {
           category_id: string
@@ -1631,6 +1840,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      subscription_plans: {
+        Row: {
+          created_at: string | null
+          description: string
+          feature_key: string
+          id: string
+          is_active: boolean | null
+          monthly_price: number
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          feature_key: string
+          id?: string
+          is_active?: boolean | null
+          monthly_price: number
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          feature_key?: string
+          id?: string
+          is_active?: boolean | null
+          monthly_price?: number
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       tier_drop_warnings: {
         Row: {
