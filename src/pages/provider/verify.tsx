@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { authService } from "@/services/authService";
 import { profileService } from "@/services/profileService";
 import { categoryService } from "@/services/categoryService";
+import { verificationService } from "@/services/verificationService";
 import { supabase } from "@/integrations/supabase/client";
 import { Upload, CheckCircle, XCircle, Clock, AlertCircle, Plus, Trash2 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
@@ -107,55 +108,107 @@ export default function ProviderVerification() {
   const handleDriverLicenceUpload = async (file: File) => {
     if (!profile) return;
 
-    const fileExt = file.name.split(".").pop();
-    const fileName = `${profile.id}-driver-licence.${fileExt}`;
-    const filePath = `driver-licences/${fileName}`;
+    setUploading(true);
+    
+    try {
+      const { data, error } = await verificationService.uploadDocument(
+        file,
+        profile.id,
+        "driver_licence"
+      );
 
-    const { error: uploadError } = await supabase.storage
-      .from("verification-documents")
-      .upload(filePath, file, { upsert: true });
+      if (error) {
+        toast({
+          title: "Upload failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        setUploading(false);
+        return null;
+      }
 
-    if (uploadError) {
+      // Show AI verification feedback
+      if (data && (data as any).aiResult) {
+        const aiResult = (data as any).aiResult;
+        if (aiResult.autoApproved) {
+          toast({
+            title: "Document Auto-Approved! ✓",
+            description: `AI verified your driver licence (${aiResult.confidence}% confidence). You can now submit bids!`,
+            duration: 6000,
+          });
+        } else {
+          toast({
+            title: "Document Received",
+            description: `AI confidence: ${aiResult.confidence}%. Your document is queued for manual review.`,
+            duration: 5000,
+          });
+        }
+      }
+
+      setUploading(false);
+      return data?.file_url;
+    } catch (err) {
+      setUploading(false);
       toast({
-        title: "Upload failed",
-        description: uploadError.message,
+        title: "Upload error",
+        description: "Failed to upload document",
         variant: "destructive",
       });
       return null;
     }
-
-    const { data: { publicUrl } } = supabase.storage
-      .from("verification-documents")
-      .getPublicUrl(filePath);
-
-    return publicUrl;
   };
 
   const handleCertificateUpload = async (file: File, index: number) => {
     if (!profile) return;
 
-    const fileExt = file.name.split(".").pop();
-    const fileName = `${profile.id}-cert-${Date.now()}.${fileExt}`;
-    const filePath = `trade-certificates/${fileName}`;
+    setUploading(true);
+    
+    try {
+      const { data, error } = await verificationService.uploadDocument(
+        file,
+        profile.id,
+        "trade_certificate"
+      );
 
-    const { error: uploadError } = await supabase.storage
-      .from("verification-documents")
-      .upload(filePath, file);
+      if (error) {
+        toast({
+          title: "Upload failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        setUploading(false);
+        return null;
+      }
 
-    if (uploadError) {
+      // Show AI verification feedback
+      if (data && (data as any).aiResult) {
+        const aiResult = (data as any).aiResult;
+        if (aiResult.autoApproved) {
+          toast({
+            title: "Certificate Auto-Approved! ✓",
+            description: `AI verified your trade certificate (${aiResult.confidence}% confidence).`,
+            duration: 6000,
+          });
+        } else {
+          toast({
+            title: "Certificate Received",
+            description: `AI confidence: ${aiResult.confidence}%. Queued for manual review.`,
+            duration: 5000,
+          });
+        }
+      }
+
+      setUploading(false);
+      return data?.file_url;
+    } catch (err) {
+      setUploading(false);
       toast({
-        title: "Upload failed",
-        description: uploadError.message,
+        title: "Upload error",
+        description: "Failed to upload certificate",
         variant: "destructive",
       });
       return null;
     }
-
-    const { data: { publicUrl } } = supabase.storage
-      .from("verification-documents")
-      .getPublicUrl(filePath);
-
-    return publicUrl;
   };
 
   const addCertificate = () => {
@@ -210,7 +263,6 @@ export default function ProviderVerification() {
     }
 
     setLoading(true);
-    setUploading(true);
 
     try {
       // Upload driver licence if new file
@@ -219,7 +271,6 @@ export default function ProviderVerification() {
         const url = await handleDriverLicenceUpload(formData.driver_licence_file);
         if (!url) {
           setLoading(false);
-          setUploading(false);
           return;
         }
         driverLicenceUrl = url;
@@ -232,7 +283,6 @@ export default function ProviderVerification() {
           const url = await handleCertificateUpload(cert.file, i);
           if (!url) {
             setLoading(false);
-            setUploading(false);
             return;
           }
           
@@ -256,12 +306,9 @@ export default function ProviderVerification() {
             variant: "destructive",
           });
           setLoading(false);
-          setUploading(false);
           return;
         }
       }
-
-      setUploading(false);
 
       // Update profile
       const { error: profileError } = await supabase
@@ -270,7 +317,6 @@ export default function ProviderVerification() {
           driver_licence_number: formData.driver_licence_number,
           date_of_birth: formData.date_of_birth,
           driver_licence_url: driverLicenceUrl,
-          verification_status: "pending",
           verification_submitted_at: new Date().toISOString(),
         })
         .eq("id", session.user.id);
@@ -312,7 +358,8 @@ export default function ProviderVerification() {
 
       toast({
         title: "Success",
-        description: "Verification submitted! We'll review your documents within 24-48 hours.",
+        description: "Verification submitted! Check your email for AI verification results.",
+        duration: 6000,
       });
 
       router.push("/");
