@@ -15,7 +15,7 @@ import { CheckCircle, XCircle, Clock, ExternalLink, Bot, User, FileText, Phone }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { authService } from "@/services/authService";
 import { verificationService } from "@/services/verificationService";
-import { sendVerificationApprovalEmail, sendVerificationRejectionEmail } from "@/services/sesEmailService";
+import { sendDocumentManuallyApproved, sendDocumentRejected } from "@/services/sesEmailService";
 
 export default function AdminVerifyProviders() {
   const { toast } = useToast();
@@ -157,9 +157,9 @@ export default function AdminVerifyProviders() {
 
     if (providerEmail) {
       if (actionType === "approve") {
-        await sendVerificationApprovalEmail(providerEmail, providerName, selectedDocument.document_type);
+        await sendDocumentManuallyApproved(providerEmail, providerName, selectedDocument.document_type);
       } else {
-        await sendVerificationRejectionEmail(providerEmail, providerName, selectedDocument.document_type, rejectionReason);
+        await sendDocumentRejected(providerEmail, providerName, selectedDocument.document_type, rejectionReason);
       }
     }
 
