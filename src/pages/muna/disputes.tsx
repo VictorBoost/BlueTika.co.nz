@@ -12,13 +12,14 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Link from "next/link";
-import { AlertTriangle, DollarSign, Calendar, Eye } from "lucide-react";
+import { AlertTriangle, DollarSign, Calendar, Eye, Image as ImageIcon } from "lucide-react";
 import { disputeService } from "@/services/disputeService";
 import { authService } from "@/services/authService";
 import { sendDisputeResolutionNotification } from "@/services/sesEmailService";
 import { notificationService } from "@/services/notificationService";
 import { fundReleaseService } from "@/services/fundReleaseService";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function AdminDisputes() {
   const router = useRouter();
@@ -27,12 +28,14 @@ export default function AdminDisputes() {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [resolutionDialogOpen, setResolutionDialogOpen] = useState(false);
+  const [photoViewerOpen, setPhotoViewerOpen] = useState(false);
   const [selectedDispute, setSelectedDispute] = useState<any | null>(null);
+  const [evidencePhotos, setEvidencePhotos] = useState<any[]>([]);
   const [resolutionType, setResolutionType] = useState<string>("");
   const [resolutionReason, setResolutionReason] = useState("");
   const [clientRefundAmount, setClientRefundAmount] = useState("");
   const [providerPayoutAmount, setProviderPayoutAmount] = useState("");
-  const [resolving, setReleasing] = useState(false);
+  const [resolving, setResolving] = useState(false);
 
   useEffect(() => {
     checkAdminAccess();
@@ -45,7 +48,6 @@ export default function AdminDisputes() {
       return;
     }
 
-    // TODO: Add proper admin role check
     setUserId(session.user.id);
     loadDisputes();
   };
@@ -66,13 +68,36 @@ export default function AdminDisputes() {
     setLoading(false);
   };
 
+  const loadEvidencePhotos = async (contractId: string) => {
+    const { data, error } = await supabase
+      .from("contract_evidence_photos")
+      .select("*")
+      .eq("contract_id", contractId)
+      .order("photo_type")
+      .order("uploader_role");
+
+    if (error) {
+      console.error("Error loading evidence photos:", error);
+      return;
+    }
+
+    setEvidencePhotos(data || []);
+  };
+
   const handleOpenResolutionDialog = (dispute: any) => {
     setSelectedDispute(dispute);
     setResolutionType("");
     setResolutionReason("");
     setClientRefundAmount("");
     setProviderPayoutAmount("");
+    loadEvidencePhotos(dispute.contract_id);
     setResolutionDialogOpen(true);
+  };
+
+  const handleViewEvidence = (dispute: any) => {
+    setSelectedDispute(dispute);
+    loadEvidencePhotos(dispute.contract_id);
+    setPhotoViewerOpen(true);
   };
 
   const handleResolveDispute = async () => {
@@ -94,7 +119,7 @@ export default function AdminDisputes() {
       return;
     }
 
-    setReleasing(true);
+    setResolving(true);
     try {
       const bidsAny = selectedDispute.contracts.bids as any;
       const agreedPrice = bidsAny?.agreed_price || bidsAny?.[0]?.agreed_price || 0;
@@ -189,15 +214,19 @@ export default function AdminDisputes() {
         variant: "destructive",
       });
     } finally {
-      setReleasing(false);
+      setResolving(false);
     }
+  };
+
+  const getPhotosByType = (photoType: "before" | "after") => {
+    return evidencePhotos.filter(p => p.photo_type === photoType);
   };
 
   return (
     <>
       <SEO 
-        title="Disputes - Admin - BlueTika" 
-        description="Admin dispute management" 
+        title="Disputes - BlueTika Control Centre" 
+        description="Review and resolve active project disputes" 
       />
       
       <div className="min-h-screen flex flex-col">
@@ -264,8 +293,16 @@ export default function AdminDisputes() {
                           <Button asChild variant="outline" className="flex-1">
                             <Link href={`/project/${dispute.contracts.project_id}`}>
                               <Eye className="h-4 w-4 mr-2" />
-                              View Project & Evidence
+                              View Project
                             </Link>
+                          </Button>
+                          <Button
+                            onClick={() => handleViewEvidence(dispute)}
+                            variant="outline"
+                            className="flex-1"
+                          >
+                            <ImageIcon className="h-4 w-4 mr-2" />
+                            View Evidence Photos
                           </Button>
                           <Button
                             onClick={() => handleOpenResolutionDialog(dispute)}
@@ -286,6 +323,98 @@ export default function AdminDisputes() {
         
         <Footer />
       </div>
+
+      {/* Evidence Photo Viewer Dialog */}
+      <Dialog open={photoViewerOpen} onOpenChange={setPhotoViewerOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Evidence Photos</DialogTitle>
+            <DialogDescription>
+              Before and after photos submitted by both parties for "{selectedDispute?.contracts.projects.title}"
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {/* Before Photos */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Before Photos</h3>
+              <div className="grid md:grid-cols-2 gap-4">
+                {getPhotosByType("before").map((photo) => (
+                  <Card key={photo.id}>
+                    <CardHeader>
+                      <CardTitle className="text-sm">
+                        {photo.uploader_role === "client" ? "Client" : "Service Provider"}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {photo.photo_urls && photo.photo_urls.length > 0 ? (
+                        <div className="grid grid-cols-2 gap-2">
+                          {photo.photo_urls.map((url: string, idx: number) => (
+                            <a
+                              key={idx}
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block aspect-square rounded-lg overflow-hidden hover:opacity-80 transition"
+                            >
+                              <img
+                                src={url}
+                                alt={`Before photo ${idx + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                            </a>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No photos uploaded</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            {/* After Photos */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3">After Photos</h3>
+              <div className="grid md:grid-cols-2 gap-4">
+                {getPhotosByType("after").map((photo) => (
+                  <Card key={photo.id}>
+                    <CardHeader>
+                      <CardTitle className="text-sm">
+                        {photo.uploader_role === "client" ? "Client" : "Service Provider"}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {photo.photo_urls && photo.photo_urls.length > 0 ? (
+                        <div className="grid grid-cols-2 gap-2">
+                          {photo.photo_urls.map((url: string, idx: number) => (
+                            <a
+                              key={idx}
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block aspect-square rounded-lg overflow-hidden hover:opacity-80 transition"
+                            >
+                              <img
+                                src={url}
+                                alt={`After photo ${idx + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                            </a>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No photos uploaded</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Resolution Dialog */}
       <Dialog open={resolutionDialogOpen} onOpenChange={setResolutionDialogOpen}>

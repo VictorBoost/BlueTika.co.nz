@@ -11,15 +11,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { CheckCircle, XCircle, Clock, Eye, ExternalLink, Bot, User } from "lucide-react";
+import { CheckCircle, XCircle, Clock, ExternalLink, Bot, User, FileText, Phone } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
+import { authService } from "@/services/authService";
+import { verificationService } from "@/services/verificationService";
+import { sendVerificationApprovalEmail, sendVerificationRejectionEmail } from "@/services/sesEmailService";
 
 export default function AdminVerifyProviders() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [providers, setProviders] = useState<any[]>([]);
-  const [documents, setDocuments] = useState<any[]>([]);
+  const [standardDocs, setStandardDocs] = useState<any[]>([]);
+  const [domesticHelperDocs, setDomesticHelperDocs] = useState<any[]>([]);
   const [selectedDocument, setSelectedDocument] = useState<any>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
@@ -34,7 +36,8 @@ export default function AdminVerifyProviders() {
   const loadDocuments = async () => {
     setLoading(true);
 
-    const { data, error } = await supabase
+    // Load standard verifications (driver licence, trade certificate)
+    const { data: standard, error: standardError } = await supabase
       .from("verification_documents")
       .select(`
         *,
@@ -43,13 +46,33 @@ export default function AdminVerifyProviders() {
         subcategory:subcategories(id, name)
       `)
       .eq("status", "pending")
+      .in("document_type", ["driver_licence", "trade_certificate"])
       .order("ai_confidence_score", { ascending: true, nullsFirst: false })
       .order("created_at");
 
-    if (error) {
-      console.error("Error loading documents:", error);
+    // Load domestic helper verifications (police check, first aid)
+    const { data: domestic, error: domesticError } = await supabase
+      .from("verification_documents")
+      .select(`
+        *,
+        provider:profiles!verification_documents_provider_id_fkey(id, full_name, first_name, email, phone_number),
+        category:categories(id, name),
+        subcategory:subcategories(id, name)
+      `)
+      .eq("status", "pending")
+      .in("document_type", ["police_check", "first_aid"])
+      .order("created_at");
+
+    if (standardError) {
+      console.error("Error loading standard docs:", standardError);
     } else {
-      setDocuments(data || []);
+      setStandardDocs(standard || []);
+    }
+
+    if (domesticError) {
+      console.error("Error loading domestic helper docs:", domesticError);
+    } else {
+      setDomesticHelperDocs(domestic || []);
     }
 
     setLoading(false);
@@ -92,8 +115,8 @@ export default function AdminVerifyProviders() {
       return;
     }
 
-    const session = await supabase.auth.getSession();
-    const reviewerId = session.data.session?.user?.id;
+    const session = await authService.getCurrentSession();
+    const reviewerId = session?.user?.id;
 
     if (!reviewerId) {
       toast({
@@ -120,15 +143,48 @@ export default function AdminVerifyProviders() {
         description: "Failed to update verification status",
         variant: "destructive",
       });
-    } else {
-      toast({
-        title: "Success",
-        description: `Document ${actionType === "approve" ? "approved" : "rejected"} successfully.`,
-      });
+      return;
+    }
 
-      loadDocuments();
-      setDialogOpen(false);
-      setSelectedDocument(null);
+    // Update provider verification status if all docs approved
+    if (actionType === "approve") {
+      await checkAndUpdateProviderStatus(selectedDocument.provider_id);
+    }
+
+    // Send email notification
+    const providerEmail = selectedDocument.provider?.email;
+    const providerName = selectedDocument.provider?.full_name || selectedDocument.provider?.first_name;
+
+    if (providerEmail) {
+      if (actionType === "approve") {
+        await sendVerificationApprovalEmail(providerEmail, providerName, selectedDocument.document_type);
+      } else {
+        await sendVerificationRejectionEmail(providerEmail, providerName, selectedDocument.document_type, rejectionReason);
+      }
+    }
+
+    toast({
+      title: "Success",
+      description: `Document ${actionType === "approve" ? "approved" : "rejected"} successfully. Email notification sent.`,
+    });
+
+    loadDocuments();
+    setDialogOpen(false);
+    setSelectedDocument(null);
+  };
+
+  const checkAndUpdateProviderStatus = async (providerId: string) => {
+    const { data: allDocs } = await verificationService.getProviderDocuments(providerId);
+    
+    if (allDocs) {
+      const allApproved = allDocs.every(d => d.status === "approved");
+      if (allApproved && allDocs.length > 0) {
+        await verificationService.updateProviderVerificationStatus(
+          providerId,
+          "verified",
+          true
+        );
+      }
     }
   };
 
@@ -160,165 +216,158 @@ export default function AdminVerifyProviders() {
     }
   };
 
+  const renderDocumentTable = (documents: any[], isStandard: boolean) => {
+    if (loading) {
+      return <p className="text-center py-8 text-muted-foreground">Loading...</p>;
+    }
+
+    if (documents.length === 0) {
+      return <p className="text-center py-8 text-muted-foreground">No pending verifications</p>;
+    }
+
+    return (
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Provider</TableHead>
+            <TableHead>Document Type</TableHead>
+            {isStandard && <TableHead>AI Confidence</TableHead>}
+            {isStandard && <TableHead>AI Reason</TableHead>}
+            <TableHead>Service Category</TableHead>
+            <TableHead>Submitted</TableHead>
+            <TableHead>Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {documents.map((doc) => (
+            <TableRow key={doc.id}>
+              <TableCell>
+                <div>
+                  <p className="font-medium">
+                    {doc.provider?.full_name || doc.provider?.first_name}
+                  </p>
+                  <p className="text-sm text-muted-foreground">{doc.provider?.email}</p>
+                  {doc.provider?.phone_number && (
+                    <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                      <Phone className="h-3 w-3" />
+                      {doc.provider.phone_number}
+                    </p>
+                  )}
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0 text-xs"
+                    onClick={() => loadVerificationHistory(doc.provider_id)}
+                  >
+                    View History
+                  </Button>
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">
+                    {doc.document_type === "driver_licence" && "Driver Licence"}
+                    {doc.document_type === "trade_certificate" && "Trade Certificate"}
+                    {doc.document_type === "police_check" && "NZ Police Check"}
+                    {doc.document_type === "first_aid" && "First Aid Certificate"}
+                  </span>
+                  <a
+                    href={doc.file_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </a>
+                </div>
+              </TableCell>
+              {isStandard && (
+                <>
+                  <TableCell>
+                    {getConfidenceBadge(doc.ai_confidence_score, doc.auto_approved)}
+                  </TableCell>
+                  <TableCell className="max-w-xs">
+                    <p className="text-sm text-muted-foreground truncate" title={doc.ai_scan_reason}>
+                      {doc.ai_scan_reason || "—"}
+                    </p>
+                  </TableCell>
+                </>
+              )}
+              <TableCell>
+                <Badge variant="outline">
+                  {doc.subcategory?.name || doc.category?.name || "—"}
+                </Badge>
+              </TableCell>
+              <TableCell className="text-sm">
+                {new Date(doc.created_at).toLocaleDateString()}
+              </TableCell>
+              <TableCell>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleReview(doc, "approve")}
+                  >
+                    <CheckCircle className="h-4 w-4 mr-1" />
+                    Approve
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleReview(doc, "reject")}
+                  >
+                    <XCircle className="h-4 w-4 mr-1" />
+                    Reject
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    );
+  };
+
   return (
     <>
       <SEO 
-        title="Verify Service Providers - Admin - BlueTika"
+        title="Verification Queue - BlueTika Control Centre"
         description="Review and approve service provider verifications"
       />
       <div className="min-h-screen flex flex-col bg-background">
-        <header className="border-b bg-white">
-          <div className="container py-4 flex justify-between items-center">
-            <Link href="/" className="text-2xl font-bold text-primary">
-              BlueTika Admin
-            </Link>
-            <div className="flex gap-4">
-              <Button variant="ghost" asChild>
-                <Link href="/admin/categories">Categories</Link>
-              </Button>
-              <Button variant="ghost" asChild>
-                <Link href="/admin/verify-domestic-helpers">Domestic Helpers</Link>
-              </Button>
-              <Button asChild>
-                <Link href="/">Back to Site</Link>
-              </Button>
-            </div>
-          </div>
-        </header>
-
         <main className="flex-1 py-12">
           <div className="container">
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold mb-2">Verification Queue</h1>
+              <p className="text-muted-foreground">
+                Review and approve service provider verifications
+              </p>
+            </div>
+
             <Card>
               <CardHeader>
-                <CardTitle>Service Provider Verifications</CardTitle>
+                <CardTitle>Pending Verifications</CardTitle>
                 <CardDescription>
-                  Review driver licences, trade certificates, and approve or reject verifications
+                  Review documents and approve or reject verifications
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Tabs defaultValue="queue" className="space-y-6">
+                <Tabs defaultValue="standard" className="space-y-6">
                   <TabsList>
-                    <TabsTrigger value="queue">Review Queue</TabsTrigger>
-                    <TabsTrigger value="settings">API Settings</TabsTrigger>
+                    <TabsTrigger value="standard">
+                      Standard Verification ({standardDocs.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="domestic_helper">
+                      Domestic Helper Verification ({domesticHelperDocs.length})
+                    </TabsTrigger>
                   </TabsList>
                   
-                  <TabsContent value="queue">
-                    {loading ? (
-                      <p className="text-center py-8 text-muted-foreground">Loading...</p>
-                    ) : documents.length === 0 ? (
-                      <p className="text-center py-8 text-muted-foreground">No verification submissions yet</p>
-                    ) : (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Provider</TableHead>
-                            <TableHead>Document Type</TableHead>
-                            <TableHead>AI Confidence</TableHead>
-                            <TableHead>AI Reason</TableHead>
-                            <TableHead>Submitted</TableHead>
-                            <TableHead>Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {documents.map((doc) => (
-                            <TableRow key={doc.id}>
-                              <TableCell>
-                                <div>
-                                  <p className="font-medium">
-                                    {doc.provider?.full_name || doc.provider?.first_name}
-                                  </p>
-                                  <p className="text-sm text-muted-foreground">{doc.provider?.email}</p>
-                                  <Button
-                                    variant="link"
-                                    size="sm"
-                                    className="h-auto p-0 text-xs"
-                                    onClick={() => loadVerificationHistory(doc.provider_id)}
-                                  >
-                                    View History
-                                  </Button>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <span className="font-medium">{doc.document_type.replace(/_/g, " ")}</span>
-                                  <a
-                                    href={doc.file_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-primary hover:underline"
-                                  >
-                                    <ExternalLink className="h-4 w-4" />
-                                  </a>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                {getConfidenceBadge(doc.ai_confidence_score, doc.auto_approved)}
-                              </TableCell>
-                              <TableCell className="max-w-xs">
-                                <p className="text-sm text-muted-foreground truncate" title={doc.ai_scan_reason}>
-                                  {doc.ai_scan_reason || "—"}
-                                </p>
-                              </TableCell>
-                              <TableCell className="text-sm">
-                                {new Date(doc.created_at).toLocaleDateString()}
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex gap-2">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleReview(doc, "approve")}
-                                  >
-                                    <CheckCircle className="h-4 w-4 mr-1" />
-                                    Approve
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleReview(doc, "reject")}
-                                  >
-                                    <XCircle className="h-4 w-4 mr-1" />
-                                    Reject
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    )}
+                  <TabsContent value="standard">
+                    {renderDocumentTable(standardDocs, true)}
                   </TabsContent>
 
-                  <TabsContent value="settings">
-                    <Card className="border-primary/20">
-                      <CardHeader>
-                        <CardTitle>Government Verification API (Coming Soon)</CardTitle>
-                        <CardDescription>
-                          Connect to future NZ Government identity verification services for instant real-time document checks.
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                          <Label>API Endpoint URL</Label>
-                          <Input 
-                            placeholder="https://api.identity.govt.nz/v1/verify" 
-                            disabled 
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>API Key</Label>
-                          <Input 
-                            type="password" 
-                            placeholder="••••••••••••••••" 
-                            disabled 
-                          />
-                        </div>
-                        <p className="text-sm text-muted-foreground italic">
-                          This feature is in active development pending government API release. When activated, it will automatically bypass AI and manual checks where possible.
-                        </p>
-                        <Button disabled>Save Credentials</Button>
-                      </CardContent>
-                    </Card>
+                  <TabsContent value="domestic_helper">
+                    {renderDocumentTable(domesticHelperDocs, false)}
                   </TabsContent>
                 </Tabs>
               </CardContent>
@@ -328,6 +377,7 @@ export default function AdminVerifyProviders() {
         
         <Footer />
 
+        {/* Review Dialog */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent>
             <DialogHeader>
@@ -349,7 +399,7 @@ export default function AdminVerifyProviders() {
                   id="reason"
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
-                  placeholder="e.g., Driver licence photo is too blurry, please upload a clearer image"
+                  placeholder="e.g., Document is too blurry, please upload a clearer image"
                   rows={4}
                 />
               </div>
@@ -366,6 +416,7 @@ export default function AdminVerifyProviders() {
           </DialogContent>
         </Dialog>
 
+        {/* Verification History Dialog */}
         <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
           <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
