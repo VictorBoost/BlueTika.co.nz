@@ -25,6 +25,9 @@ Clean, professional SaaS aesthetic with NZ cultural elements (koru spiral, kiwi 
 - **Project Marketplace:** Browse, filter, post projects. All prices in NZD.
 - **Bidding System:** Service providers bid on projects. Clients review and accept.
 - **Contract Management:** Accepted bid becomes a contract. Track status, communicate.
+- **Staff Management:** Service providers add staff members ($2/month each) with roles and access control.
+- **Accounting Ledger:** Income/expense tracking with GST toggle, invoice generation from contracts (Silver+ tier only).
+- **Subscriptions:** Remove logo ($5), email hosting ($5), custom URL ($5), additional staff ($2/month). Owner-configurable pricing.
 - **GST Toggle:** Ready for future implementation (currently disabled).
 - **NZ Identity:** Footer displays "100% NZ Owned · Kiwis Helping Kiwis · bluetika.co.nz" on black background.
 - **About Page:** Brand story (Blue = trust, Tika = te reo Māori for right/fair), founder's builder story, koru + kiwi illustrations.
