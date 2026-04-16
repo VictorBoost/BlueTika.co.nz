@@ -1,0 +1,378 @@
+import { useState, useEffect } from "react";
+import { useRouter } from "next/router";
+import { SEO } from "@/components/SEO";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+import { DollarSign, Users, AlertCircle, FileCheck, Shield, Repeat } from "lucide-react";
+import {
+  getDashboardStats,
+  type DashboardStats,
+  verifyControlCentrePassword,
+  isControlCentreAuthenticated,
+  setControlCentreAuthenticated,
+  clearControlCentreAuthentication,
+} from "@/services/controlCentreService";
+
+export default function ControlCentre() {
+  const router = useRouter();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isControlCentreAuthenticated()) {
+      setIsAuthenticated(true);
+      loadStats();
+    }
+  }, []);
+
+  const loadStats = async () => {
+    setLoading(true);
+    try {
+      const data = await getDashboardStats();
+      setStats(data);
+    } catch (err) {
+      console.error("Failed to load stats:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (verifyControlCentrePassword(password)) {
+      setControlCentreAuthenticated();
+      setIsAuthenticated(true);
+      setError("");
+      loadStats();
+    } else {
+      setError("Incorrect password");
+      setPassword("");
+    }
+  };
+
+  const handleLogout = () => {
+    clearControlCentreAuthentication();
+    setIsAuthenticated(false);
+    setStats(null);
+    setPassword("");
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <>
+        <SEO title="BlueTika Control Centre" />
+        <div className="min-h-screen bg-background flex items-center justify-center p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle className="text-2xl text-center">BlueTika Control Centre</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div>
+                  <Input
+                    type="password"
+                    placeholder="Enter password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full"
+                  />
+                  {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
+                </div>
+                <Button type="submit" className="w-full">
+                  Access Control Centre
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <SEO title="BlueTika Control Centre" />
+      <div className="min-h-screen bg-background p-6">
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">BlueTika Control Centre</h1>
+              <p className="text-muted-foreground mt-1">Platform Overview & Management</p>
+            </div>
+            <div className="flex gap-4">
+              <Button variant="outline" onClick={loadStats} disabled={loading}>
+                {loading ? "Loading..." : "Refresh"}
+              </Button>
+              <Button variant="outline" onClick={handleLogout}>
+                Logout
+              </Button>
+            </div>
+          </div>
+
+          {loading && !stats ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Loading dashboard...</p>
+            </div>
+          ) : stats ? (
+            <>
+              {/* Quick Stats Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Revenue This Month</p>
+                        <p className="text-2xl font-bold text-foreground">
+                          ${stats.revenueThisMonth.toFixed(2)}
+                        </p>
+                      </div>
+                      <DollarSign className="h-8 w-8 text-success" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">All-Time Revenue</p>
+                        <p className="text-2xl font-bold text-foreground">
+                          ${stats.revenueAllTime.toFixed(2)}
+                        </p>
+                      </div>
+                      <DollarSign className="h-8 w-8 text-accent" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Pending Verifications</p>
+                        <p className="text-2xl font-bold text-foreground">
+                          {stats.pendingVerificationsCount}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          +{stats.pendingDomesticHelperVerificationsCount} Domestic Helpers
+                        </p>
+                      </div>
+                      <Shield className="h-8 w-8 text-primary" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Open Disputes</p>
+                        <p className="text-2xl font-bold text-foreground">
+                          {stats.openDisputesCount}
+                        </p>
+                      </div>
+                      <AlertCircle className="h-8 w-8 text-destructive" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Additional Stats Row */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Pending Fund Releases</p>
+                        <p className="text-2xl font-bold text-foreground">
+                          {stats.pendingFundReleasesCount}
+                        </p>
+                      </div>
+                      <FileCheck className="h-8 w-8 text-accent" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Open Reports</p>
+                        <p className="text-2xl font-bold text-foreground">{stats.openReportsCount}</p>
+                      </div>
+                      <AlertCircle className="h-8 w-8 text-destructive" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Active Routine Contracts</p>
+                        <p className="text-2xl font-bold text-foreground">
+                          {stats.activeRoutineContractsCount}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          ${stats.totalMonthlyRecurringValue.toFixed(2)}/mo
+                        </p>
+                      </div>
+                      <Repeat className="h-8 w-8 text-success" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Charts Row 1 */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Active Projects by Category</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={stats.projectsByCategory}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="category" angle={-45} textAnchor="end" height={100} />
+                        <YAxis />
+                        <Tooltip />
+                        <Bar dataKey="count" fill="hsl(var(--primary))" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>New Signups (Last 30 Days)</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={stats.signupsLast30Days}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="date" angle={-45} textAnchor="end" height={100} />
+                        <YAxis />
+                        <Tooltip />
+                        <Line type="monotone" dataKey="count" stroke="hsl(var(--accent))" />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Charts Row 2 */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Commission by Tier (This Month)</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={stats.commissionByTier}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="tier" />
+                        <YAxis />
+                        <Tooltip />
+                        <Bar dataKey="amount" fill="hsl(var(--success))" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Bot Lab Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Active Bots</span>
+                        <span className="text-2xl font-bold">{stats.botLabStats.activeBots}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Listings Created</span>
+                        <span className="text-2xl font-bold">
+                          {stats.botLabStats.listingsCreated}
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Management Links */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Management Tools</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <Button variant="outline" onClick={() => router.push("/muna/categories")}>
+                      Categories
+                    </Button>
+                    <Button variant="outline" onClick={() => router.push("/muna/verify-providers")}>
+                      Verify Providers
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => router.push("/muna/verify-domestic-helpers")}
+                    >
+                      Verify Helpers
+                    </Button>
+                    <Button variant="outline" onClick={() => router.push("/muna/fund-releases")}>
+                      Fund Releases
+                    </Button>
+                    <Button variant="outline" onClick={() => router.push("/muna/disputes")}>
+                      Disputes
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => router.push("/muna/commission-settings")}
+                    >
+                      Commission
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => router.push("/muna/routine-contracts")}
+                    >
+                      Routine Contracts
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => router.push("/muna/trust-and-safety")}
+                    >
+                      Trust & Safety
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => router.push("/muna/moderation-settings")}
+                    >
+                      Moderation
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          ) : null}
+        </div>
+      </div>
+    </>
+  );
+}
