@@ -1,6 +1,6 @@
 ---
 title: Public directory pages
-status: in_progress
+status: done
 priority: high
 type: feature
 tags: [pages, seo]
@@ -13,9 +13,9 @@ position: 16
 Create public-facing directory pages with SEO optimization for each listing.
 
 ## Checklist
-- [ ] Create /directory.tsx: homepage with search, filters, featured listings grid
-- [ ] Create /directory/[slug].tsx: individual listing detail page with SEO meta tags
-- [ ] Add "Get a Quote via BlueTika" button that tracks conversion and redirects to post-project
-- [ ] Show green "Protected by BlueTika Escrow" badge for Silver+ providers
-- [ ] Add schema.org LocalBusiness markup for SEO
-- [ ] Include phone number display (visible unlike marketplace)
+- [x] Create /directory.tsx: homepage with search, filters, featured listings grid
+- [x] Create /directory/[slug].tsx: individual listing detail page with SEO meta tags
+- [x] Add "Get a Quote via BlueTika" button that tracks conversion and redirects to post-project
+- [x] Show green "Protected by BlueTika Escrow" badge for Silver+ providers
+- [x] Add schema.org LocalBusiness markup for SEO
+- [x] Include phone number display (visible unlike marketplace)
