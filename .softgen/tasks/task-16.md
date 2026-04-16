@@ -1,6 +1,6 @@
 ---
 title: Public directory pages
-status: todo
+status: in_progress
 priority: high
 type: feature
 tags: [pages, seo]

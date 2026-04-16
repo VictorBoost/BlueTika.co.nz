@@ -1,6 +1,6 @@
 ---
 title: Directory services and UI components
-status: in_progress
+status: done
 priority: high
 type: feature
 tags: [services, components]
@@ -16,5 +16,5 @@ Create service layer and reusable UI components for directory functionality.
 - [x] Create directoryService.ts: CRUD operations for listings, search/filter, featured listings
 - [x] Create directoryCategoryService.ts: manage categories
 - [x] Create directoryAnalyticsService.ts: track conversions
-- [ ] Create DirectoryListingCard.tsx: display listing in grid with badge if provider
-- [ ] Create DirectorySearchBar.tsx: keyword search + category/city filters
+- [x] Create DirectoryListingCard.tsx: display listing in grid with badge if provider
+- [x] Create DirectorySearchBar.tsx: keyword search + category/city filters
