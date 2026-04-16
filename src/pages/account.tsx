@@ -238,7 +238,7 @@ export default function Account() {
               {profile?.is_provider && (
                 <AccountingLedgerCard 
                   providerId={profile.id} 
-                  currentTier={profile.tier || "bronze"} 
+                  currentTier={(profile.current_tier as "bronze" | "silver" | "gold" | "platinum") || "bronze"} 
                 />
               )}
 

@@ -8,9 +8,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { staffService } from "@/services/staffService";
+import { providerStaffService } from "@/services/providerStaffService";
 import { Users, Plus, Trash2, Power, PowerOff, DollarSign } from "lucide-react";
-import type { StaffMember } from "@/services/staffService";
+import type { StaffMember } from "@/services/providerStaffService";
 
 interface StaffManagementCardProps {
   providerId: string;
@@ -35,7 +35,7 @@ export function StaffManagementCard({ providerId }: StaffManagementCardProps) {
 
   const loadStaff = async () => {
     try {
-      const data = await staffService.getStaffMembers(providerId);
+      const data = await providerStaffService.getStaffMembers(providerId);
       setStaff(data);
     } catch (error) {
       console.error("Error loading staff:", error);
@@ -63,7 +63,7 @@ export function StaffManagementCard({ providerId }: StaffManagementCardProps) {
 
     setLoading(true);
     try {
-      await staffService.createStaffMember(providerId, formData);
+      await providerStaffService.createStaffMember(providerId, formData);
       toast({
         title: "Success",
         description: "Staff member added successfully"
@@ -90,13 +90,13 @@ export function StaffManagementCard({ providerId }: StaffManagementCardProps) {
   const handleToggleActive = async (staffId: string, currentlyActive: boolean) => {
     try {
       if (currentlyActive) {
-        await staffService.deactivateStaffMember(staffId);
+        await providerStaffService.deactivateStaffMember(staffId);
         toast({
           title: "Success",
           description: "Staff member deactivated"
         });
       } else {
-        await staffService.updateStaffMember(staffId, { isActive: true });
+        await providerStaffService.updateStaffMember(staffId, { isActive: true });
         toast({
           title: "Success",
           description: "Staff member reactivated"
@@ -118,7 +118,7 @@ export function StaffManagementCard({ providerId }: StaffManagementCardProps) {
     }
 
     try {
-      await staffService.deleteStaffMember(staffId);
+      await providerStaffService.deleteStaffMember(staffId);
       toast({
         title: "Success",
         description: "Staff member deleted"
