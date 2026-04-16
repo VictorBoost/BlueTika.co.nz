@@ -264,6 +264,44 @@ export const contentSafetyService = {
   },
 
   /**
+   * Suspend a user (direct suspension for admin actions)
+   */
+  async suspendUser(
+    userId: string,
+    suspensionType: "chat_suspended" | "auto_suspended" | "permanently_banned",
+    reason: string
+  ): Promise<void> {
+    // Get current attempt count or default to 0
+    const { data: attempts } = await supabase
+      .from("bypass_attempts")
+      .select("id")
+      .eq("user_id", userId);
+
+    const attemptCount = attempts?.length || 0;
+
+    const suspensionEndsAt =
+      suspensionType === "chat_suspended"
+        ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        : null;
+
+    // Deactivate previous suspensions
+    await supabase
+      .from("account_suspensions")
+      .update({ is_active: false })
+      .eq("user_id", userId)
+      .eq("is_active", true);
+
+    // Create new suspension
+    await supabase.from("account_suspensions").insert({
+      user_id: userId,
+      suspension_type: suspensionType,
+      bypass_attempt_count: attemptCount,
+      suspension_ends_at: suspensionEndsAt,
+      is_active: true,
+    });
+  },
+
+  /**
    * Check if user is suspended or banned
    */
   async checkUserStatus(userId: string): Promise<{
