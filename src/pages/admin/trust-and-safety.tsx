@@ -68,7 +68,19 @@ export default function TrustAndSafety() {
         contentSafetyService.getAllSuspensions(),
       ]);
 
-      setBypassAttempts(attempts);
+      const formattedAttempts: BypassAttempt[] = attempts.map(a => ({
+        id: a.id,
+        user_id: a.user_id,
+        user_name: a.profile?.full_name || "Unknown",
+        user_email: a.profile?.email || "Unknown",
+        content: a.content_attempted,
+        detected_patterns: a.detected_patterns,
+        context: a.page_location,
+        attempt_count: a.escalation_level,
+        created_at: a.created_at,
+      }));
+
+      setBypassAttempts(formattedAttempts);
       setSuspendedAccounts(suspensions);
     } catch (error) {
       console.error("Error loading trust & safety data:", error);
