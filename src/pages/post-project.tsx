@@ -11,13 +11,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { authService } from "@/services/authService";
 import { projectService } from "@/services/projectService";
 import { categoryService } from "@/services/categoryService";
 import { subcategoryService } from "@/services/subcategoryService";
 import { supabase } from "@/integrations/supabase/client";
-import { AlertCircle, Upload, X, Video } from "lucide-react";
+import { AlertCircle, Upload, X, Video, Calendar } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { SafetyBanner } from "@/components/SafetyBanner";
 import { contentSafetyService } from "@/services/contentSafetyService";
@@ -35,6 +36,41 @@ const MAX_PHOTO_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
 const MAX_VIDEO_DURATION = 30; // seconds
 
+const CATEGORY_EXAMPLES: Record<string, { title: string; description: string }> = {
+  "cleaning": {
+    title: "End of tenancy clean in Auckland 3 bedroom",
+    description: "Need a thorough end of tenancy clean for a 3 bedroom house in Mt Eden. Includes kitchen deep clean, bathroom scrubbing, carpet vacuum, window cleaning inside, and general dusting."
+  },
+  "movers": {
+    title: "Moving a 2 bedroom flat from Ponsonby to Newmarket",
+    description: "Need help moving furniture and boxes from a 2 bedroom flat. We have packed most items. Main items include queen bed, sofa, dining table with 4 chairs, and approximately 20 boxes."
+  },
+  "plumbers-and-gas": {
+    title: "Fix leaking tap in kitchen Christchurch",
+    description: "Kitchen tap has been dripping for a week. Appears to need new washer or cartridge replacement. Need someone who can come assess and fix promptly."
+  },
+  "landscaping": {
+    title: "Lawn mowing and hedge trim fortnightly Wellington",
+    description: "Looking for regular lawn mowing and hedge trimming service. Medium-sized section with hedges along fence line. Prefer fortnightly schedule starting next month."
+  },
+  "painting": {
+    title: "Interior painting 2 bedroom unit Hamilton",
+    description: "Need interior walls painted in a 2 bedroom unit. Walls are currently white, want to repaint in off-white. Includes lounge, 2 bedrooms, hallway. Ceilings not included."
+  },
+  "electrical": {
+    title: "Install 4 downlights living room Auckland",
+    description: "Want to install 4 LED downlights in living room ceiling. Ceiling is plasterboard with access from roof cavity. Prefer white LED downlights with warm white tone."
+  },
+  "handyman": {
+    title: "Assemble IKEA furniture 3 items Tauranga",
+    description: "Need help assembling 3 pieces of IKEA furniture: 1 wardrobe, 1 chest of drawers, and 1 bookshelf. All items are still in boxes with instructions included."
+  },
+  "domestic-helper": {
+    title: "Weekly nanny needed 3 days Auckland",
+    description: "Looking for experienced nanny for our 2 children (ages 3 and 5). Need someone Monday, Wednesday, Friday from 8am-4pm. Light meal prep and help with homework for the older child."
+  }
+};
+
 export default function PostProject() {
   const router = useRouter();
   const { toast } = useToast();
@@ -45,6 +81,8 @@ export default function PostProject() {
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [routineEnabled, setRoutineEnabled] = useState(false);
+  const [selectedCategorySlug, setSelectedCategorySlug] = useState("");
   
   const [formData, setFormData] = useState({
     title: "",
@@ -57,6 +95,9 @@ export default function PostProject() {
     selected_days: [] as string[],
     start_date: "",
     weeks_count: 1,
+    routine_frequency: "weekly",
+    routine_custom_days: 7,
+    routine_start_date: "",
     date_preference: "asap_flexible",
     date_from: "",
     date_to: "",
@@ -71,10 +112,22 @@ export default function PostProject() {
   useEffect(() => {
     if (formData.category_id) {
       const selectedCategory = categories.find(c => c.id === formData.category_id);
-      setIsDomesticHelper(selectedCategory?.slug === "domestic-helper");
+      const categorySlug = selectedCategory?.slug || "";
+      setSelectedCategorySlug(categorySlug);
+      setIsDomesticHelper(categorySlug === "domestic-helper");
       
-      if (selectedCategory?.slug === "domestic-helper") {
+      // Update placeholder text when category changes
+      if (categorySlug && CATEGORY_EXAMPLES[categorySlug]) {
+        setFormData(prev => ({
+          ...prev,
+          title: "",
+          description: ""
+        }));
+      }
+      
+      if (categorySlug === "domestic-helper") {
         loadSubcategories(formData.category_id);
+        setRoutineEnabled(true);
       } else {
         setSubcategories([]);
         setFormData(prev => ({ ...prev, subcategory_id: "", booking_type: "one_time" }));
@@ -317,6 +370,26 @@ export default function PostProject() {
       }
     }
 
+    // Validate routine scheduling for non-Domestic Helper categories
+    if (routineEnabled && !isDomesticHelper) {
+      if (!formData.routine_start_date) {
+        toast({
+          title: "Start date required",
+          description: "Please select a start date for routine scheduling",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (formData.routine_frequency === "custom" && formData.routine_custom_days < 1) {
+        toast({
+          title: "Invalid frequency",
+          description: "Custom frequency must be at least 1 day",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     // Validate date preference fields
     if (formData.date_preference === "date_range" && (!formData.date_from || !formData.date_to)) {
       toast({
@@ -345,7 +418,6 @@ export default function PostProject() {
         variant: "destructive",
       });
       
-      // Log bypass attempt
       await contentSafetyService.logBypassAttempt(
         session.user.id,
         formData.title,
@@ -363,7 +435,6 @@ export default function PostProject() {
         variant: "destructive",
       });
       
-      // Log bypass attempt
       await contentSafetyService.logBypassAttempt(
         session.user.id,
         formData.description,
@@ -377,7 +448,6 @@ export default function PostProject() {
     setUploadingMedia(true);
 
     try {
-      // Upload media files
       const { photoUrls, videoUrl } = await uploadMedia(session.user.id);
 
       const projectData: any = {
@@ -400,6 +470,15 @@ export default function PostProject() {
         projectData.date_to = formData.date_to;
       } else if (formData.date_preference === "specific_date") {
         projectData.specific_date = formData.specific_date;
+      }
+
+      // Handle routine scheduling for non-Domestic Helper categories
+      if (routineEnabled && !isDomesticHelper) {
+        projectData.routine_frequency = formData.routine_frequency;
+        projectData.routine_start_date = formData.routine_start_date;
+        if (formData.routine_frequency === "custom") {
+          projectData.routine_custom_days = formData.routine_custom_days;
+        }
       }
 
       if (isDomesticHelper) {
@@ -440,6 +519,18 @@ export default function PostProject() {
       setUploadingMedia(false);
     }
   };
+
+  const getPlaceholders = () => {
+    if (selectedCategorySlug && CATEGORY_EXAMPLES[selectedCategorySlug]) {
+      return CATEGORY_EXAMPLES[selectedCategorySlug];
+    }
+    return {
+      title: "e.g., End of tenancy clean in Auckland 3 bedroom",
+      description: "Describe what you need done in detail..."
+    };
+  };
+
+  const placeholders = getPlaceholders();
 
   return (
     <>
@@ -485,17 +576,6 @@ export default function PostProject() {
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="space-y-2">
-                    <Label htmlFor="title">Project Title *</Label>
-                    <Input
-                      id="title"
-                      placeholder="e.g., House cleaning needed weekly"
-                      value={formData.title}
-                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
                     <Label htmlFor="category">Service Category *</Label>
                     <Select
                       value={formData.category_id}
@@ -513,6 +593,17 @@ export default function PostProject() {
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="title">Project Title *</Label>
+                    <Input
+                      id="title"
+                      placeholder={placeholders.title}
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      required
+                    />
                   </div>
 
                   {isDomesticHelper && (
@@ -608,11 +699,82 @@ export default function PostProject() {
                     </>
                   )}
 
+                  {!isDomesticHelper && (
+                    <div className="space-y-4 p-4 border rounded-lg bg-muted">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                          <Label htmlFor="routine-toggle" className="text-base font-semibold">
+                            Routine Schedule (Optional)
+                          </Label>
+                          <p className="text-sm text-muted-foreground">
+                            Need this service on a regular basis?
+                          </p>
+                        </div>
+                        <Switch
+                          id="routine-toggle"
+                          checked={routineEnabled}
+                          onCheckedChange={setRoutineEnabled}
+                        />
+                      </div>
+
+                      {routineEnabled && (
+                        <div className="space-y-4 pt-4 border-t">
+                          <div className="space-y-2">
+                            <Label htmlFor="routine_frequency">Frequency *</Label>
+                            <Select
+                              value={formData.routine_frequency}
+                              onValueChange={(value) => setFormData({ ...formData, routine_frequency: value })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="weekly">Weekly</SelectItem>
+                                <SelectItem value="fortnightly">Fortnightly</SelectItem>
+                                <SelectItem value="monthly">Monthly</SelectItem>
+                                <SelectItem value="custom">Custom (specify days)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {formData.routine_frequency === "custom" && (
+                            <div className="space-y-2">
+                              <Label htmlFor="routine_custom_days">Every X Days *</Label>
+                              <Input
+                                id="routine_custom_days"
+                                type="number"
+                                min="1"
+                                value={formData.routine_custom_days}
+                                onChange={(e) => setFormData({ ...formData, routine_custom_days: parseInt(e.target.value) || 1 })}
+                                placeholder="7"
+                              />
+                            </div>
+                          )}
+
+                          <div className="space-y-2">
+                            <Label htmlFor="routine_start_date">Preferred Start Date *</Label>
+                            <Input
+                              id="routine_start_date"
+                              type="date"
+                              value={formData.routine_start_date}
+                              onChange={(e) => setFormData({ ...formData, routine_start_date: e.target.value })}
+                              min={new Date().toISOString().split("T")[0]}
+                            />
+                          </div>
+
+                          <p className="text-sm text-muted-foreground">
+                            Service providers can propose their availability for your routine schedule
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div className="space-y-2">
                     <Label htmlFor="description">Description *</Label>
                     <Textarea
                       id="description"
-                      placeholder="Describe what you need done..."
+                      placeholder={placeholders.description}
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       rows={6}
