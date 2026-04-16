@@ -70,7 +70,7 @@ export const staffService = {
       throw new Error("Invalid credentials or account deactivated");
     }
 
-    if (data.password_hash !== passwordHash) {
+    if ((data as any).password_hash !== passwordHash) {
       throw new Error("Invalid credentials");
     }
 
