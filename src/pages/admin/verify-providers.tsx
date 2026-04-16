@@ -11,53 +11,75 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { CheckCircle, XCircle, Clock, Eye, ExternalLink } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Eye, ExternalLink, Bot, User } from "lucide-react";
 
 export default function AdminVerifyProviders() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [providers, setProviders] = useState<any[]>([]);
-  const [selectedProvider, setSelectedProvider] = useState<any>(null);
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [selectedDocument, setSelectedDocument] = useState<any>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
   const [actionType, setActionType] = useState<"approve" | "reject">("approve");
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+  const [verificationHistory, setVerificationHistory] = useState<any[]>([]);
 
   useEffect(() => {
-    loadProviders();
+    loadDocuments();
   }, []);
 
-  const loadProviders = async () => {
+  const loadDocuments = async () => {
     setLoading(true);
 
     const { data, error } = await supabase
-      .from("profiles")
+      .from("verification_documents")
       .select(`
         *,
-        trade_certificates(*),
-        provider_categories(category:categories(name))
+        provider:profiles!verification_documents_provider_id_fkey(id, full_name, first_name, email, phone_number),
+        category:categories(id, name),
+        subcategory:subcategories(id, name)
       `)
-      .eq("is_provider", true)
-      .not("verification_submitted_at", "is", null)
-      .order("verification_submitted_at", { ascending: false });
+      .eq("status", "pending")
+      .order("ai_confidence_score", { ascending: true, nullsFirst: false })
+      .order("created_at");
 
     if (error) {
-      console.error("Error loading providers:", error);
+      console.error("Error loading documents:", error);
     } else {
-      setProviders(data || []);
+      setDocuments(data || []);
     }
 
     setLoading(false);
   };
 
-  const handleReview = (provider: any, action: "approve" | "reject") => {
-    setSelectedProvider(provider);
+  const loadVerificationHistory = async (providerId: string) => {
+    const { data, error } = await supabase
+      .from("verification_logs")
+      .select(`
+        *,
+        admin:profiles!verification_logs_admin_id_fkey(full_name, email)
+      `)
+      .eq("provider_id", providerId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error loading history:", error);
+    } else {
+      setVerificationHistory(data || []);
+      setHistoryDialogOpen(true);
+    }
+  };
+
+  const handleReview = (document: any, action: "approve" | "reject") => {
+    setSelectedDocument(document);
     setActionType(action);
     setRejectionReason("");
     setDialogOpen(true);
   };
 
   const confirmAction = async () => {
-    if (!selectedProvider) return;
+    if (!selectedDocument) return;
 
     if (actionType === "reject" && !rejectionReason.trim()) {
       toast({
@@ -68,22 +90,27 @@ export default function AdminVerifyProviders() {
       return;
     }
 
-    const updates: any = {
-      verification_status: actionType === "approve" ? "approved" : "rejected",
-      verification_reviewed_at: new Date().toISOString(),
-    };
+    const session = await supabase.auth.getSession();
+    const reviewerId = session.data.session?.user?.id;
 
-    if (actionType === "reject") {
-      updates.verification_rejection_reason = rejectionReason;
-    } else {
-      updates.verification_rejection_reason = null;
-      updates.driver_licence_verified = true;
+    if (!reviewerId) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to review documents",
+        variant: "destructive",
+      });
+      return;
     }
 
     const { error } = await supabase
-      .from("profiles")
-      .update(updates)
-      .eq("id", selectedProvider.id);
+      .from("verification_documents")
+      .update({
+        status: actionType === "approve" ? "approved" : "rejected",
+        reviewed_by: reviewerId,
+        reviewed_at: new Date().toISOString(),
+        rejection_reason: actionType === "reject" ? rejectionReason : null,
+      })
+      .eq("id", selectedDocument.id);
 
     if (error) {
       toast({
@@ -92,55 +119,43 @@ export default function AdminVerifyProviders() {
         variant: "destructive",
       });
     } else {
-      // Mock email notification
-      console.log(`
-        MOCK EMAIL SENT TO: ${selectedProvider.email}
-        SUBJECT: BlueTika Verification ${actionType === "approve" ? "Approved" : "Rejected"}
-        BODY:
-        Hi ${selectedProvider.full_name || selectedProvider.first_name},
-        
-        ${actionType === "approve" 
-          ? "Great news! Your service provider verification has been approved. You can now submit bids on projects."
-          : `Your verification has been rejected for the following reason:\n\n${rejectionReason}\n\nPlease update your information and resubmit.`
-        }
-        
-        Kind regards,
-        BlueTika Team
-      `);
-
       toast({
         title: "Success",
-        description: `Provider ${actionType === "approve" ? "approved" : "rejected"} successfully. Mock email sent.`,
+        description: `Document ${actionType === "approve" ? "approved" : "rejected"} successfully.`,
       });
 
-      loadProviders();
+      loadDocuments();
       setDialogOpen(false);
-      setSelectedProvider(null);
+      setSelectedDocument(null);
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    if (status === "approved") {
+  const getConfidenceBadge = (score: number | null, autoApproved: boolean | null) => {
+    if (autoApproved) {
       return (
         <Badge className="bg-success/10 text-success border-success/20">
-          <CheckCircle className="h-4 w-4 mr-1" />
-          Approved
-        </Badge>
-      );
-    } else if (status === "rejected") {
-      return (
-        <Badge variant="destructive">
-          <XCircle className="h-4 w-4 mr-1" />
-          Rejected
+          <Bot className="h-3 w-3 mr-1" />
+          Auto-Approved
         </Badge>
       );
     }
-    return (
-      <Badge variant="secondary">
-        <Clock className="h-4 w-4 mr-1" />
-        Pending
-      </Badge>
-    );
+
+    if (!score) {
+      return (
+        <Badge variant="secondary">
+          <Clock className="h-3 w-3 mr-1" />
+          No AI Scan
+        </Badge>
+      );
+    }
+
+    if (score >= 85) {
+      return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">{score}%</Badge>;
+    } else if (score >= 70) {
+      return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">{score}%</Badge>;
+    } else {
+      return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">{score}%</Badge>;
+    }
   };
 
   return (
@@ -181,104 +196,81 @@ export default function AdminVerifyProviders() {
               <CardContent>
                 {loading ? (
                   <p className="text-center py-8 text-muted-foreground">Loading...</p>
-                ) : providers.length === 0 ? (
+                ) : documents.length === 0 ? (
                   <p className="text-center py-8 text-muted-foreground">No verification submissions yet</p>
                 ) : (
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Provider</TableHead>
-                        <TableHead>Contact</TableHead>
-                        <TableHead>Categories</TableHead>
-                        <TableHead>Certificates</TableHead>
+                        <TableHead>Document Type</TableHead>
+                        <TableHead>AI Confidence</TableHead>
+                        <TableHead>AI Reason</TableHead>
                         <TableHead>Submitted</TableHead>
-                        <TableHead>Status</TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {providers.map((provider) => (
-                        <TableRow key={provider.id}>
+                      {documents.map((doc) => (
+                        <TableRow key={doc.id}>
                           <TableCell>
                             <div>
                               <p className="font-medium">
-                                {provider.full_name || `${provider.first_name} ${provider.last_name}`}
+                                {doc.provider?.full_name || doc.provider?.first_name}
                               </p>
-                              <p className="text-sm text-muted-foreground">
-                                Licence: {provider.driver_licence_number || "N/A"}
-                              </p>
+                              <p className="text-sm text-muted-foreground">{doc.provider?.email}</p>
+                              <Button
+                                variant="link"
+                                size="sm"
+                                className="h-auto p-0 text-xs"
+                                onClick={() => loadVerificationHistory(doc.provider_id)}
+                              >
+                                View History
+                              </Button>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <div className="text-sm">
-                              <p>{provider.email}</p>
-                              <p className="text-muted-foreground">{provider.phone_number || "No phone"}</p>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{doc.document_type.replace(/_/g, " ")}</span>
+                              <a
+                                href={doc.file_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline"
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                              </a>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                              {provider.provider_categories?.map((pc: any, idx: number) => (
-                                <Badge key={idx} variant="outline" className="text-xs">
-                                  {pc.category?.name}
-                                </Badge>
-                              ))}
-                            </div>
+                            {getConfidenceBadge(doc.ai_confidence_score, doc.auto_approved)}
                           </TableCell>
-                          <TableCell>
-                            <div className="space-y-1">
-                              {provider.driver_licence_url && (
-                                <a
-                                  href={provider.driver_licence_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-xs flex items-center gap-1 text-primary hover:underline"
-                                >
-                                  <ExternalLink className="h-3 w-3" />
-                                  Driver Licence
-                                </a>
-                              )}
-                              {provider.trade_certificates?.map((cert: any) => (
-                                <a
-                                  key={cert.id}
-                                  href={cert.document_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-xs flex items-center gap-1 text-primary hover:underline"
-                                >
-                                  <ExternalLink className="h-3 w-3" />
-                                  {cert.certificate_type}
-                                </a>
-                              ))}
-                            </div>
+                          <TableCell className="max-w-xs">
+                            <p className="text-sm text-muted-foreground truncate" title={doc.ai_scan_reason}>
+                              {doc.ai_scan_reason || "—"}
+                            </p>
                           </TableCell>
                           <TableCell className="text-sm">
-                            {new Date(provider.verification_submitted_at).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell>
-                            {getStatusBadge(provider.verification_status)}
+                            {new Date(doc.created_at).toLocaleDateString()}
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-2">
-                              {provider.verification_status === "pending" && (
-                                <>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleReview(provider, "approve")}
-                                  >
-                                    <CheckCircle className="h-4 w-4 mr-1" />
-                                    Approve
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleReview(provider, "reject")}
-                                  >
-                                    <XCircle className="h-4 w-4 mr-1" />
-                                    Reject
-                                  </Button>
-                                </>
-                              )}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleReview(doc, "approve")}
+                              >
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleReview(doc, "reject")}
+                              >
+                                <XCircle className="h-4 w-4 mr-1" />
+                                Reject
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -301,8 +293,8 @@ export default function AdminVerifyProviders() {
               </DialogTitle>
               <DialogDescription>
                 {actionType === "approve"
-                  ? `Approve ${selectedProvider?.full_name || selectedProvider?.first_name}'s verification?`
-                  : `Provide a reason for rejecting ${selectedProvider?.full_name || selectedProvider?.first_name}'s verification`
+                  ? `Approve ${selectedDocument?.provider?.full_name || selectedDocument?.provider?.first_name}'s verification?`
+                  : `Provide a reason for rejecting ${selectedDocument?.provider?.full_name || selectedDocument?.provider?.first_name}'s verification`
                 }
               </DialogDescription>
             </DialogHeader>
@@ -328,6 +320,52 @@ export default function AdminVerifyProviders() {
                 {actionType === "approve" ? "Approve" : "Reject"}
               </Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
+          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Verification History</DialogTitle>
+              <DialogDescription>
+                Complete verification log for this service provider
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3">
+              {verificationHistory.map((log) => (
+                <Card key={log.id}>
+                  <CardContent className="pt-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <p className="font-medium">{log.document_type.replace(/_/g, " ")}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(log.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                      <Badge variant={log.action === "auto_approve" || log.action === "manual_approve" ? "default" : "secondary"}>
+                        {log.action === "auto_approve" && <Bot className="h-3 w-3 mr-1" />}
+                        {log.action === "manual_approve" && <User className="h-3 w-3 mr-1" />}
+                        {log.action.replace(/_/g, " ")}
+                      </Badge>
+                    </div>
+                    {log.confidence_score && (
+                      <p className="text-sm mb-1">
+                        <span className="font-medium">AI Confidence:</span> {log.confidence_score}%
+                      </p>
+                    )}
+                    {log.reason && (
+                      <p className="text-sm text-muted-foreground">{log.reason}</p>
+                    )}
+                    {log.admin && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Reviewed by: {log.admin.full_name || log.admin.email}
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </DialogContent>
         </Dialog>
       </div>

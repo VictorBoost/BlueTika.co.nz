@@ -213,11 +213,11 @@ export const aiVerificationService = {
   ): DocumentScanResult {
     // Mock confidence based on filename/URL patterns
     let baseConfidence = 75;
-    let isCorrectType = true;
+    const isCorrectType = true;
     let isReadable = true;
-    let appearsGenuine = true;
+    const appearsGenuine = true;
     let matchesNZFormat = true;
-    let isExpired = false;
+    const isExpired = false;
     const details: string[] = [];
     
     // Check if URL suggests it's the right type
