@@ -32,7 +32,6 @@ const sections = [
     description: "Review and approve provider verification requests",
     icon: <ShieldCheck className="w-8 h-8 text-accent" />,
     href: "/muna/verify-providers",
-    count: verificationCount,
     color: "bg-blue-500/10 hover:bg-blue-500/20 border-blue-500",
   },
   {
@@ -40,7 +39,6 @@ const sections = [
     description: "Verify domestic helper applications",
     icon: <ShieldCheck className="w-8 h-8 text-accent" />,
     href: "/muna/verify-domestic-helpers",
-    count: domesticHelperVerificationCount,
     color: "bg-purple-500/10 hover:bg-purple-500/20 border-purple-500",
   },
   {
@@ -48,7 +46,6 @@ const sections = [
     description: "Manage user disputes and resolutions",
     icon: <AlertTriangle className="w-8 h-8 text-accent" />,
     href: "/muna/disputes",
-    count: disputeCount,
     color: "bg-orange-500/10 hover:bg-orange-500/20 border-orange-500",
   },
   {
@@ -56,7 +53,6 @@ const sections = [
     description: "Process manual fund release requests",
     icon: <DollarSign className="w-8 h-8 text-accent" />,
     href: "/muna/fund-releases",
-    count: fundReleaseCount,
     color: "bg-green-500/10 hover:bg-green-500/20 border-green-500",
   },
   {
