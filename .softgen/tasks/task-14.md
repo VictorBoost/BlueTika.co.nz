@@ -1,6 +1,6 @@
 ---
 title: Database schema for business directory
-status: in_progress
+status: done
 priority: urgent
 type: feature
 tags: [database, directory]
