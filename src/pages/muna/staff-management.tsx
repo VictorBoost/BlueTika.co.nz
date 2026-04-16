@@ -36,9 +36,10 @@ interface AuditLog {
 
 export default function StaffManagement() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [staff, setStaff] = useState<Staff[]>([]);
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(true);
+  const [staffList, setStaffList] = useState<any[]>([]);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newStaff, setNewStaff] = useState({ name: "", email: "", password: "", role: "verifier" });
   const [isAdmin, setIsAdmin] = useState(false);
@@ -59,14 +60,14 @@ export default function StaffManagement() {
   };
 
   const loadData = async () => {
-    setLoading(true);
+    setIsLoading(true);
     try {
       const [staffData, logsData] = await Promise.all([
         staffService.getAllStaff(),
         staffService.getAuditLogs(50),
       ]);
 
-      setStaff(staffData);
+      setStaffList(staffData);
       setAuditLogs(logsData);
     } catch (error) {
       console.error("Error loading staff data:", error);
@@ -76,7 +77,7 @@ export default function StaffManagement() {
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -111,6 +112,26 @@ export default function StaffManagement() {
       toast({
         title: "Error",
         description: "Failed to create staff account",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeactivate = async (id: string) => {
+    try {
+      await staffService.deactivateStaff(id);
+      setStaffList((prev: any[]) =>
+        prev.map((s) => (s.id === id ? { ...s, is_active: false } : s))
+      );
+      toast({
+        title: "Account Deactivated",
+        description: "The staff account has been deactivated successfully.",
+      });
+    } catch (error) {
+      console.error("Error deactivating staff:", error);
+      toast({
+        title: "Error",
+        description: "Failed to deactivate staff account",
         variant: "destructive",
       });
     }
@@ -190,9 +211,9 @@ export default function StaffManagement() {
                 <CardDescription>All staff accounts with their roles and access levels</CardDescription>
               </CardHeader>
               <CardContent>
-                {loading ? (
+                {isLoading ? (
                   <p className="text-center py-8 text-muted-foreground">Loading...</p>
-                ) : staff.length === 0 ? (
+                ) : staffList.length === 0 ? (
                   <div className="text-center py-12">
                     <Shield className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                     <p className="text-muted-foreground">No staff members yet</p>
@@ -211,7 +232,7 @@ export default function StaffManagement() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {staff.map((member) => (
+                        {staffList.map((member: any) => (
                           <TableRow key={member.id} className={!member.is_active ? "opacity-50" : ""}>
                             <TableCell>
                               {member.is_active ? (
@@ -254,7 +275,7 @@ export default function StaffManagement() {
                 <CardDescription>Complete history of all staff actions across the platform</CardDescription>
               </CardHeader>
               <CardContent>
-                {loading ? (
+                {isLoading ? (
                   <p className="text-center py-8 text-muted-foreground">Loading...</p>
                 ) : auditLogs.length === 0 ? (
                   <div className="text-center py-12">
@@ -274,7 +295,7 @@ export default function StaffManagement() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {auditLogs.map((log) => (
+                        {auditLogs.map((log: any) => (
                           <TableRow key={log.id}>
                             <TableCell className="font-mono text-sm">{formatDate(log.timestamp)}</TableCell>
                             <TableCell className="font-medium">{log.staff_name}</TableCell>

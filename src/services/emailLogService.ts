@@ -4,55 +4,61 @@ import type { Tables } from "@/integrations/supabase/types";
 type EmailLog = Tables<"email_logs">;
 
 export const emailLogService = {
-  // Log sent email
+  /**
+   * Log an email that was sent
+   */
   async logEmail(
     recipient: string,
     subject: string,
-    fullBody: string,
+    body: string,
     messageId?: string
-  ) {
-    const bodyPreview = fullBody.substring(0, 200) + "...";
-
-    const { data, error } = await supabase
-      .from("email_logs")
-      .insert({
+  ): Promise<void> {
+    try {
+      const { error } = await supabase.from("email_logs" as any).insert({
         recipient,
         subject,
-        body_preview: bodyPreview,
-        full_body: fullBody,
+        body_preview: body.substring(0, 200),
         message_id: messageId,
         delivery_status: "sent",
-      })
-      .select()
-      .single();
+      });
 
-    if (error) throw error;
-    return data;
+      if (error) throw error;
+    } catch (error) {
+      throw error;
+    }
   },
 
   // Update delivery status
-  async updateDeliveryStatus(messageId: string, status: string) {
-    const { data, error } = await supabase
-      .from("email_logs")
-      .update({ delivery_status: status })
-      .eq("message_id", messageId)
-      .select()
-      .single();
+  async updateDeliveryStatus(
+    messageId: string,
+    status: "delivered" | "bounced" | "complaint" | "failed"
+  ): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from("email_logs" as any)
+        .update({ delivery_status: status })
+        .eq("message_id", messageId);
 
-    if (error) throw error;
-    return data;
+      if (error) throw error;
+    } catch (error) {
+      throw error;
+    }
   },
 
   // Get all email logs
-  async getAllEmailLogs(limit = 100) {
-    const { data, error } = await supabase
-      .from("email_logs")
-      .select("*")
-      .order("sent_at", { ascending: false })
-      .limit(limit);
+  async getEmailLogs(limit = 100): Promise<any[]> {
+    try {
+      const { data, error } = await supabase
+        .from("email_logs" as any)
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(limit);
 
-    if (error) throw error;
-    return data || [];
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      throw error;
+    }
   },
 
   // Get email log by ID

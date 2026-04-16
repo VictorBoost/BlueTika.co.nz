@@ -27,7 +27,7 @@ export const staffService = {
     const passwordHash = btoa(data.password); // Simple base64 for demo
 
     const { data: staff, error } = await supabase
-      .from("staff")
+      .from("staff" as any)
       .insert({
         name: data.name,
         email: data.email,
@@ -55,7 +55,7 @@ export const staffService = {
   // Get all staff
   async getAllStaff() {
     const { data, error } = await supabase
-      .from("staff")
+      .from("staff" as any)
       .select("*")
       .order("created_at", { ascending: false });
 
@@ -78,7 +78,7 @@ export const staffService = {
   // Update staff active status
   async updateStaffStatus(id: string, isActive: boolean) {
     const { data, error } = await supabase
-      .from("staff")
+      .from("staff" as any)
       .update({ is_active: isActive, updated_at: new Date().toISOString() })
       .eq("id", id)
       .select()
@@ -101,7 +101,7 @@ export const staffService = {
   // Staff login
   async staffLogin(email: string, password: string) {
     const { data: staff, error } = await supabase
-      .from("staff")
+      .from("staff" as any)
       .select("*")
       .eq("email", email)
       .eq("is_active", true)
@@ -131,7 +131,7 @@ export const staffService = {
 
   // Log audit action
   async logAuditAction(log: StaffAuditLog) {
-    const { error } = await supabase.from("staff_audit_logs").insert({
+    const { error } = await supabase.from("staff_audit_logs" as any).insert({
       staff_id: log.staff_id || null,
       staff_name: log.staff_name,
       action: log.action,
@@ -146,7 +146,7 @@ export const staffService = {
   // Get audit logs
   async getAuditLogs(limit = 100) {
     const { data, error } = await supabase
-      .from("staff_audit_logs")
+      .from("staff_audit_logs" as any)
       .select("*")
       .order("timestamp", { ascending: false })
       .limit(limit);

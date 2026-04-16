@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,13 +13,19 @@ import { staffService } from "@/services/staffService";
 
 export default function StaffLogin() {
   const router = useRouter();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [staffUser, setStaffUser] = useState<any | null>(null);
+
+  useEffect(() => {
+    // Check if already logged in (using localStorage for demo)
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setIsLoading(true);
 
     try {
       const staff = await staffService.staffLogin(email, password);
@@ -54,7 +60,7 @@ export default function StaffLogin() {
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -96,8 +102,8 @@ export default function StaffLogin() {
                   required
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Logging in..." : (
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? "Logging in..." : (
                   <>
                     <LogIn className="w-4 h-4 mr-2" />
                     Login
