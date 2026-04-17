@@ -3,6 +3,8 @@ import { useRouter } from "next/router";
 import { SEO } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   BarChart,
   Bar,
@@ -15,7 +17,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { DollarSign, Users, AlertCircle, FileCheck, Shield, Repeat, ShieldCheck, AlertTriangle, Percent, Tag, Calendar, ShieldAlert, Settings, Bot } from "lucide-react";
+import { DollarSign, Users, AlertCircle, FileCheck, Shield, Repeat, ShieldCheck, AlertTriangle, Percent, Tag, Calendar, ShieldAlert, Settings, Bot, BrainCircuit, Play, Eye } from "lucide-react";
 import {
   getDashboardStats,
   type DashboardStats,
@@ -23,6 +25,7 @@ import {
   getAdminUserInfo,
 } from "@/services/controlCentreService";
 import { authService } from "@/services/authService";
+import { monalisaService } from "@/services/monalisaService";
 
 const sections = [
   {
@@ -118,6 +121,14 @@ export default function ControlCentre() {
   const [adminInfo, setAdminInfo] = useState<{ email: string; isOwner: boolean; role?: string } | null>(null);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(false);
+  const [monalisaActive, setMonalisaActive] = useState(false);
+  const [monalisaStats, setMonalisaStats] = useState({
+    totalLogs: 0,
+    criticalIssues: 0,
+    warningsToday: 0,
+    lastCheckAt: null as string | null,
+  });
+  const [monalisaLoading, setMonalisaLoading] = useState(false);
 
   useEffect(() => {
     checkAdminAccess();
@@ -151,6 +162,9 @@ export default function ControlCentre() {
     setIsAuthenticated(true);
     setIsLoading(false);
     loadStats();
+    if (info?.isOwner) {
+      loadMonalisaStatus();
+    }
   };
 
   const loadStats = async () => {
@@ -163,6 +177,32 @@ export default function ControlCentre() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadMonalisaStatus = async () => {
+    const status = await monalisaService.getStatus();
+    setMonalisaActive(status?.is_active || false);
+    const stats = await monalisaService.getStatistics();
+    setMonalisaStats(stats);
+  };
+
+  const handleMonalisaToggle = async (enabled: boolean) => {
+    setMonalisaLoading(true);
+    const success = await monalisaService.toggleMonaLisa(enabled);
+    if (success) {
+      setMonalisaActive(enabled);
+      await loadMonalisaStatus();
+    }
+    setMonalisaLoading(false);
+  };
+
+  const handleTriggerMonalisa = async () => {
+    setMonalisaLoading(true);
+    const success = await monalisaService.triggerManualCheck();
+    if (success) {
+      setTimeout(() => loadMonalisaStatus(), 2000);
+    }
+    setMonalisaLoading(false);
   };
 
   const handleLogout = async () => {
@@ -238,6 +278,92 @@ export default function ControlCentre() {
               </Button>
             </div>
           </div>
+
+          {/* MonaLisa Control Panel (Owner Only) */}
+          {adminInfo?.isOwner && (
+            <Card className="mb-8 border-2 border-accent/30">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BrainCircuit className="h-6 w-6 text-accent" />
+                  MonaLisa AI Admin Agent
+                  <Badge variant={monalisaActive ? "default" : "secondary"} className="ml-auto">
+                    {monalisaActive ? "Active" : "Inactive"}
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="monalisa-toggle" className="text-base font-semibold">
+                        MonaLisa Status
+                      </Label>
+                      <p className="text-sm text-muted-foreground">
+                        Independent AI agent for monitoring and system health checks
+                      </p>
+                    </div>
+                    <Switch
+                      id="monalisa-toggle"
+                      checked={monalisaActive}
+                      onCheckedChange={handleMonalisaToggle}
+                      disabled={monalisaLoading}
+                    />
+                  </div>
+
+                  {monalisaActive && (
+                    <>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                        <div className="p-3 bg-muted rounded-lg">
+                          <p className="text-xs text-muted-foreground">Total Logs</p>
+                          <p className="text-2xl font-bold">{monalisaStats.totalLogs}</p>
+                        </div>
+                        <div className="p-3 bg-muted rounded-lg">
+                          <p className="text-xs text-muted-foreground">Critical Issues</p>
+                          <p className="text-2xl font-bold text-destructive">
+                            {monalisaStats.criticalIssues}
+                          </p>
+                        </div>
+                        <div className="p-3 bg-muted rounded-lg">
+                          <p className="text-xs text-muted-foreground">Warnings Today</p>
+                          <p className="text-2xl font-bold text-yellow-500">
+                            {monalisaStats.warningsToday}
+                          </p>
+                        </div>
+                        <div className="p-3 bg-muted rounded-lg">
+                          <p className="text-xs text-muted-foreground">Last Check</p>
+                          <p className="text-sm font-medium">
+                            {monalisaStats.lastCheckAt
+                              ? new Date(monalisaStats.lastCheckAt).toLocaleTimeString()
+                              : "Never"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3 mt-4">
+                        <Button
+                          onClick={() => router.push("/muna/monalisa-logs")}
+                          variant="outline"
+                          className="flex-1"
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          View Logs
+                        </Button>
+                        <Button
+                          onClick={handleTriggerMonalisa}
+                          variant="default"
+                          className="flex-1"
+                          disabled={monalisaLoading}
+                        >
+                          <Play className="h-4 w-4 mr-2" />
+                          {monalisaLoading ? "Running..." : "Run Check Now"}
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {loading && !stats ? (
             <div className="text-center py-12">
@@ -494,6 +620,15 @@ export default function ControlCentre() {
                     <Button variant="outline" onClick={() => router.push("/muna/bot-lab")}>
                       Bot Lab
                     </Button>
+                    {adminInfo?.isOwner && (
+                      <Button
+                        variant="outline"
+                        onClick={() => router.push("/muna/monalisa-logs")}
+                        className="border-accent"
+                      >
+                        MonaLisa Logs
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>

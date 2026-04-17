@@ -1,6 +1,6 @@
 ---
 title: Create MonaLisa AI Admin Agent
-status: in_progress
+status: done
 priority: high
 type: feature
 tags: [bot, admin, monitoring]
@@ -21,10 +21,10 @@ MonaLisa is a special AI admin agent that works independently of the general kil
 - Logs all activities visible in /muna
 
 ## Checklist
-- [ ] Create monalisa_logs table for activity logs
-- [ ] Create monalisa_settings table for on/off status
-- [ ] Create monalisa-agent Edge Function (scheduled checks)
-- [ ] Create monalisaService.ts for client operations
-- [ ] Create MonaLisa control panel UI in /muna/index.tsx
-- [ ] Add MonaLisa logs page at /muna/monalisa-logs.tsx
-- [ ] Add owner-only toggle with visual indicator
+- [x] Create monalisa_logs table for activity logs
+- [x] Create monalisa_settings table for on/off status
+- [x] Create monalisa-agent Edge Function (scheduled checks)
+- [x] Create monalisaService.ts for client operations
+- [x] Create MonaLisa control panel UI in /muna/index.tsx
+- [x] Add MonaLisa logs page at /muna/monalisa-logs.tsx
+- [x] Add owner-only toggle with visual indicator
