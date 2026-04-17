@@ -14,7 +14,7 @@ import { paymentService } from "@/services/paymentService";
 import { receiptService } from "@/services/receiptService";
 import { notificationService } from "@/services/notificationService";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, HelpCircle, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { Loader2, HelpCircle, ShieldCheck, CheckCircle2, Calendar } from "lucide-react";
 import { ProgressSteps } from "@/components/ProgressSteps";
 import {
   Tooltip,
@@ -38,6 +38,17 @@ const steps = [
   { label: "Review", status: "upcoming" as const },
   { label: "Release", status: "upcoming" as const },
 ];
+
+interface CheckoutFormProps {
+  contract: Contract & {
+    project?: { title: string };
+    profiles?: { full_name: string | null; email: string | null };
+  };
+  clientSecret: string;
+  platformFee: number;
+  paymentProcessingFee: number;
+  totalAmount: number;
+}
 
 function CheckoutForm({ 
   contract, 
@@ -111,14 +122,16 @@ function CheckoutForm({
         contract.client_id,
         "Payment confirmed",
         `Your payment for "${contract.project?.title}" has been confirmed and is held securely in escrow.`,
-        `/contracts`
+        "payment",
+        contract.id
       );
 
       await notificationService.createNotification(
         contract.provider_id,
         "Payment received",
         `Payment received for "${contract.project?.title}". Complete the work and upload evidence photos to release funds.`,
-        `/contracts`
+        "payment",
+        contract.id
       );
 
       setSucceeded(true);
@@ -192,7 +205,7 @@ function CheckoutForm({
 
         <div className="flex justify-between text-sm">
           <span>Platform fee (2%):</span>
-          <span>NZD ${fees.platformFee.toLocaleString()}</span>
+          <span>NZD ${platformFee.toLocaleString()}</span>
         </div>
 
         <div className="flex justify-between text-sm items-center">
@@ -209,7 +222,7 @@ function CheckoutForm({
               </Tooltip>
             </TooltipProvider>
           </div>
-          <span>NZD ${fees.processingFee.toLocaleString()}</span>
+          <span>NZD ${paymentProcessingFee.toLocaleString()}</span>
         </div>
 
         <div className="flex justify-between text-sm text-muted-foreground">
@@ -221,7 +234,7 @@ function CheckoutForm({
 
         <div className="flex justify-between text-lg font-bold">
           <span>Total:</span>
-          <span>NZD ${fees.total.toLocaleString()}</span>
+          <span>NZD ${totalAmount.toLocaleString()}</span>
         </div>
       </div>
 
@@ -233,12 +246,12 @@ function CheckoutForm({
       </Alert>
 
       <Button 
-        onClick={handlePayment} 
+        type="submit"
         disabled={processing} 
         className="w-full"
         size="lg"
       >
-        {processing ? "Processing..." : `Pay NZD ${fees.total.toLocaleString()}`}
+        {processing ? "Processing..." : `Pay NZD ${totalAmount.toLocaleString()}`}
       </Button>
 
       <p className="text-xs text-center text-muted-foreground">
