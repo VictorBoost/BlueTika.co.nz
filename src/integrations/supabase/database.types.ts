@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -1221,6 +1221,8 @@ export type Database = {
           response_rate: number | null
           show_credentials_to_clients: boolean | null
           show_verified_publicly: boolean | null
+          stripe_account_id: string | null
+          stripe_account_status: string | null
           tier_updated_at: string | null
           total_reviews: number | null
           updated_at: string | null
@@ -1263,6 +1265,8 @@ export type Database = {
           response_rate?: number | null
           show_credentials_to_clients?: boolean | null
           show_verified_publicly?: boolean | null
+          stripe_account_id?: string | null
+          stripe_account_status?: string | null
           tier_updated_at?: string | null
           total_reviews?: number | null
           updated_at?: string | null
@@ -1305,6 +1309,8 @@ export type Database = {
           response_rate?: number | null
           show_credentials_to_clients?: boolean | null
           show_verified_publicly?: boolean | null
+          stripe_account_id?: string | null
+          stripe_account_status?: string | null
           tier_updated_at?: string | null
           total_reviews?: number | null
           updated_at?: string | null
