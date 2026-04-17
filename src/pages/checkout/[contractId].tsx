@@ -2,12 +2,20 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { SEO } from "@/components/SEO";
 import { Footer } from "@/components/Footer";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/hooks/use-toast";
+import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { paymentService } from "@/services/paymentService";
+import { receiptService } from "@/services/receiptService";
+import { notificationService } from "@/services/notificationService";
+import { supabase } from "@/integrations/supabase/client";
+import { Loader2, HelpCircle, ShieldCheck, CheckCircle2 } from "lucide-react";
 import { ProgressSteps } from "@/components/ProgressSteps";
-import { HelpCircle, ShieldCheck, Calendar } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -15,8 +23,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { contractService } from "@/services/contractService";
-import { paymentService } from "@/services/paymentService";
-import { notificationService } from "@/services/notificationService";
 import { authService } from "@/services/authService";
 import { googleCalendarService } from "@/services/googleCalendarService";
 import type { Tables } from "@/integrations/supabase/types";
@@ -32,6 +38,215 @@ const steps = [
   { label: "Review", status: "upcoming" as const },
   { label: "Release", status: "upcoming" as const },
 ];
+
+function CheckoutForm({ 
+  contract, 
+  clientSecret, 
+  platformFee, 
+  paymentProcessingFee, 
+  totalAmount 
+}: CheckoutFormProps) {
+  const router = useRouter();
+  const stripe = useStripe();
+  const elements = useElements();
+  const { toast } = useToast();
+  const [processing, setProcessing] = useState(false);
+  const [succeeded, setSucceeded] = useState(false);
+  const [sendingReceipts, setSendingReceipts] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!stripe || !elements) return;
+
+    setProcessing(true);
+
+    const { error, paymentIntent } = await stripe.confirmPayment({
+      elements,
+      redirect: "if_required",
+    });
+
+    if (error) {
+      toast({
+        title: "Payment Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      setProcessing(false);
+      return;
+    }
+
+    if (paymentIntent?.status === "succeeded") {
+      // Update contract status
+      await paymentService.confirmPayment(contract.id, paymentIntent.id);
+      
+      // Update contract with fee breakdown
+      await supabase
+        .from("contracts")
+        .update({
+          platform_fee: platformFee,
+          payment_processing_fee: paymentProcessingFee,
+          total_amount: totalAmount,
+        })
+        .eq("id", contract.id);
+
+      // Send receipts to both parties
+      setSendingReceipts(true);
+      try {
+        const receipt = await receiptService.generateReceipt(contract.id);
+        if (receipt) {
+          await Promise.all([
+            receiptService.sendClientReceipt(receipt),
+            receiptService.sendProviderReceipt(receipt),
+          ]);
+        }
+      } catch (error) {
+        console.error("Error sending receipts:", error);
+        // Continue even if receipts fail - don't block the user
+      }
+      setSendingReceipts(false);
+
+      // Send in-platform notifications
+      await notificationService.createNotification(
+        contract.client_id,
+        "Payment confirmed",
+        `Your payment for "${contract.project?.title}" has been confirmed and is held securely in escrow.`,
+        `/contracts`
+      );
+
+      await notificationService.createNotification(
+        contract.provider_id,
+        "Payment received",
+        `Payment received for "${contract.project?.title}". Complete the work and upload evidence photos to release funds.`,
+        `/contracts`
+      );
+
+      setSucceeded(true);
+      setProcessing(false);
+
+      toast({
+        title: "Payment Successful",
+        description: "Receipts sent to both parties via email.",
+      });
+
+      // Redirect after short delay
+      setTimeout(() => {
+        router.push("/contracts");
+      }, 3000);
+    }
+  };
+
+  if (succeeded) {
+    return (
+      <div className="text-center space-y-6 py-8">
+        <div className="flex justify-center">
+          <div className="rounded-full bg-green-100 p-4">
+            <CheckCircle2 className="h-12 w-12 text-green-600" />
+          </div>
+        </div>
+        
+        <div className="space-y-2">
+          <h2 className="text-2xl font-bold text-green-600">Payment Successful!</h2>
+          <p className="text-muted-foreground">
+            {sendingReceipts ? "Sending receipts..." : "Receipts sent to both parties"}
+          </p>
+        </div>
+
+        <Alert className="bg-blue-50 border-blue-200">
+          <ShieldCheck className="h-5 w-5 text-blue-600" />
+          <AlertDescription className="text-blue-900">
+            <strong>Your payment is held securely by BlueTika</strong> until the project is complete, 
+            photos are submitted, and both parties have reviewed each other. Your money does not move 
+            until the job is done.
+          </AlertDescription>
+        </Alert>
+
+        <p className="text-sm text-muted-foreground">
+          Redirecting to your contracts...
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="space-y-2">
+        <p className="text-sm text-muted-foreground">Project</p>
+        <p className="font-semibold">{contract.project?.title}</p>
+      </div>
+
+      <div className="space-y-2">
+        <p className="text-sm text-muted-foreground">Service Provider</p>
+        <p className="font-semibold">
+          {contract.profiles?.full_name || contract.profiles?.email || "Service Provider"}
+        </p>
+      </div>
+
+      <Separator />
+
+      <div className="space-y-3">
+        <div className="flex justify-between">
+          <span>Agreed price:</span>
+          <span className="font-semibold">NZD ${contract.final_amount.toLocaleString()}</span>
+        </div>
+
+        <div className="flex justify-between text-sm">
+          <span>Platform fee (2%):</span>
+          <span>NZD ${fees.platformFee.toLocaleString()}</span>
+        </div>
+
+        <div className="flex justify-between text-sm items-center">
+          <div className="flex items-center gap-1">
+            <span>Payment processing contribution:</span>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p>BlueTika uses Stripe for secure payments. Domestic cards: 2.65% + $0.30. International cards: 3.7% + $0.30. This small contribution keeps your payment protected.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <span>NZD ${fees.processingFee.toLocaleString()}</span>
+        </div>
+
+        <div className="flex justify-between text-sm text-muted-foreground">
+          <span>GST:</span>
+          <span>Not applicable</span>
+        </div>
+
+        <Separator />
+
+        <div className="flex justify-between text-lg font-bold">
+          <span>Total:</span>
+          <span>NZD ${fees.total.toLocaleString()}</span>
+        </div>
+      </div>
+
+      <Alert>
+        <ShieldCheck className="h-4 w-4" />
+        <AlertDescription className="text-xs">
+          Your payment will be held securely until the project is complete and both parties have reviewed each other.
+        </AlertDescription>
+      </Alert>
+
+      <Button 
+        onClick={handlePayment} 
+        disabled={processing} 
+        className="w-full"
+        size="lg"
+      >
+        {processing ? "Processing..." : `Pay NZD ${fees.total.toLocaleString()}`}
+      </Button>
+
+      <p className="text-xs text-center text-muted-foreground">
+        Powered by <span className="font-semibold">Stripe</span> · Secure payment processing
+      </p>
+    </form>
+  );
+}
 
 export default function Checkout() {
   const router = useRouter();
