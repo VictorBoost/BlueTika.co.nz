@@ -6,6 +6,20 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Bypass attempt templates (20% of posts will include these)
+const bypassAttempts = [
+  { type: "phone", text: "Call me on 021 456 7890 for faster response" },
+  { type: "phone", text: "My mobile is 027-123-4567" },
+  { type: "phone", text: "Ring me: 09 555 1234" },
+  { type: "email", text: "Email me directly at john@gmail.com" },
+  { type: "email", text: "Contact: mike.smith@outlook.co.nz" },
+  { type: "whatsapp", text: "WhatsApp me for quick chat" },
+  { type: "whatsapp", text: "I'm on WhatsApp - easier than this site" },
+  { type: "url", text: "Check my work at mywebsite.co.nz" },
+  { type: "url", text: "See portfolio: www.designworks.nz" },
+  { type: "social", text: "Find me on Facebook - John Smith Plumbing" },
+];
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -17,9 +31,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // Get active client bots without projects in the last 24 hours
-    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    
+    // Get active client bots
     const { data: clientBots } = await supabaseClient
       .from("bot_accounts")
       .select("profile_id, profiles!inner(full_name, city)")
@@ -187,6 +199,7 @@ serve(async (req) => {
 
     const results = {
       created: 0,
+      bypassAttempts: 0,
       errors: [] as string[]
     };
 
@@ -198,16 +211,29 @@ serve(async (req) => {
         try {
           const template = projectTemplates[Math.floor(Math.random() * projectTemplates.length)];
           const titleIndex = Math.floor(Math.random() * template.titles.length);
-          const title = template.titles[titleIndex];
-          const description = template.descriptions[titleIndex];
+          let title = template.titles[titleIndex];
+          let description = template.descriptions[titleIndex];
           
+          // 20% of posts include bypass attempts
+          const shouldBypass = Math.random() < 0.2;
+          let bypassType = null;
+          let bypassContent = null;
+
+          if (shouldBypass) {
+            const bypass = bypassAttempts[Math.floor(Math.random() * bypassAttempts.length)];
+            description += ` ${bypass.text}`;
+            bypassType = bypass.type;
+            bypassContent = bypass.text;
+            results.bypassAttempts++;
+          }
+
           const category = categories.find(c => c.name === template.category);
           if (!category) continue;
 
           const budget = Math.floor(Math.random() * 450) + 50; // $50-$500
           const urgency = ["flexible", "within_week", "urgent"][Math.floor(Math.random() * 3)];
 
-          const { error: projectError } = await supabaseClient
+          const { data: project, error: projectError } = await supabaseClient
             .from("projects")
             .insert({
               title,
@@ -217,11 +243,26 @@ serve(async (req) => {
               urgency,
               client_id: bot.profile_id,
               status: "open"
-            });
+            })
+            .select()
+            .single();
 
           if (projectError) {
             results.errors.push(`Project creation failed: ${projectError.message}`);
             continue;
+          }
+
+          // Log bypass attempt if one was made
+          if (shouldBypass && bypassType && bypassContent && project) {
+            await supabaseClient
+              .from("bot_bypass_attempts")
+              .insert({
+                bot_profile_id: bot.profile_id,
+                attempt_type: bypassType,
+                content_snippet: bypassContent,
+                detection_status: "pending", // Will be updated when moderation runs
+                project_id: project.id
+              });
           }
 
           // Log activity
@@ -230,7 +271,10 @@ serve(async (req) => {
             .insert({
               bot_id: bot.profile_id,
               action_type: "project_posted",
-              details: { project_title: title }
+              details: { 
+                project_title: title,
+                bypass_attempt: shouldBypass ? bypassType : null
+              }
             });
 
           results.created++;
@@ -240,12 +284,13 @@ serve(async (req) => {
       }
     }
 
-    console.log(`Created ${results.created} projects with ${results.errors.length} errors`);
+    console.log(`Created ${results.created} projects (${results.bypassAttempts} with bypass attempts) with ${results.errors.length} errors`);
 
     return new Response(
       JSON.stringify({
         success: true,
         created: results.created,
+        bypassAttempts: results.bypassAttempts,
         errors: results.errors
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
