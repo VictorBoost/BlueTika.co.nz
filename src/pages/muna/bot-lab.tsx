@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Bot, Trash2, Activity, AlertTriangle, TrendingUp, Zap, Skull, Power, CreditCard } from "lucide-react";
+import { Bot, Trash2, Activity, AlertTriangle, TrendingUp, Zap, Skull, Power, CreditCard, Shield, Eye } from "lucide-react";
 import { botLabService } from "@/services/botLabService";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -34,9 +34,13 @@ export default function BotLab() {
   const [automationStatus, setAutomationStatus] = useState<any>(null);
   const [isTogglingAutomation, setIsTogglingAutomation] = useState(false);
   const [isTogglingPayments, setIsTogglingPayments] = useState(false);
+  const [bypassLogs, setBypassLogs] = useState<any>(null);
+  const [loadingBypass, setLoadingBypass] = useState(false);
 
   useEffect(() => {
     checkOwnerAccess();
+    loadStats();
+    loadBypassLogs();
   }, []);
 
   const checkOwnerAccess = async () => {
@@ -74,6 +78,18 @@ export default function BotLab() {
       console.error("Failed to load bot stats:", error);
     } finally {
       setLoadingStats(false);
+    }
+  };
+
+  const loadBypassLogs = async () => {
+    setLoadingBypass(true);
+    try {
+      const data = await botLabService.getBypassLogs();
+      setBypassLogs(data);
+    } catch (error) {
+      console.error("Failed to load bypass logs:", error);
+    } finally {
+      setLoadingBypass(false);
     }
   };
 
@@ -458,6 +474,158 @@ export default function BotLab() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Security Test Dashboard */}
+          <Card className="mb-8">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-primary" />
+                  Security Test Dashboard
+                </CardTitle>
+                <Button
+                  onClick={loadBypassLogs}
+                  disabled={loadingBypass}
+                  variant="outline"
+                  size="sm"
+                >
+                  {loadingBypass ? "Loading..." : "Refresh Logs"}
+                </Button>
+              </div>
+              <CardDescription>
+                Bots intentionally try to bypass content safety by posting contact info (phone, email, URLs). Monitor if your moderation system catches them.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {bypassLogs ? (
+                <div className="space-y-6">
+                  {/* Summary Stats */}
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <div className="bg-muted rounded-lg p-4">
+                      <p className="text-sm text-muted-foreground">Total Attempts</p>
+                      <p className="text-2xl font-bold">{bypassLogs.totalAttempts}</p>
+                    </div>
+                    <div className="bg-green-500/10 rounded-lg p-4">
+                      <p className="text-sm text-green-600 dark:text-green-400">Detected</p>
+                      <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                        {bypassLogs.detected}
+                      </p>
+                    </div>
+                    <div className="bg-yellow-500/10 rounded-lg p-4">
+                      <p className="text-sm text-yellow-600 dark:text-yellow-400">Warned</p>
+                      <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                        {bypassLogs.warned}
+                      </p>
+                    </div>
+                    <div className="bg-red-500/10 rounded-lg p-4">
+                      <p className="text-sm text-red-600 dark:text-red-400">Flagged</p>
+                      <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                        {bypassLogs.flagged}
+                      </p>
+                    </div>
+                    <div className="bg-blue-500/10 rounded-lg p-4">
+                      <p className="text-sm text-blue-600 dark:text-blue-400">Detection Rate</p>
+                      <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                        {bypassLogs.detectionRate}%
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Attempt Type Breakdown */}
+                  <div>
+                    <h3 className="font-semibold mb-3">Bypass Attempts by Type</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {Object.entries(bypassLogs.typeBreakdown).map(([type, count]: [string, any]) => (
+                        <div key={type} className="bg-muted rounded p-3">
+                          <p className="text-xs text-muted-foreground capitalize">{type}</p>
+                          <p className="text-lg font-bold">{count}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Recent Bypass Attempts Log */}
+                  <div>
+                    <h3 className="font-semibold mb-3">Recent Bypass Attempts</h3>
+                    <div className="border rounded-lg overflow-hidden">
+                      <div className="max-h-96 overflow-y-auto">
+                        <table className="w-full">
+                          <thead className="bg-muted sticky top-0">
+                            <tr>
+                              <th className="text-left p-3 text-sm font-medium">Time</th>
+                              <th className="text-left p-3 text-sm font-medium">Bot</th>
+                              <th className="text-left p-3 text-sm font-medium">Type</th>
+                              <th className="text-left p-3 text-sm font-medium">Content</th>
+                              <th className="text-left p-3 text-sm font-medium">Status</th>
+                              <th className="text-left p-3 text-sm font-medium">Location</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {bypassLogs.recentAttempts.length === 0 ? (
+                              <tr>
+                                <td colSpan={6} className="text-center p-6 text-muted-foreground">
+                                  No bypass attempts yet. Generate bots to start testing.
+                                </td>
+                              </tr>
+                            ) : (
+                              bypassLogs.recentAttempts.map((attempt: any) => (
+                                <tr key={attempt.id} className="border-t">
+                                  <td className="p-3 text-sm">
+                                    {new Date(attempt.created_at).toLocaleString()}
+                                  </td>
+                                  <td className="p-3 text-sm">
+                                    {attempt.bot?.full_name || "Unknown"}
+                                  </td>
+                                  <td className="p-3">
+                                    <span className="text-xs px-2 py-1 rounded bg-muted capitalize">
+                                      {attempt.attempt_type}
+                                    </span>
+                                  </td>
+                                  <td className="p-3 text-sm max-w-xs truncate">
+                                    {attempt.content_snippet}
+                                  </td>
+                                  <td className="p-3">
+                                    <span
+                                      className={`text-xs px-2 py-1 rounded ${
+                                        attempt.detection_status === "detected"
+                                          ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                                          : attempt.detection_status === "warned"
+                                          ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
+                                          : attempt.detection_status === "flagged"
+                                          ? "bg-red-500/10 text-red-600 dark:text-red-400"
+                                          : "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                                      }`}
+                                    >
+                                      {attempt.detection_status || "pending"}
+                                    </span>
+                                  </td>
+                                  <td className="p-3 text-sm">
+                                    {attempt.project_id ? (
+                                      <span className="text-xs text-muted-foreground">
+                                        Project: {attempt.project?.title?.substring(0, 30)}...
+                                      </span>
+                                    ) : attempt.bid_id ? (
+                                      <span className="text-xs text-muted-foreground">Bid</span>
+                                    ) : (
+                                      "-"
+                                    )}
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">Click "Refresh Logs" to load security test data</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Stats Panel */}
           <Card className="mb-8">

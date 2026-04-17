@@ -6,6 +6,16 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Bypass attempt templates for bid messages (15% of bids)
+const bypassAttempts = [
+  { type: "phone", text: "Text me on 021 789 1234 to discuss" },
+  { type: "phone", text: "Call 027-555-9876 anytime" },
+  { type: "email", text: "Email me: tradesman@gmail.com" },
+  { type: "whatsapp", text: "I'm on WhatsApp - much easier" },
+  { type: "url", text: "Check my reviews at tradesmenreviews.co.nz" },
+  { type: "social", text: "Message me on Facebook for quick reply" },
+];
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -70,6 +80,7 @@ serve(async (req) => {
 
     const results = {
       created: 0,
+      bypassAttempts: 0,
       errors: [] as string[]
     };
 
@@ -99,9 +110,22 @@ serve(async (req) => {
           // Bid amount: 80-120% of project budget
           const budgetMultiplier = 0.8 + Math.random() * 0.4;
           const bidAmount = Math.round(project.budget * budgetMultiplier);
-          const message = bidMessages[Math.floor(Math.random() * bidMessages.length)];
+          let message = bidMessages[Math.floor(Math.random() * bidMessages.length)];
 
-          const { error: bidError } = await supabaseClient
+          // 15% of bids include bypass attempts
+          const shouldBypass = Math.random() < 0.15;
+          let bypassType = null;
+          let bypassContent = null;
+
+          if (shouldBypass) {
+            const bypass = bypassAttempts[Math.floor(Math.random() * bypassAttempts.length)];
+            message += ` ${bypass.text}`;
+            bypassType = bypass.type;
+            bypassContent = bypass.text;
+            results.bypassAttempts++;
+          }
+
+          const { data: bid, error: bidError } = await supabaseClient
             .from("bids")
             .insert({
               project_id: project.id,
@@ -109,11 +133,26 @@ serve(async (req) => {
               amount: bidAmount,
               message,
               status: "pending"
-            });
+            })
+            .select()
+            .single();
 
           if (bidError) {
             results.errors.push(`Bid creation failed: ${bidError.message}`);
             continue;
+          }
+
+          // Log bypass attempt if one was made
+          if (shouldBypass && bypassType && bypassContent && bid) {
+            await supabaseClient
+              .from("bot_bypass_attempts")
+              .insert({
+                bot_profile_id: provider.profile_id,
+                attempt_type: bypassType,
+                content_snippet: bypassContent,
+                detection_status: "pending",
+                bid_id: bid.id
+              });
           }
 
           // Log activity
@@ -122,7 +161,11 @@ serve(async (req) => {
             .insert({
               bot_id: provider.profile_id,
               action_type: "bid_submitted",
-              details: { project_id: project.id, amount: bidAmount }
+              details: { 
+                project_id: project.id, 
+                amount: bidAmount,
+                bypass_attempt: shouldBypass ? bypassType : null
+              }
             });
 
           results.created++;
@@ -132,12 +175,13 @@ serve(async (req) => {
       }
     }
 
-    console.log(`Created ${results.created} bids with ${results.errors.length} errors`);
+    console.log(`Created ${results.created} bids (${results.bypassAttempts} with bypass attempts) with ${results.errors.length} errors`);
 
     return new Response(
       JSON.stringify({
         success: true,
         created: results.created,
+        bypassAttempts: results.bypassAttempts,
         errors: results.errors
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

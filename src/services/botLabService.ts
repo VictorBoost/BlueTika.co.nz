@@ -387,39 +387,99 @@ export const botLabService = {
   },
 
   async getBotStats() {
-    const { data: bots, error: botsError } = await supabase
+    // Get total bot counts
+    const { count: totalBots } = await supabase
       .from("bot_accounts")
-      .select("id, bot_type")
+      .select("*", { count: "exact", head: true })
       .eq("is_active", true);
 
-    if (botsError) {
-      return null;
-    }
+    const { count: providerBots } = await supabase
+      .from("bot_accounts")
+      .select("*", { count: "exact", head: true })
+      .eq("bot_type", "service_provider")
+      .eq("is_active", true);
 
-    const totalBots = bots?.length || 0;
-    const providerBots = bots?.filter(b => b.bot_type === "provider").length || 0;
-    const clientBots = bots?.filter(b => b.bot_type === "client").length || 0;
+    const { count: clientBots } = await supabase
+      .from("bot_accounts")
+      .select("*", { count: "exact", head: true })
+      .eq("bot_type", "client")
+      .eq("is_active", true);
 
-    // Get activity stats
-    const { data: logs } = await supabase
+    // Get error logs
+    const { data: errorLogs } = await supabase
       .from("bot_activity_logs")
-      .select("action_type, success, error_message")
+      .select("*")
       .order("created_at", { ascending: false })
-      .limit(1000);
+      .limit(100);
 
-    const errorLogs = logs?.filter(l => !l.success) || [];
-    const errorSummary = errorLogs.reduce((acc, log) => {
-      const key = `${log.action_type}: ${log.error_message}`;
-      acc[key] = (acc[key] || 0) + 1;
+    const errorSummary = (errorLogs || []).reduce((acc, log) => {
+      if (log.details?.error) {
+        const key = log.action_type;
+        acc[key] = (acc[key] || 0) + 1;
+      }
       return acc;
     }, {} as Record<string, number>);
 
     return {
-      totalBots,
-      providerBots,
-      clientBots,
+      totalBots: totalBots || 0,
+      providerBots: providerBots || 0,
+      clientBots: clientBots || 0,
       errorSummary,
-      recentErrors: errorLogs.slice(0, 20)
+      recentErrors: errorLogs?.filter(log => log.details?.error).slice(0, 20) || []
+    };
+  },
+
+  async getBypassLogs() {
+    // Get all bypass attempts
+    const { data: allAttempts, count: totalAttempts } = await supabase
+      .from("bot_bypass_attempts")
+      .select("*", { count: "exact" })
+      .order("created_at", { ascending: false });
+
+    // Count by detection status
+    const { count: detected } = await supabase
+      .from("bot_bypass_attempts")
+      .select("*", { count: "exact", head: true })
+      .eq("detection_status", "detected");
+
+    const { count: warned } = await supabase
+      .from("bot_bypass_attempts")
+      .select("*", { count: "exact", head: true })
+      .eq("detection_status", "warned");
+
+    const { count: flagged } = await supabase
+      .from("bot_bypass_attempts")
+      .select("*", { count: "exact", head: true })
+      .eq("detection_status", "flagged");
+
+    // Count by attempt type
+    const typeBreakdown = (allAttempts || []).reduce((acc, attempt) => {
+      const type = attempt.attempt_type || "unknown";
+      acc[type] = (acc[type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Get recent attempts with project/bid details
+    const { data: recentAttempts } = await supabase
+      .from("bot_bypass_attempts")
+      .select(`
+        *,
+        bot:profiles!bot_bypass_attempts_bot_profile_id_fkey(full_name),
+        project:projects(id, title),
+        bid:bids(id, message)
+      `)
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    return {
+      totalAttempts: totalAttempts || 0,
+      detected: detected || 0,
+      warned: warned || 0,
+      flagged: flagged || 0,
+      pending: (totalAttempts || 0) - (detected || 0) - (warned || 0) - (flagged || 0),
+      typeBreakdown,
+      recentAttempts: recentAttempts || [],
+      detectionRate: totalAttempts ? ((detected || 0) / totalAttempts * 100).toFixed(1) : "0.0"
     };
   }
 };
