@@ -19,6 +19,8 @@ import {
 import { getProfile } from "@/services/profileService";
 import type { Database } from "@/integrations/supabase/types";
 import { isAdminUser } from "@/services/controlCentreService";
+import { SEO } from "@/components/SEO";
+import { getAdminUserInfo } from "@/services/controlCentreService";
 
 export default function CommissionSettingsPage() {
   const router = useRouter();
@@ -34,8 +36,9 @@ export default function CommissionSettingsPage() {
   }, []);
 
   async function checkAccess() {
-    const isAdmin = await isAdminUser();
-    if (!isAdmin) {
+    const adminInfo = await getAdminUserInfo();
+    // Strictly restrict to the owner only (bluetikanz@gmail.com)
+    if (!adminInfo || !adminInfo.isOwner) {
       router.push("/muna");
       return;
     }
