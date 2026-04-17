@@ -269,7 +269,7 @@ export default function Checkout() {
     profiles?: { full_name: string | null; email: string | null };
   }) | null>(null);
   const [loading, setLoading] = useState(true);
-  const [processing, setProcessing] = useState(false);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const [processingPercentage, setProcessingPercentage] = useState(2.65);
   const [fees, setFees] = useState({
@@ -277,25 +277,20 @@ export default function Checkout() {
     processingFee: 0,
     total: 0,
   });
-  const [calendarConnected, setCalendarConnected] = useState(false);
-  const [addingToCalendar, setAddingToCalendar] = useState(false);
-  const [calendarEventAdded, setCalendarEventAdded] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
+  const [stripePromise, setStripePromise] = useState<any>(null);
 
   useEffect(() => {
     if (contractId) {
       loadContract();
       loadProcessingPercentage();
+      initStripe();
     }
   }, [contractId]);
 
-  useEffect(() => {
-    if (calendar_connected === "true") {
-      setCalendarConnected(true);
-      // Try to add event after OAuth
-      handleAddToCalendar();
-    }
-  }, [calendar_connected]);
+  const initStripe = async () => {
+    const stripe = await paymentService.getStripe();
+    setStripePromise(stripe);
+  };
 
   const loadContract = async () => {
     setLoading(true);
@@ -305,10 +300,6 @@ export default function Checkout() {
       return;
     }
 
-    setUserId(session.user.id);
-    const isConnected = await googleCalendarService.isConnected(session.user.id);
-    setCalendarConnected(isConnected);
-
     const { data } = await contractService.getUserContracts(session.user.id);
     const foundContract = data?.find(c => c.id === contractId);
 
@@ -316,12 +307,25 @@ export default function Checkout() {
       setContract(foundContract);
       if (foundContract.payment_status === "confirmed") {
         setPaymentConfirmed(true);
-      }
-      if (foundContract.google_calendar_event_id) {
-        setCalendarEventAdded(true);
+      } else {
+        // Create payment intent when contract is loaded
+        createPaymentIntent(foundContract);
       }
     }
     setLoading(false);
+  };
+
+  const createPaymentIntent = async (contractData: typeof contract) => {
+    if (!contractData) return;
+
+    const { data, error } = await paymentService.createPaymentIntent(contractData.id);
+    
+    if (error || !data) {
+      console.error("Failed to create payment intent:", error);
+      return;
+    }
+
+    setClientSecret(data.clientSecret);
   };
 
   const loadProcessingPercentage = async () => {
@@ -335,99 +339,6 @@ export default function Checkout() {
       setFees(calculated);
     }
   }, [contract, processingPercentage]);
-
-  const handlePayment = async () => {
-    if (!contract) return;
-
-    setProcessing(true);
-    try {
-      // In a real implementation, this would create a Stripe payment intent
-      // and handle the checkout flow. For now, we'll simulate success.
-      
-      // Simulate payment processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Update contract with payment info
-      await paymentService.updateContractPayment(
-        contract.id,
-        "pi_test_" + Date.now(), // Mock payment intent ID
-        fees.platformFee,
-        fees.processingFee,
-        fees.total
-      );
-
-      // Send notifications to both parties
-      await notificationService.createNotification(
-        contract.client_id,
-        "Payment Confirmed",
-        `Your payment of NZD $${fees.total.toLocaleString()} has been confirmed and is held securely in escrow.`,
-        "payment",
-        contract.id,
-        contract.project_id
-      );
-
-      await notificationService.createNotification(
-        contract.provider_id,
-        "Payment Received",
-        `Payment of NZD $${contract.final_amount.toLocaleString()} has been received for ${contract.projects?.title}. Funds will be released after project completion.`,
-        "payment",
-        contract.id,
-        contract.project_id
-      );
-
-      // In production, send emails via Amazon SES here
-      console.log("Would send emails to:", {
-        client: contract.profiles?.email,
-        provider: contract.profiles?.email,
-      });
-
-      setPaymentConfirmed(true);
-      loadContract(); // Reload to get updated contract
-    } catch (error) {
-      console.error("Payment error:", error);
-      alert("Payment failed. Please try again.");
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const handleAddToCalendar = async () => {
-    if (!contract || !userId) return;
-
-    if (!calendarConnected) {
-      // Redirect to Google OAuth with contract ID as state
-      const authUrl = googleCalendarService.getAuthUrl(contractId as string);
-      window.location.href = authUrl;
-      return;
-    }
-
-    setAddingToCalendar(true);
-    try {
-      const projectDate = contract.projects?.specific_date || contract.projects?.date_from;
-      if (!projectDate) {
-        alert("No date set for this project");
-        return;
-      }
-
-      await googleCalendarService.createContractEvent(
-        userId,
-        contract.id,
-        contract.projects?.title || "Project",
-        contract.profiles?.full_name || contract.profiles?.email || "Service Provider",
-        projectDate,
-        contract.projects?.location || "",
-        true // isClient
-      );
-
-      setCalendarEventAdded(true);
-      alert("Event added to Google Calendar!");
-    } catch (error) {
-      console.error("Error adding to calendar:", error);
-      alert("Failed to add event to calendar. Please try again.");
-    } finally {
-      setAddingToCalendar(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -491,35 +402,6 @@ export default function Checkout() {
 
                 <Separator />
 
-                {!calendarEventAdded && (
-                  <>
-                    <Button
-                      onClick={handleAddToCalendar}
-                      disabled={addingToCalendar}
-                      variant="outline"
-                      className="w-full"
-                      size="lg"
-                    >
-                      <Calendar className="h-4 w-4 mr-2" />
-                      {addingToCalendar ? "Adding..." : calendarConnected ? "Add to Google Calendar" : "Connect Google Calendar"}
-                    </Button>
-                    <p className="text-xs text-center text-muted-foreground">
-                      Get a 24-hour reminder before your scheduled date
-                    </p>
-                  </>
-                )}
-
-                {calendarEventAdded && (
-                  <Alert className="border-success/20 bg-success/5">
-                    <Calendar className="h-4 w-4" />
-                    <AlertDescription className="text-sm">
-                      Event added to Google Calendar with 24-hour reminder
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                <Separator />
-
                 <div className="flex gap-4">
                   <Button onClick={() => router.push("/contracts")} variant="outline" className="flex-1">
                     View Contracts
@@ -530,87 +412,28 @@ export default function Checkout() {
                 </div>
               </CardContent>
             </Card>
-          ) : (
+          ) : clientSecret && stripePromise ? (
             <Card>
               <CardHeader>
                 <CardTitle>Complete Payment</CardTitle>
-                <CardDescription>Review the payment details below</CardDescription>
+                <CardDescription>Your payment will be held securely until the job is complete</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">Project</p>
-                  <p className="font-semibold">{contract.projects?.title}</p>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">Service Provider</p>
-                  <p className="font-semibold">
-                    {contract.profiles?.full_name || contract.profiles?.email || "Service Provider"}
-                  </p>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span>Agreed price:</span>
-                    <span className="font-semibold">NZD ${contract.final_amount.toLocaleString()}</span>
-                  </div>
-
-                  <div className="flex justify-between text-sm">
-                    <span>Platform fee (2%):</span>
-                    <span>NZD ${fees.platformFee.toLocaleString()}</span>
-                  </div>
-
-                  <div className="flex justify-between text-sm items-center">
-                    <div className="flex items-center gap-1">
-                      <span>Payment processing contribution:</span>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-xs">
-                            <p>BlueTika uses Stripe for secure payments. Domestic cards: 2.65% + $0.30. International cards: 3.7% + $0.30. This small contribution keeps your payment protected.</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                    <span>NZD ${fees.processingFee.toLocaleString()}</span>
-                  </div>
-
-                  <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>GST:</span>
-                    <span>Not applicable</span>
-                  </div>
-
-                  <Separator />
-
-                  <div className="flex justify-between text-lg font-bold">
-                    <span>Total:</span>
-                    <span>NZD ${fees.total.toLocaleString()}</span>
-                  </div>
-                </div>
-
-                <Alert>
-                  <ShieldCheck className="h-4 w-4" />
-                  <AlertDescription className="text-xs">
-                    Your payment will be held securely until the project is complete and both parties have reviewed each other.
-                  </AlertDescription>
-                </Alert>
-
-                <Button 
-                  onClick={handlePayment} 
-                  disabled={processing} 
-                  className="w-full"
-                  size="lg"
-                >
-                  {processing ? "Processing..." : `Pay NZD ${fees.total.toLocaleString()}`}
-                </Button>
-
-                <p className="text-xs text-center text-muted-foreground">
-                  Powered by <span className="font-semibold">Stripe</span> · Secure payment processing
-                </p>
+              <CardContent>
+                <Elements stripe={stripePromise} options={{ clientSecret }}>
+                  <CheckoutForm 
+                    contract={contract}
+                    clientSecret={clientSecret}
+                    platformFee={fees.platformFee}
+                    paymentProcessingFee={fees.processingFee}
+                    totalAmount={fees.total}
+                  />
+                </Elements>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="text-center py-8">
+                <p className="text-muted-foreground">Preparing checkout...</p>
               </CardContent>
             </Card>
           )}
