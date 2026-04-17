@@ -21,6 +21,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { isAdminUser } from "@/services/controlCentreService";
 import { SEO } from "@/components/SEO";
 import { getAdminUserInfo } from "@/services/controlCentreService";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function CommissionSettingsPage() {
   const router = useRouter();
@@ -36,9 +37,10 @@ export default function CommissionSettingsPage() {
   }, []);
 
   async function checkAccess() {
-    const adminInfo = await getAdminUserInfo();
-    // Strictly restrict to the owner only (bluetikanz@gmail.com)
-    if (!adminInfo || !adminInfo.isOwner) {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    // STRICT OWNER CHECK: Only bluetikanz@gmail.com can access this page
+    if (!user || user.email !== "bluetikanz@gmail.com") {
       router.push("/muna");
       return;
     }

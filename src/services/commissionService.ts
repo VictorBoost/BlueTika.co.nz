@@ -1,8 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
-type CommissionTier = Database["public"]["Tables"]["commission_tiers"]["Row"];
-type CommissionSettings = Database["public"]["Tables"]["commission_settings"]["Row"];
+export type CommissionTier = Database["public"]["Tables"]["commission_tiers"]["Row"];
+export type CommissionSettings = Database["public"]["Tables"]["commission_settings"]["Row"];
 
 export interface TierInfo {
   tierName: string;
@@ -224,7 +224,7 @@ export async function updateProviderTier(providerId: string) {
 /**
  * Admin: Update tier configuration
  */
-export async function updateTierConfig(
+export async function updateCommissionTier(
   tierId: string,
   updates: Partial<Pick<CommissionTier, "display_name" | "min_sales" | "max_sales" | "standard_rate">>
 ) {
