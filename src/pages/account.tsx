@@ -16,8 +16,9 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { authService } from "@/services/authService";
 import { profileService } from "@/services/profileService";
+import { paymentService } from "@/services/paymentService";
 import { supabase } from "@/integrations/supabase/client";
-import { AlertCircle, User, Briefcase, ArrowRight } from "lucide-react";
+import { AlertCircle, User, Briefcase, ArrowRight, CreditCard, ExternalLink } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { TierProgressCard } from "@/components/TierProgressCard";
 import { StaffManagementCard } from "@/components/StaffManagementCard";
@@ -36,7 +37,14 @@ export default function Account() {
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [stripeLoading, setStripeLoading] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [stripeAccountStatus, setStripeAccountStatus] = useState<{
+    chargesEnabled: boolean;
+    detailsSubmitted: boolean;
+    payoutsEnabled: boolean;
+  } | null>(null);
+  
   const [formData, setFormData] = useState({
     full_name: "",
     bio: "",
@@ -51,6 +59,12 @@ export default function Account() {
   useEffect(() => {
     loadProfile();
   }, []);
+
+  useEffect(() => {
+    if (profile?.stripe_account_id) {
+      loadStripeAccountStatus();
+    }
+  }, [profile?.stripe_account_id]);
 
   const loadProfile = async () => {
     const session = await authService.getCurrentSession();
@@ -72,6 +86,64 @@ export default function Account() {
         show_credentials_to_clients: data.show_credentials_to_clients ?? true,
       });
     }
+  };
+
+  const loadStripeAccountStatus = async () => {
+    if (!profile?.stripe_account_id) return;
+    
+    const { data, error } = await paymentService.getConnectAccountStatus(profile.stripe_account_id);
+    if (data) {
+      setStripeAccountStatus(data);
+    }
+  };
+
+  const handleConnectStripe = async () => {
+    if (!profile) return;
+    setStripeLoading(true);
+
+    const baseUrl = window.location.origin;
+    const returnUrl = `${baseUrl}/account?stripe_setup=success`;
+    const refreshUrl = `${baseUrl}/account?stripe_setup=refresh`;
+
+    const { data, error } = await paymentService.createConnectAccount(
+      profile.id,
+      profile.email || "",
+      returnUrl,
+      refreshUrl
+    );
+
+    if (error || !data) {
+      toast({
+        title: "Error",
+        description: "Failed to connect Stripe account. Please try again.",
+        variant: "destructive",
+      });
+      setStripeLoading(false);
+      return;
+    }
+
+    // Redirect to Stripe onboarding
+    window.location.href = data.accountLinkUrl;
+  };
+
+  const handleManageStripeAccount = async () => {
+    if (!profile?.stripe_account_id) return;
+    setStripeLoading(true);
+
+    const { data, error } = await paymentService.createLoginLink(profile.stripe_account_id);
+
+    if (error || !data) {
+      toast({
+        title: "Error",
+        description: "Failed to access Stripe dashboard. Please try again.",
+        variant: "destructive",
+      });
+      setStripeLoading(false);
+      return;
+    }
+
+    // Redirect to Stripe Express dashboard
+    window.location.href = data.url;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -223,6 +295,81 @@ export default function Account() {
                   )}
                 </CardContent>
               </Card>
+
+              {/* Stripe Payment Setup (only for providers) */}
+              {profile?.is_provider && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <CreditCard className="h-5 w-5" />
+                      Payment Details
+                    </CardTitle>
+                    <CardDescription>
+                      Connect your Stripe account to receive payments from clients
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {!profile.stripe_account_id ? (
+                      <div className="space-y-4">
+                        <Alert>
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertDescription>
+                            You need to connect a Stripe account to receive payments. Stripe is a secure payment processor used by millions of businesses worldwide.
+                          </AlertDescription>
+                        </Alert>
+                        <Button 
+                          onClick={handleConnectStripe} 
+                          disabled={stripeLoading}
+                          className="gap-2"
+                        >
+                          {stripeLoading ? "Connecting..." : "Connect Stripe Account"}
+                          <ExternalLink className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">Stripe Account Connected</span>
+                              {stripeAccountStatus?.detailsSubmitted && stripeAccountStatus?.chargesEnabled ? (
+                                <Badge variant="default" className="bg-green-500">Active</Badge>
+                              ) : (
+                                <Badge variant="secondary">Setup Incomplete</Badge>
+                              )}
+                            </div>
+                            {stripeAccountStatus && (
+                              <div className="text-sm text-muted-foreground space-y-1">
+                                <p>Charges: {stripeAccountStatus.chargesEnabled ? "✓ Enabled" : "⚠ Not enabled"}</p>
+                                <p>Payouts: {stripeAccountStatus.payoutsEnabled ? "✓ Enabled" : "⚠ Not enabled"}</p>
+                                <p>Details: {stripeAccountStatus.detailsSubmitted ? "✓ Submitted" : "⚠ Incomplete"}</p>
+                              </div>
+                            )}
+                          </div>
+                          <Button 
+                            onClick={handleManageStripeAccount}
+                            disabled={stripeLoading}
+                            variant="outline"
+                            className="gap-2"
+                          >
+                            {stripeLoading ? "Loading..." : "Manage Stripe Account"}
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        </div>
+
+                        {stripeAccountStatus && !stripeAccountStatus.detailsSubmitted && (
+                          <Alert>
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertDescription>
+                              Complete your Stripe account setup to start receiving payments. Click "Manage Stripe Account" to finish the setup process.
+                            </AlertDescription>
+                          </Alert>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Commission Tier Progress (only for providers) */}
               {profile?.is_provider && (
