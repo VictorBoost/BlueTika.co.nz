@@ -73,15 +73,6 @@ export default function StaffManagement() {
       return;
     }
 
-    if (!newStaff.email.endsWith("@bluetika.co.nz")) {
-      toast({
-        title: "Invalid Email",
-        description: "Staff email must be @bluetika.co.nz domain",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
       await staffService.inviteStaff(
         newStaff.name,

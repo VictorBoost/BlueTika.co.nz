@@ -115,7 +115,7 @@ export default function ControlCentre() {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [adminInfo, setAdminInfo] = useState<{ email: string; isOwner: boolean } | null>(null);
+  const [adminInfo, setAdminInfo] = useState<{ email: string; isOwner: boolean; role?: string } | null>(null);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(false);
 
