@@ -85,7 +85,7 @@ export const botLabService = {
       .eq("id", user.id)
       .single();
 
-    return profile?.email?.endsWith("@bluetika.co.nz") || false;
+    return profile?.email === "bluetikanz@gmail.com";
   },
 
   async getAutomationStatus() {

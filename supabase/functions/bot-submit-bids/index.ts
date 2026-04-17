@@ -73,9 +73,9 @@ serve(async (req) => {
       errors: [] as string[]
     };
 
-    // Each provider bot bids on 2-4 random projects
+    // Each provider bot bids on 2-3 random projects
     for (const provider of providerBots) {
-      const numBids = Math.floor(Math.random() * 3) + 2; // 2-4 bids
+      const numBids = Math.floor(Math.random() * 2) + 2; // 2-3 bids
       const availableProjects = openProjects
         .filter(p => p.client_id !== provider.profile_id) // Don't bid on own projects
         .filter(p => (p.bids as any[]).length < 5); // Only bid on projects with <5 bids

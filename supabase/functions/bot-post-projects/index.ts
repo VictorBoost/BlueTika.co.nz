@@ -190,9 +190,9 @@ serve(async (req) => {
       errors: [] as string[]
     };
 
-    // Each bot posts 1-2 projects
+    // Each bot posts 5-8 projects
     for (const bot of clientBots) {
-      const numProjects = Math.floor(Math.random() * 2) + 1;
+      const numProjects = Math.floor(Math.random() * 4) + 5; // 5-8 projects
       
       for (let i = 0; i < numProjects; i++) {
         try {
