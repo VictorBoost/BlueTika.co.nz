@@ -203,7 +203,6 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 
 // Admin email verification for control centre access
 const OWNER_EMAIL = "bluetikanz@gmail.com";
-const STAFF_EMAIL_DOMAIN = "@bluetika.co.nz";
 
 export async function isAdminUser(): Promise<boolean> {
   try {
@@ -213,15 +212,27 @@ export async function isAdminUser(): Promise<boolean> {
       return false;
     }
 
-    // Check if owner or staff member
-    return user.email === OWNER_EMAIL || user.email.endsWith(STAFF_EMAIL_DOMAIN);
+    // Check if owner
+    if (user.email === OWNER_EMAIL) {
+      return true;
+    }
+
+    // Check if active staff member
+    const { data: staff } = await supabase
+      .from("staff")
+      .select("id")
+      .eq("email", user.email)
+      .eq("is_active", true)
+      .single();
+
+    return !!staff;
   } catch (error) {
     console.error("Error checking admin status:", error);
     return false;
   }
 }
 
-export async function getAdminUserInfo(): Promise<{ email: string; isOwner: boolean } | null> {
+export async function getAdminUserInfo(): Promise<{ email: string; isOwner: boolean; role?: string } | null> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     
@@ -229,13 +240,27 @@ export async function getAdminUserInfo(): Promise<{ email: string; isOwner: bool
       return null;
     }
 
-    const isOwner = user.email === OWNER_EMAIL;
-    const isStaff = user.email.endsWith(STAFF_EMAIL_DOMAIN);
-
-    if (isOwner || isStaff) {
+    // Check if owner
+    if (user.email === OWNER_EMAIL) {
       return {
         email: user.email,
-        isOwner
+        isOwner: true
+      };
+    }
+
+    // Check if active staff member
+    const { data: staff } = await supabase
+      .from("staff")
+      .select("role")
+      .eq("email", user.email)
+      .eq("is_active", true)
+      .single();
+
+    if (staff) {
+      return {
+        email: user.email,
+        isOwner: false,
+        role: staff.role
       };
     }
 

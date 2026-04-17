@@ -199,7 +199,7 @@ export default function ControlCentre() {
                 You do not have permission to access the Control Centre.
               </p>
               <p className="text-center text-sm text-muted-foreground">
-                Only BlueTika owner and authorized staff members can access this area.
+                Only BlueTika owner and invited staff members can access this area.
               </p>
               <Button onClick={() => router.push("/")} className="w-full">
                 Return to Home
@@ -225,6 +225,7 @@ export default function ControlCentre() {
                 <p className="text-sm text-muted-foreground mt-1">
                   Logged in as: <span className="font-medium">{adminInfo.email}</span>
                   {adminInfo.isOwner && <span className="ml-2 text-accent">(Owner)</span>}
+                  {adminInfo.role && <span className="ml-2 text-muted-foreground">({adminInfo.role})</span>}
                 </p>
               )}
             </div>

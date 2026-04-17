@@ -18,14 +18,32 @@ export const staffService = {
     email: string,
     role: "verifier" | "support" | "finance" | "moderator"
   ): Promise<any> {
-    // Validate email domain
-    if (!email.endsWith("@bluetika.co.nz")) {
-      throw new Error("Staff email must be @bluetika.co.nz domain");
+    // Validate email format (any domain now allowed)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      throw new Error("Invalid email format");
+    }
+
+    // Validate role
+    const validRoles = ["support", "finance", "moderator", "verifier"];
+    if (!validRoles.includes(role)) {
+      throw new Error("Invalid role");
     }
 
     // Get current admin user
     const { data: { user: currentUser } } = await supabase.auth.getUser();
     if (!currentUser) throw new Error("Not authenticated");
+
+    // Check if staff already exists
+    const { data: existing } = await supabase
+      .from("staff")
+      .select("id")
+      .eq("email", email)
+      .single();
+
+    if (existing) {
+      throw new Error("Staff member with this email already exists");
+    }
 
     // Create Supabase auth user (sends invitation email)
     const { data: authData, error: authError } = await supabase.auth.admin.inviteUserByEmail(

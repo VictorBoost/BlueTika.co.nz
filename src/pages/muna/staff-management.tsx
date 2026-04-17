@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Users, Plus, Shield, UserX, CheckCircle, Clock, AlertTriangle, Mail } from "lucide-react";
+import { Users, Plus, Shield, UserX, CheckCircle, Clock, AlertTriangle, Mail, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { SEO } from "@/components/SEO";
 import { staffService } from "@/services/staffService";
@@ -155,47 +155,38 @@ export default function StaffManagement() {
 
   return (
     <>
-      <SEO title="Staff Management - BlueTika Admin" />
-      <div className="min-h-screen bg-background py-12 px-4">
-        <div className="max-w-7xl mx-auto space-y-8">
-          <div className="flex items-center justify-between">
+      <SEO title="Staff Management - BlueTika Control Centre" />
+      <div className="min-h-screen bg-background p-6">
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="flex justify-between items-center mb-8">
             <div>
-              <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-                <Users className="w-10 h-10 text-accent" />
-                Staff Management
-              </h1>
-              <p className="text-muted-foreground">
-                Invite and manage staff members with role-based access control
-              </p>
+              <h1 className="text-3xl font-bold text-foreground">Staff Management</h1>
+              <p className="text-muted-foreground mt-1">Manage team members and access control</p>
             </div>
-            <Button onClick={() => setInviteDialogOpen(true)} className="flex items-center gap-2">
-              <Plus className="w-4 h-4" />
-              Invite Staff
-            </Button>
+            <div className="flex gap-4">
+              <Button variant="outline" onClick={() => router.push("/muna")}>
+                Back to Dashboard
+              </Button>
+              <Button onClick={() => setInviteDialogOpen(true)}>
+                <UserPlus className="w-4 h-4 mr-2" />
+                Invite New Staff
+              </Button>
+            </div>
           </div>
-
-          <Alert>
-            <Mail className="h-4 w-4" />
-            <AlertDescription>
-              Staff invitations are sent via email. New staff members will receive a secure link to set up their @bluetika.co.nz account and access the Control Centre.
-            </AlertDescription>
-          </Alert>
 
           <div className="grid gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Staff Members</CardTitle>
-                <CardDescription>All staff accounts with their roles and access levels</CardDescription>
+                <CardTitle>Team Members</CardTitle>
               </CardHeader>
               <CardContent>
                 {isLoading ? (
-                  <p className="text-center py-8 text-muted-foreground">Loading...</p>
+                  <p className="text-center text-muted-foreground py-8">Loading staff members...</p>
                 ) : staffList.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Shield className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground mb-2">No staff members yet</p>
-                    <p className="text-sm text-muted-foreground">Invite your first staff member to get started</p>
-                  </div>
+                  <p className="text-center text-muted-foreground py-8">
+                    No staff members yet. Invite your first team member to get started.
+                  </p>
                 ) : (
                   <div className="overflow-x-auto">
                     <Table>
@@ -301,9 +292,9 @@ export default function StaffManagement() {
       <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Invite Staff Member</DialogTitle>
+            <DialogTitle>Invite New Staff Member</DialogTitle>
             <DialogDescription>
-              Send an invitation email to add a new staff member to the Control Centre
+              Send an invitation email to add a new team member. They can use any email address.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -317,7 +308,7 @@ export default function StaffManagement() {
               />
             </div>
             <div>
-              <Label htmlFor="email">Email (@bluetika.co.nz)</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -325,7 +316,6 @@ export default function StaffManagement() {
                 onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })}
                 placeholder="john@bluetika.co.nz"
               />
-              <p className="text-xs text-muted-foreground mt-1">Must be @bluetika.co.nz domain</p>
             </div>
             <div>
               <Label htmlFor="role">Role</Label>
