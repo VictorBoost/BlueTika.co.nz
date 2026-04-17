@@ -515,6 +515,84 @@ export default function Account() {
                   </form>
                 </CardContent>
               </Card>
+
+              {/* Change Password */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Change Password</CardTitle>
+                  <CardDescription>Update your account password</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.currentTarget);
+                    const newPassword = formData.get("new_password") as string;
+                    const confirmPassword = formData.get("confirm_password") as string;
+
+                    if (!newPassword || newPassword.length < 6) {
+                      toast({
+                        title: "Error",
+                        description: "Password must be at least 6 characters",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+
+                    if (newPassword !== confirmPassword) {
+                      toast({
+                        title: "Error",
+                        description: "Passwords do not match",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+
+                    const { error } = await supabase.auth.updateUser({
+                      password: newPassword
+                    });
+
+                    if (error) {
+                      toast({
+                        title: "Error",
+                        description: error.message,
+                        variant: "destructive",
+                      });
+                    } else {
+                      toast({
+                        title: "Success",
+                        description: "Password updated successfully!",
+                      });
+                      (e.target as HTMLFormElement).reset();
+                    }
+                  }} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="new_password">New Password</Label>
+                      <Input
+                        id="new_password"
+                        name="new_password"
+                        type="password"
+                        placeholder="Enter new password (min 6 characters)"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="confirm_password">Confirm New Password</Label>
+                      <Input
+                        id="confirm_password"
+                        name="confirm_password"
+                        type="password"
+                        placeholder="Confirm new password"
+                        required
+                      />
+                    </div>
+
+                    <Button type="submit">
+                      Update Password
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </main>
