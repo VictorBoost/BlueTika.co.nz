@@ -36,24 +36,24 @@ const features = [
 
 export function Features() {
   return (
-    <section className="py-20 md:py-32">
+    <section className="bg-gray-50 py-20 md:py-32">
       <div className="container">
         <div className="mb-12 text-center">
-          <h2 className="mb-4 text-3xl font-bold md:text-5xl">
+          <h2 className="mb-4 text-3xl font-bold text-gray-900 md:text-5xl">
             Why Choose BlueTika?
           </h2>
-          <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+          <p className="mx-auto max-w-2xl text-lg text-gray-600">
             The marketplace built by Kiwis, for Kiwis. Connecting local talent with local projects.
           </p>
         </div>
         
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {features.map((feature, index) => (
-            <Card key={index} className="border-border bg-card">
+            <Card key={index} className="border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
               <CardContent className="p-6">
                 <feature.icon className="mb-4 h-12 w-12 text-accent" />
-                <h3 className="mb-2 text-xl font-semibold">{feature.title}</h3>
-                <p className="text-muted-foreground">{feature.description}</p>
+                <h3 className="mb-2 text-xl font-semibold text-gray-900">{feature.title}</h3>
+                <p className="text-gray-600">{feature.description}</p>
               </CardContent>
             </Card>
           ))}

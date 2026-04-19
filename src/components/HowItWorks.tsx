@@ -38,13 +38,13 @@ const providerSteps = [
 
 export function HowItWorks() {
   return (
-    <section className="bg-muted py-20 md:py-32">
+    <section className="bg-white py-20 md:py-32">
       <div className="container">
         <div className="mb-16 text-center">
-          <h2 className="mb-4 text-3xl font-bold md:text-5xl">
+          <h2 className="mb-4 text-3xl font-bold text-gray-900 md:text-5xl">
             How It Works
           </h2>
-          <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+          <p className="mx-auto max-w-2xl text-lg text-gray-600">
             Simple steps to connect Kiwis with local service providers.
           </p>
         </div>
@@ -58,12 +58,12 @@ export function HowItWorks() {
             <div className="space-y-8">
               {clientSteps.map((step, index) => (
                 <div key={index} className="flex gap-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary text-white">
                     <step.icon className="h-6 w-6" />
                   </div>
                   <div>
-                    <h4 className="mb-2 text-xl font-semibold">{step.title}</h4>
-                    <p className="text-muted-foreground">{step.description}</p>
+                    <h4 className="mb-2 text-xl font-semibold text-gray-900">{step.title}</h4>
+                    <p className="text-gray-600">{step.description}</p>
                   </div>
                 </div>
               ))}
@@ -78,12 +78,12 @@ export function HowItWorks() {
             <div className="space-y-8">
               {providerSteps.map((step, index) => (
                 <div key={index} className="flex gap-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-success text-success-foreground">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-success text-white">
                     <step.icon className="h-6 w-6" />
                   </div>
                   <div>
-                    <h4 className="mb-2 text-xl font-semibold">{step.title}</h4>
-                    <p className="text-muted-foreground">{step.description}</p>
+                    <h4 className="mb-2 text-xl font-semibold text-gray-900">{step.title}</h4>
+                    <p className="text-gray-600">{step.description}</p>
                   </div>
                 </div>
               ))}
