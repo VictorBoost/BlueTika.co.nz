@@ -12,9 +12,8 @@ export function Hero() {
             <br />
             <span className="text-primary">Get it Done.</span>
           </h1>
-          <p className="mb-8 text-lg text-muted-foreground md:text-xl">New Zealand's trusted marketplace connecting Kiwis with Verified Local Service Providers. Post your project or find work
-
-
+          <p className="mb-8 text-lg text-muted-foreground md:text-xl">
+            New Zealand's trusted marketplace connecting Kiwis with local service providers. Post your project or find work.
           </p>
           <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
             <Button size="lg" asChild className="gap-2">
@@ -39,6 +38,6 @@ export function Hero() {
           <path d="M100,100 Q120,80 140,100 Q160,120 140,140 Q120,160 100,140 Q80,120 100,100 Z" />
         </svg>
       </div>
-    </section>);
-
+    </section>
+  );
 }
