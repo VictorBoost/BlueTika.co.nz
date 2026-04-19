@@ -714,6 +714,18 @@ export default function ControlCentre() {
                     <Button variant="outline" onClick={() => router.push("/muna/bot-lab")}>
                       Bot Lab
                     </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => router.push("/muna/directory-listings")}
+                    >
+                      Directory Listings
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => router.push("/muna/directory-categories")}
+                    >
+                      Directory Categories
+                    </Button>
                     {adminInfo?.isOwner && (
                       <Button
                         variant="outline"
