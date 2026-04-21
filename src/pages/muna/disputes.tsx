@@ -158,6 +158,7 @@ export default function AdminDisputes() {
 
       // Notify Client
       if (selectedDispute.contracts.client?.email) {
+        const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://bluetika.co.nz";
         await sendDisputeResolutionNotification(
           selectedDispute.contracts.client.email,
           selectedDispute.contracts.client.full_name || "Client",
@@ -165,7 +166,8 @@ export default function AdminDisputes() {
           selectedDispute.contracts.projects.title,
           resolutionType as any,
           resolutionReason,
-          resolutionType === "refund_to_client" ? agreedPrice : clientRefund
+          resolutionType === "refund_to_client" ? agreedPrice : clientRefund,
+          baseUrl
         );
         
         await notificationService.createNotification(
@@ -179,6 +181,7 @@ export default function AdminDisputes() {
 
       // Notify Provider
       if (selectedDispute.contracts.provider?.email) {
+        const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://bluetika.co.nz";
         await sendDisputeResolutionNotification(
           selectedDispute.contracts.provider.email,
           selectedDispute.contracts.provider.full_name || "Service Provider",
@@ -186,7 +189,8 @@ export default function AdminDisputes() {
           selectedDispute.contracts.projects.title,
           resolutionType as any,
           resolutionReason,
-          resolutionType === "release_to_provider" ? agreedPrice : providerPayout
+          resolutionType === "release_to_provider" ? agreedPrice : providerPayout,
+          baseUrl
         );
 
         await notificationService.createNotification(

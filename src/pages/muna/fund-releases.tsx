@@ -80,6 +80,8 @@ export default function AdminFundReleases() {
         notes: releaseNotes,
       });
 
+      const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://bluetika.co.nz";
+
       // Send notifications to both parties
       if (selectedContract.client?.email) {
         await sendFundReleaseNotification(
@@ -89,7 +91,8 @@ export default function AdminFundReleases() {
           selectedContract.projects.title,
           commission.agreedPrice,
           commission.commissionAmount,
-          commission.netToProvider
+          commission.netToProvider,
+          baseUrl
         );
         await notificationService.createNotification(
           selectedContract.client_id,
@@ -108,7 +111,8 @@ export default function AdminFundReleases() {
           selectedContract.projects.title,
           commission.agreedPrice,
           commission.commissionAmount,
-          commission.netToProvider
+          commission.netToProvider,
+          baseUrl
         );
         await notificationService.createNotification(
           selectedContract.provider_id,

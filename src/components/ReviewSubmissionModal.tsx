@@ -106,8 +106,10 @@ export function ReviewSubmissionModal({
         // Update contract status
         await contractService.updateContractStatus(contractId, "Awaiting Fund Release");
 
+        const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://bluetika.co.nz";
+
         // Send admin notification
-        await sendAdminFundReleaseNotification(contractId, projectTitle);
+        await sendAdminFundReleaseNotification(contractId, projectTitle, baseUrl);
 
         // Send routine contract invitations to both parties
         const { data: clientProfile } = await supabase
@@ -129,7 +131,8 @@ export function ReviewSubmissionModal({
             "client",
             providerProfile.full_name || "Service Provider",
             projectTitle,
-            contractId
+            contractId,
+            baseUrl
           );
 
           await sendRoutineContractInvitation(
@@ -138,7 +141,8 @@ export function ReviewSubmissionModal({
             "provider",
             clientProfile.full_name || "Client",
             projectTitle,
-            contractId
+            contractId,
+            baseUrl
           );
         }
 

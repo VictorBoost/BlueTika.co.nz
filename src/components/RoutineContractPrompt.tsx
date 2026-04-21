@@ -120,13 +120,15 @@ export function RoutineContractPrompt({
         .single();
 
       if (otherPartyProfile) {
+        const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://bluetika.co.nz";
         await sendRoutineContractInvitation(
           otherPartyProfile.email,
           otherPartyProfile.full_name || "there",
           userRole === "client" ? "provider" : "client",
           userRole === "client" ? clientName : providerName,
           projectTitle,
-          routine.id
+          routine.id,
+          baseUrl
         );
       }
 
