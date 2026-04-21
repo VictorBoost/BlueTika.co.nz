@@ -15,6 +15,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      abuse_flags: {
+        Row: {
+          created_at: string | null
+          details: string | null
+          flag_type: string | null
+          id: string
+          ip_hash: string | null
+          owner_id: string | null
+          reviewed: boolean | null
+          session_id: string | null
+          severity: string | null
+          widget_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          details?: string | null
+          flag_type?: string | null
+          id?: string
+          ip_hash?: string | null
+          owner_id?: string | null
+          reviewed?: boolean | null
+          session_id?: string | null
+          severity?: string | null
+          widget_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          details?: string | null
+          flag_type?: string | null
+          id?: string
+          ip_hash?: string | null
+          owner_id?: string | null
+          reviewed?: boolean | null
+          session_id?: string | null
+          severity?: string | null
+          widget_id?: string | null
+        }
+        Relationships: []
+      }
       account_suspensions: {
         Row: {
           bypass_attempt_count: number
@@ -49,15 +88,7 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "account_suspensions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       accounting_entries: {
         Row: {
@@ -200,6 +231,216 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      agent_performance: {
+        Row: {
+          agent_id: string | null
+          avg_response_time_minutes: number | null
+          conversations_handled: number | null
+          created_at: string | null
+          date: string | null
+          id: string
+          owner_id: string | null
+          resolution_rate: number | null
+        }
+        Insert: {
+          agent_id?: string | null
+          avg_response_time_minutes?: number | null
+          conversations_handled?: number | null
+          created_at?: string | null
+          date?: string | null
+          id?: string
+          owner_id?: string | null
+          resolution_rate?: number | null
+        }
+        Update: {
+          agent_id?: string | null
+          avg_response_time_minutes?: number | null
+          conversations_handled?: number | null
+          created_at?: string | null
+          date?: string | null
+          id?: string
+          owner_id?: string | null
+          resolution_rate?: number | null
+        }
+        Relationships: []
+      }
+      ai_brain: {
+        Row: {
+          about: string | null
+          faqs: string | null
+          id: string
+          owner_id: string | null
+          rules: string | null
+          services: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          about?: string | null
+          faqs?: string | null
+          id?: string
+          owner_id?: string | null
+          rules?: string | null
+          services?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          about?: string | null
+          faqs?: string | null
+          id?: string
+          owner_id?: string | null
+          rules?: string | null
+          services?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      ai_brains: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          tone: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          tone?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          tone?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      analytics_daily: {
+        Row: {
+          avg_bot_messages: number | null
+          conversations_by_domain: Json | null
+          created_at: string | null
+          date: string | null
+          handoff_rate: number | null
+          id: string
+          owner_id: string | null
+          top_questions: Json | null
+          total_conversations: number | null
+        }
+        Insert: {
+          avg_bot_messages?: number | null
+          conversations_by_domain?: Json | null
+          created_at?: string | null
+          date?: string | null
+          handoff_rate?: number | null
+          id?: string
+          owner_id?: string | null
+          top_questions?: Json | null
+          total_conversations?: number | null
+        }
+        Update: {
+          avg_bot_messages?: number | null
+          conversations_by_domain?: Json | null
+          created_at?: string | null
+          date?: string | null
+          handoff_rate?: number | null
+          id?: string
+          owner_id?: string | null
+          top_questions?: Json | null
+          total_conversations?: number | null
+        }
+        Relationships: []
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          details: Json | null
+          id: string
+          ip_address: unknown
+          resource_id: string | null
+          resource_type: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          ip_address?: unknown
+          resource_id?: string | null
+          resource_type?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          ip_address?: unknown
+          resource_id?: string | null
+          resource_type?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      auth_audit_logs: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          event_type: string | null
+          failure_reason: string | null
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          success: boolean | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          event_type?: string | null
+          failure_reason?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          success?: boolean | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          event_type?: string | null
+          failure_reason?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          success?: boolean | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       bids: {
         Row: {
@@ -417,15 +658,7 @@ export type Database = {
           page_location?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "bypass_attempts_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       categories: {
         Row: {
@@ -460,6 +693,74 @@ export type Database = {
           name?: string
           slug?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      chat_messages: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          role: string
+          session_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          role: string
+          session_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          role?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "chatbot_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chatbot_sessions: {
+        Row: {
+          created_at: string | null
+          id: string
+          lead_score: number | null
+          session_id: string
+          status: string | null
+          updated_at: string | null
+          user_id: string
+          visitor_email: string | null
+          visitor_name: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          lead_score?: number | null
+          session_id: string
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+          visitor_email?: string | null
+          visitor_name?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          lead_score?: number | null
+          session_id?: string
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+          visitor_email?: string | null
+          visitor_name?: string | null
         }
         Relationships: []
       }
@@ -683,6 +984,195 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      conversation_logs: {
+        Row: {
+          bot_messages: number | null
+          browser: string | null
+          created_at: string | null
+          credits_consumed: number | null
+          device_type: string | null
+          handoff_triggered: boolean | null
+          id: string
+          ip_hash: string | null
+          owner_id: string | null
+          session_id: string | null
+          total_messages: number | null
+          visitor_email: string | null
+          visitor_messages: number | null
+          website_domain: string | null
+          widget_id: string | null
+        }
+        Insert: {
+          bot_messages?: number | null
+          browser?: string | null
+          created_at?: string | null
+          credits_consumed?: number | null
+          device_type?: string | null
+          handoff_triggered?: boolean | null
+          id?: string
+          ip_hash?: string | null
+          owner_id?: string | null
+          session_id?: string | null
+          total_messages?: number | null
+          visitor_email?: string | null
+          visitor_messages?: number | null
+          website_domain?: string | null
+          widget_id?: string | null
+        }
+        Update: {
+          bot_messages?: number | null
+          browser?: string | null
+          created_at?: string | null
+          credits_consumed?: number | null
+          device_type?: string | null
+          handoff_triggered?: boolean | null
+          id?: string
+          ip_hash?: string | null
+          owner_id?: string | null
+          session_id?: string | null
+          total_messages?: number | null
+          visitor_email?: string | null
+          visitor_messages?: number | null
+          website_domain?: string | null
+          widget_id?: string | null
+        }
+        Relationships: []
+      }
+      credit_caps: {
+        Row: {
+          created_at: string | null
+          id: string
+          max_chat_cap: number | null
+          max_image_cap: number | null
+          max_video_cap: number | null
+          monthly_chat_credits: number
+          monthly_image_credits: number
+          monthly_video_credits: number
+          price_display: string | null
+          price_nzd: number
+          show_price: boolean | null
+          stripe_price_id: string | null
+          tier: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          max_chat_cap?: number | null
+          max_image_cap?: number | null
+          max_video_cap?: number | null
+          monthly_chat_credits: number
+          monthly_image_credits: number
+          monthly_video_credits: number
+          price_display?: string | null
+          price_nzd: number
+          show_price?: boolean | null
+          stripe_price_id?: string | null
+          tier: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          max_chat_cap?: number | null
+          max_image_cap?: number | null
+          max_video_cap?: number | null
+          monthly_chat_credits?: number
+          monthly_image_credits?: number
+          monthly_video_credits?: number
+          price_display?: string | null
+          price_nzd?: number
+          show_price?: boolean | null
+          stripe_price_id?: string | null
+          tier?: string
+        }
+        Relationships: []
+      }
+      credit_transactions: {
+        Row: {
+          created_at: string | null
+          credits_balance: number | null
+          id: string
+          owner_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          credits_balance?: number | null
+          id?: string
+          owner_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          credits_balance?: number | null
+          id?: string
+          owner_id?: string | null
+        }
+        Relationships: []
+      }
+      credits_co_nz: {
+        Row: {
+          chat_credits: number | null
+          created_at: string | null
+          id: string
+          image_credits: number | null
+          last_reset: string | null
+          updated_at: string | null
+          user_id: string
+          video_credits: number | null
+        }
+        Insert: {
+          chat_credits?: number | null
+          created_at?: string | null
+          id?: string
+          image_credits?: number | null
+          last_reset?: string | null
+          updated_at?: string | null
+          user_id: string
+          video_credits?: number | null
+        }
+        Update: {
+          chat_credits?: number | null
+          created_at?: string | null
+          id?: string
+          image_credits?: number | null
+          last_reset?: string | null
+          updated_at?: string | null
+          user_id?: string
+          video_credits?: number | null
+        }
+        Relationships: []
+      }
+      credits_nz: {
+        Row: {
+          chat_credits: number | null
+          created_at: string | null
+          id: string
+          image_credits: number | null
+          last_reset: string | null
+          updated_at: string | null
+          user_id: string
+          video_credits: number | null
+        }
+        Insert: {
+          chat_credits?: number | null
+          created_at?: string | null
+          id?: string
+          image_credits?: number | null
+          last_reset?: string | null
+          updated_at?: string | null
+          user_id: string
+          video_credits?: number | null
+        }
+        Update: {
+          chat_credits?: number | null
+          created_at?: string | null
+          id?: string
+          image_credits?: number | null
+          last_reset?: string | null
+          updated_at?: string | null
+          user_id?: string
+          video_credits?: number | null
+        }
+        Relationships: []
       }
       directory_analytics: {
         Row: {
@@ -963,6 +1453,54 @@ export type Database = {
           },
         ]
       }
+      generated_images: {
+        Row: {
+          created_at: string | null
+          id: string
+          replicate_id: string | null
+          status: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          replicate_id?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          replicate_id?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      generated_videos: {
+        Row: {
+          created_at: string | null
+          id: string
+          replicate_id: string | null
+          status: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          replicate_id?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          replicate_id?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       government_verification_api: {
         Row: {
           api_endpoint_url: string | null
@@ -993,6 +1531,45 @@ export type Database = {
           test_error_message?: string | null
           test_status?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      images: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          image_url: string | null
+          model: string
+          prompt: string
+          replicate_id: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          image_url?: string | null
+          model: string
+          prompt: string
+          replicate_id?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          image_url?: string | null
+          model?: string
+          prompt?: string
+          replicate_id?: string | null
+          status?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1049,6 +1626,80 @@ export type Database = {
             columns: ["provider_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ip_suspensions: {
+        Row: {
+          created_at: string | null
+          id: string
+          ip_hash: string | null
+          owner_id: string | null
+          permanent_ban: boolean | null
+          suspended_until: string | null
+          suspension_count: number | null
+          widget_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          ip_hash?: string | null
+          owner_id?: string | null
+          permanent_ban?: boolean | null
+          suspended_until?: string | null
+          suspension_count?: number | null
+          widget_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          ip_hash?: string | null
+          owner_id?: string | null
+          permanent_ban?: boolean | null
+          suspended_until?: string | null
+          suspension_count?: number | null
+          widget_id?: string | null
+        }
+        Relationships: []
+      }
+      leads: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string
+          name: string | null
+          notes: string | null
+          phone: string | null
+          source: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string | null
+          notes?: string | null
+          phone?: string | null
+          source?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string | null
+          notes?: string | null
+          phone?: string | null
+          source?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users_nz"
             referencedColumns: ["id"]
           },
         ]
@@ -1276,14 +1927,25 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "notifications_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
         ]
+      }
+      platform_revenue: {
+        Row: {
+          created_at: string | null
+          id: string
+          reporter_analytics: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          reporter_analytics?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          reporter_analytics?: string | null
+        }
+        Relationships: []
       }
       platform_settings: {
         Row: {
@@ -2048,6 +2710,144 @@ export type Database = {
           },
         ]
       }
+      social_accounts: {
+        Row: {
+          access_token: string
+          account_id: string
+          account_name: string
+          connected_at: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          last_used_at: string | null
+          metadata: Json | null
+          platform: string
+          refresh_token: string | null
+          token_expires_at: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          account_id: string
+          account_name: string
+          connected_at?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_used_at?: string | null
+          metadata?: Json | null
+          platform: string
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          account_id?: string
+          account_name?: string
+          connected_at?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_used_at?: string | null
+          metadata?: Json | null
+          platform?: string
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users_nz"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_posts: {
+        Row: {
+          account_id: string
+          caption: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          platform: string
+          post_id: string | null
+          post_url: string | null
+          posted_at: string | null
+          retry_count: number | null
+          scheduled_for: string | null
+          status: string
+          updated_at: string | null
+          user_id: string
+          video_id: string
+        }
+        Insert: {
+          account_id: string
+          caption?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          platform: string
+          post_id?: string | null
+          post_url?: string | null
+          posted_at?: string | null
+          retry_count?: number | null
+          scheduled_for?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id: string
+          video_id: string
+        }
+        Update: {
+          account_id?: string
+          caption?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          platform?: string
+          post_id?: string | null
+          post_url?: string | null
+          posted_at?: string | null
+          retry_count?: number | null
+          scheduled_for?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_posts_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "social_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_posts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users_nz"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_posts_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       staff: {
         Row: {
           created_at: string | null
@@ -2172,6 +2972,24 @@ export type Database = {
           },
         ]
       }
+      stripe_payment_failures: {
+        Row: {
+          created_at: string | null
+          id: string
+          resolved: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          resolved?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          resolved?: boolean | null
+        }
+        Relationships: []
+      }
       subcategories: {
         Row: {
           category_id: string
@@ -2249,6 +3067,259 @@ export type Database = {
         }
         Relationships: []
       }
+      subscriptions: {
+        Row: {
+          billing_date: string | null
+          created_at: string | null
+          id: string
+          overage_video_credits: number | null
+          status: string | null
+          subscription_revenue_nzd: number | null
+          tier: string | null
+          total_video_credits: number | null
+          user_id: string | null
+        }
+        Insert: {
+          billing_date?: string | null
+          created_at?: string | null
+          id?: string
+          overage_video_credits?: number | null
+          status?: string | null
+          subscription_revenue_nzd?: number | null
+          tier?: string | null
+          total_video_credits?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          billing_date?: string | null
+          created_at?: string | null
+          id?: string
+          overage_video_credits?: number | null
+          status?: string | null
+          subscription_revenue_nzd?: number | null
+          tier?: string | null
+          total_video_credits?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      subscriptions_co_nz: {
+        Row: {
+          cancel_at_period_end: boolean | null
+          created_at: string | null
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          tier: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          tier: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          tier?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      subscriptions_nz: {
+        Row: {
+          billing_date: string | null
+          cancel_at_period_end: boolean | null
+          created_at: string | null
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          max_video_credits_cap: number | null
+          monthly_video_allocation: number | null
+          overage_video_credits: number | null
+          platform_owned: boolean | null
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          tier: string
+          total_video_credits: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          billing_date?: string | null
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          max_video_credits_cap?: number | null
+          monthly_video_allocation?: number | null
+          overage_video_credits?: number | null
+          platform_owned?: boolean | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          tier: string
+          total_video_credits?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          billing_date?: string | null
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          max_video_credits_cap?: number | null
+          monthly_video_allocation?: number | null
+          overage_video_credits?: number | null
+          platform_owned?: boolean | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          tier?: string
+          total_video_credits?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      team_invitations_nz: {
+        Row: {
+          accepted: boolean | null
+          created_at: string | null
+          email: string
+          expires_at: string
+          id: string
+          invite_token: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          accepted?: boolean | null
+          created_at?: string | null
+          email: string
+          expires_at: string
+          id?: string
+          invite_token: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          accepted?: boolean | null
+          created_at?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          invite_token?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_invitations_nz_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users_nz"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_members: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          id: string
+          owner_id: string | null
+          role: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          id?: string
+          owner_id?: string | null
+          role?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          id?: string
+          owner_id?: string | null
+          role?: string | null
+        }
+        Relationships: []
+      }
+      team_members_nz: {
+        Row: {
+          accepted_at: string | null
+          created_at: string | null
+          email: string
+          full_name: string | null
+          id: string
+          invited_at: string | null
+          is_active: boolean | null
+          last_active_at: string | null
+          role: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string | null
+          email: string
+          full_name?: string | null
+          id?: string
+          invited_at?: string | null
+          is_active?: boolean | null
+          last_active_at?: string | null
+          role: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          invited_at?: string | null
+          is_active?: boolean | null
+          last_active_at?: string | null
+          role?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_nz_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users_nz"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tier_drop_warnings: {
         Row: {
           current_tier: string
@@ -2283,6 +3354,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      tika_chat_conversations_nz: {
+        Row: {
+          captured_name: string | null
+          created_at: string | null
+          escalated: boolean | null
+          id: string
+          messages: Json | null
+          user_id: string | null
+          website_url: string | null
+        }
+        Insert: {
+          captured_name?: string | null
+          created_at?: string | null
+          escalated?: boolean | null
+          id?: string
+          messages?: Json | null
+          user_id?: string | null
+          website_url?: string | null
+        }
+        Update: {
+          captured_name?: string | null
+          created_at?: string | null
+          escalated?: boolean | null
+          id?: string
+          messages?: Json | null
+          user_id?: string | null
+          website_url?: string | null
+        }
+        Relationships: []
       }
       trade_certificates: {
         Row: {
@@ -2321,6 +3422,138 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_credits: {
+        Row: {
+          chat_credits: number | null
+          created_at: string | null
+          credit_revenue_nzd: number | null
+          credits_balance: number | null
+          credits_used: number | null
+          id: string
+          image_credits: number | null
+          last_reset: string | null
+          user_id: string | null
+          video_credits: number | null
+        }
+        Insert: {
+          chat_credits?: number | null
+          created_at?: string | null
+          credit_revenue_nzd?: number | null
+          credits_balance?: number | null
+          credits_used?: number | null
+          id?: string
+          image_credits?: number | null
+          last_reset?: string | null
+          user_id?: string | null
+          video_credits?: number | null
+        }
+        Update: {
+          chat_credits?: number | null
+          created_at?: string | null
+          credit_revenue_nzd?: number | null
+          credits_balance?: number | null
+          credits_used?: number | null
+          id?: string
+          image_credits?: number | null
+          last_reset?: string | null
+          user_id?: string | null
+          video_credits?: number | null
+        }
+        Relationships: []
+      }
+      user_nz: {
+        Row: {
+          company_name: string | null
+          created_at: string
+          email: string
+          first_name: string | null
+          id: number
+          last_name: string | null
+          password_hash: string
+          tika_tone: string | null
+          updated_at: string
+          uses_co_nz: boolean | null
+          uses_nz: boolean
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string
+          email: string
+          first_name?: string | null
+          id?: number
+          last_name?: string | null
+          password_hash: string
+          tika_tone?: string | null
+          updated_at?: string
+          uses_co_nz?: boolean | null
+          uses_nz?: boolean
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string
+          email?: string
+          first_name?: string | null
+          id?: number
+          last_name?: string | null
+          password_hash?: string
+          tika_tone?: string | null
+          updated_at?: string
+          uses_co_nz?: boolean | null
+          uses_nz?: boolean
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          created_at: string | null
+          id: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      users_nz: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string
+          is_platform_owner: boolean | null
+          password_hash: string | null
+          uses_co_nz: boolean | null
+          uses_nz: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_platform_owner?: boolean | null
+          password_hash?: string | null
+          uses_co_nz?: boolean | null
+          uses_nz?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_platform_owner?: boolean | null
+          password_hash?: string | null
+          uses_co_nz?: boolean | null
+          uses_nz?: boolean | null
+        }
+        Relationships: []
       }
       verification_documents: {
         Row: {
@@ -2474,6 +3707,345 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      video_credit_purchases_nz: {
+        Row: {
+          created_at: string | null
+          credits_bought: number | null
+          id: string
+          price: number | null
+          stripe_charge_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          credits_bought?: number | null
+          id?: string
+          price?: number | null
+          stripe_charge_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          credits_bought?: number | null
+          id?: string
+          price?: number | null
+          stripe_charge_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      video_generations_nz: {
+        Row: {
+          created_at: string | null
+          credits_used: number | null
+          generator_choice: string | null
+          id: string
+          posted_to_instagram: boolean | null
+          posted_to_tiktok: boolean | null
+          posted_to_youtube: boolean | null
+          prompt: string
+          status: string | null
+          user_id: string | null
+          video_format: string | null
+          video_url: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          credits_used?: number | null
+          generator_choice?: string | null
+          id?: string
+          posted_to_instagram?: boolean | null
+          posted_to_tiktok?: boolean | null
+          posted_to_youtube?: boolean | null
+          prompt: string
+          status?: string | null
+          user_id?: string | null
+          video_format?: string | null
+          video_url?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          credits_used?: number | null
+          generator_choice?: string | null
+          id?: string
+          posted_to_instagram?: boolean | null
+          posted_to_tiktok?: boolean | null
+          posted_to_youtube?: boolean | null
+          prompt?: string
+          status?: string | null
+          user_id?: string | null
+          video_format?: string | null
+          video_url?: string | null
+        }
+        Relationships: []
+      }
+      videos: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          credits_used: number
+          error_message: string | null
+          id: string
+          prompt: string
+          quality_tier: string
+          replicate_id: string | null
+          status: string
+          user_id: string
+          video_url: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          credits_used: number
+          error_message?: string | null
+          id?: string
+          prompt: string
+          quality_tier: string
+          replicate_id?: string | null
+          status?: string
+          user_id: string
+          video_url?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          credits_used?: number
+          error_message?: string | null
+          id?: string
+          prompt?: string
+          quality_tier?: string
+          replicate_id?: string | null
+          status?: string
+          user_id?: string
+          video_url?: string | null
+        }
+        Relationships: []
+      }
+      webhook_deliveries: {
+        Row: {
+          created_at: string | null
+          endpoint_id: string | null
+          error_message: string | null
+          event_type: string | null
+          id: string
+          owner_id: string | null
+          payload: Json | null
+          status: string | null
+          status_code: number | null
+          success: boolean | null
+          widget_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          endpoint_id?: string | null
+          error_message?: string | null
+          event_type?: string | null
+          id?: string
+          owner_id?: string | null
+          payload?: Json | null
+          status?: string | null
+          status_code?: number | null
+          success?: boolean | null
+          widget_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          endpoint_id?: string | null
+          error_message?: string | null
+          event_type?: string | null
+          id?: string
+          owner_id?: string | null
+          payload?: Json | null
+          status?: string | null
+          status_code?: number | null
+          success?: boolean | null
+          widget_id?: string | null
+        }
+        Relationships: []
+      }
+      webhook_endpoints: {
+        Row: {
+          created_at: string | null
+          events: string[] | null
+          id: string
+          is_active: boolean | null
+          owner_id: string | null
+          url: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          events?: string[] | null
+          id?: string
+          is_active?: boolean | null
+          owner_id?: string | null
+          url?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          events?: string[] | null
+          id?: string
+          is_active?: boolean | null
+          owner_id?: string | null
+          url?: string | null
+        }
+        Relationships: []
+      }
+      widget_config: {
+        Row: {
+          api_key: string | null
+          created_at: string | null
+          credits_per_session: number | null
+          greeting_message: string | null
+          handoff_message: string | null
+          id: string
+          owner_id: string | null
+          primary_color: string | null
+          site_name: string | null
+          webhook_url: string | null
+          widget_id: string | null
+        }
+        Insert: {
+          api_key?: string | null
+          created_at?: string | null
+          credits_per_session?: number | null
+          greeting_message?: string | null
+          handoff_message?: string | null
+          id?: string
+          owner_id?: string | null
+          primary_color?: string | null
+          site_name?: string | null
+          webhook_url?: string | null
+          widget_id?: string | null
+        }
+        Update: {
+          api_key?: string | null
+          created_at?: string | null
+          credits_per_session?: number | null
+          greeting_message?: string | null
+          handoff_message?: string | null
+          id?: string
+          owner_id?: string | null
+          primary_color?: string | null
+          site_name?: string | null
+          webhook_url?: string | null
+          widget_id?: string | null
+        }
+        Relationships: []
+      }
+      widget_messages: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string | null
+          sender: string | null
+          session_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message?: string | null
+          sender?: string | null
+          session_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string | null
+          sender?: string | null
+          session_id?: string | null
+        }
+        Relationships: []
+      }
+      widget_sessions: {
+        Row: {
+          assigned_agent_id: string | null
+          created_at: string | null
+          credits_used: number | null
+          handoff_at: string | null
+          id: string
+          ip_hash: string | null
+          last_message_at: string | null
+          profiles: Json | null
+          session_id: string | null
+          status: string | null
+          visitor_email: string | null
+          visitor_messages: number | null
+          website_domain: string | null
+          widget_id: string | null
+        }
+        Insert: {
+          assigned_agent_id?: string | null
+          created_at?: string | null
+          credits_used?: number | null
+          handoff_at?: string | null
+          id?: string
+          ip_hash?: string | null
+          last_message_at?: string | null
+          profiles?: Json | null
+          session_id?: string | null
+          status?: string | null
+          visitor_email?: string | null
+          visitor_messages?: number | null
+          website_domain?: string | null
+          widget_id?: string | null
+        }
+        Update: {
+          assigned_agent_id?: string | null
+          created_at?: string | null
+          credits_used?: number | null
+          handoff_at?: string | null
+          id?: string
+          ip_hash?: string | null
+          last_message_at?: string | null
+          profiles?: Json | null
+          session_id?: string | null
+          status?: string | null
+          visitor_email?: string | null
+          visitor_messages?: number | null
+          website_domain?: string | null
+          widget_id?: string | null
+        }
+        Relationships: []
+      }
+      widget_settings: {
+        Row: {
+          collect_email: boolean | null
+          created_at: string | null
+          id: string
+          placeholder: string | null
+          position: string | null
+          primary_color: string | null
+          updated_at: string | null
+          user_id: string
+          welcome_message: string | null
+          widget_id: string
+        }
+        Insert: {
+          collect_email?: boolean | null
+          created_at?: string | null
+          id?: string
+          placeholder?: string | null
+          position?: string | null
+          primary_color?: string | null
+          updated_at?: string | null
+          user_id: string
+          welcome_message?: string | null
+          widget_id: string
+        }
+        Update: {
+          collect_email?: boolean | null
+          created_at?: string | null
+          id?: string
+          placeholder?: string | null
+          position?: string | null
+          primary_color?: string | null
+          updated_at?: string | null
+          user_id?: string
+          welcome_message?: string | null
+          widget_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {
