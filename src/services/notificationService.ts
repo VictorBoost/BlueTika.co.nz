@@ -105,7 +105,8 @@ export const notificationService = {
     userEmail: string,
     userName: string,
     photoType: "before" | "after",
-    projectTitle: string
+    projectTitle: string,
+    baseUrl?: string
   ) {
     const title = `${photoType === "before" ? "Before" : "After"} Photos Required`;
     const message = `Please upload your ${photoType} photos for "${projectTitle}". Both parties must confirm their photos before ${photoType === "before" ? "work can begin" : "the contract can be completed"}.`;
@@ -118,12 +119,14 @@ export const notificationService = {
       contractId
     );
 
+    const siteUrl = baseUrl || (typeof window !== "undefined" ? window.location.origin : "https://bluetika.co.nz");
     await sendEmailReminder(
       userEmail,
       userName,
       contractId,
       photoType,
-      projectTitle
+      projectTitle,
+      siteUrl
     );
   },
 };

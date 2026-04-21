@@ -68,11 +68,13 @@ export const verificationService = {
             .single();
 
           if (profile?.email) {
+            const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://bluetika.co.nz";
             await sesEmailService.sendDocumentAutoApproved(
               profile.email,
               profile.full_name || profile.first_name || "Service Provider",
               documentType.replace(/_/g, " "),
-              aiResult.confidence
+              aiResult.confidence,
+              baseUrl
             );
           }
         }
@@ -206,18 +208,21 @@ export const verificationService = {
         .single();
 
       if (profile?.email) {
+        const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://bluetika.co.nz";
         if (status === "approved") {
           await sesEmailService.sendDocumentManuallyApproved(
             profile.email,
             profile.full_name || profile.first_name || "Service Provider",
-            doc.document_type.replace(/_/g, " ")
+            doc.document_type.replace(/_/g, " "),
+            baseUrl
           );
         } else {
           await sesEmailService.sendDocumentRejected(
             profile.email,
             profile.full_name || profile.first_name || "Service Provider",
             doc.document_type.replace(/_/g, " "),
-            rejectionReason || "Document did not meet verification requirements"
+            rejectionReason || "Document did not meet verification requirements",
+            baseUrl
           );
         }
       }
