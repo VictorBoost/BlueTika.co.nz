@@ -75,7 +75,7 @@ export const authService = {
   },
 
   // Sign in with email and password
-  async signIn(email: string, password: string): Promise<{ user: AuthUser | null; error: AuthError | null }> {
+  async signInWithPassword(email: string, password: string): Promise<{ user: AuthUser | null; error: AuthError | null }> {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -98,6 +98,36 @@ export const authService = {
       return { 
         user: null, 
         error: { message: "An unexpected error occurred during sign in" } 
+      };
+    }
+  },
+
+  // Sign in with Google OAuth
+  async signInWithGoogle(): Promise<{ error: AuthError | null }> {
+    try {
+      const redirectTo = typeof window !== 'undefined' 
+        ? `${window.location.origin}/` 
+        : 'https://bluetika.co.nz/';
+
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
+      });
+
+      if (error) {
+        return { error: { message: error.message } };
+      }
+
+      return { error: null };
+    } catch (error) {
+      return { 
+        error: { message: "An unexpected error occurred during Google sign in" } 
       };
     }
   },
