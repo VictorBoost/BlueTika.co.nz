@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, CheckCircle2, ArrowLeft } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { authService } from "@/services/authService";
 
 export default function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false);
@@ -27,16 +26,29 @@ export default function ForgotPasswordPage() {
 
     setLoading(true);
 
-    const { error: resetError } = await authService.resetPassword(email);
+    try {
+      // Use custom password reset API with SES
+      const response = await fetch("/api/auth/request-password-reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
 
-    if (resetError) {
-      setError(resetError.message || "Failed to send reset email");
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || "Failed to send reset email");
+        setLoading(false);
+        return;
+      }
+
+      setSuccess(true);
+    } catch (err) {
+      console.error("Password reset error:", err);
+      setError("An error occurred. Please try again.");
+    } finally {
       setLoading(false);
-      return;
     }
-
-    setSuccess(true);
-    setLoading(false);
   };
 
   if (success) {
@@ -60,6 +72,9 @@ export default function ForgotPasswordPage() {
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground text-center">
                 Click the link in the email to reset your password. The link will expire in 1 hour.
+              </p>
+              <p className="text-xs text-muted-foreground text-center">
+                If you don't see the email, check your spam folder.
               </p>
               <Button asChild className="w-full">
                 <Link href="/login">Back to Login</Link>

@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { authService } from "@/services/authService";
+import { sendWelcomeEmail } from "@/services/sesEmailService";
 
 const NZ_CITIES = [
   "Auckland",
@@ -98,8 +99,17 @@ export default function RegisterPage() {
       return;
     }
 
+    // Send welcome email via SES
+    const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://bluetika.co.nz";
+    await sendWelcomeEmail(formData.email, formData.firstName, baseUrl);
+
     setSuccess(true);
     setLoading(false);
+
+    // Redirect to login after showing success message
+    setTimeout(() => {
+      router.push("/login");
+    }, 3000);
   };
 
   const handleGoogleSignIn = async () => {

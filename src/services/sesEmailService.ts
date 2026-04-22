@@ -198,6 +198,44 @@ export async function sendBidDeclinedEmail(recipientEmail: string, recipientName
   });
 }
 
+export async function sendPasswordResetEmail(recipientEmail: string, recipientName: string, resetToken: string, baseUrl: string = "https://bluetika.co.nz"): Promise<boolean> {
+  const resetLink = `${baseUrl}/auth/reset-password?token=${resetToken}`;
+  return sendEmail({
+    to: recipientEmail,
+    subject: "BlueTika: Reset Your Password",
+    htmlBody: baseHtml("Reset Your Password", `
+      <p>Kia ora ${recipientName},</p>
+      <p>We received a request to reset your password for your BlueTika account.</p>
+      <p>Click the button below to set a new password:</p>
+      <a href="${resetLink}" class="button">Reset Password</a>
+      <p style="margin-top: 20px; color: #666; font-size: 14px;">This link will expire in 1 hour.</p>
+      <p style="margin-top: 10px; color: #666; font-size: 14px;">If you didn't request this password reset, please ignore this email. Your password will not be changed.</p>
+      <div class="warning" style="margin-top: 20px;">
+        <p style="margin: 0; font-size: 14px;"><strong>Security tip:</strong> Never share your password reset link with anyone.</p>
+      </div>
+    `, baseUrl)
+  });
+}
+
+export async function sendWelcomeEmail(recipientEmail: string, recipientName: string, baseUrl: string = "https://bluetika.co.nz"): Promise<boolean> {
+  return sendEmail({
+    to: recipientEmail,
+    subject: "Welcome to BlueTika! 🎉",
+    htmlBody: baseHtml("Welcome to BlueTika!", `
+      <p>Kia ora ${recipientName},</p>
+      <p>Welcome to <strong>BlueTika</strong> — New Zealand's trusted marketplace connecting Kiwis with local service providers.</p>
+      <div class="highlight">
+        <h3 style="margin-top: 0;">Getting Started</h3>
+        <p style="margin-bottom: 0;">✓ Post projects and get bids from verified service providers<br>
+        ✓ Browse our directory of skilled professionals<br>
+        ✓ Enjoy secure payments with 8% promo commission (limited time!)</p>
+      </div>
+      <a href="${baseUrl}/projects" class="button">Browse Projects</a>
+      <p style="margin-top: 20px; color: #666; font-size: 14px;">Need help? Our team is here to support you every step of the way.</p>
+    `, baseUrl)
+  });
+}
+
 export async function sendDocumentAutoApproved(toEmail: string, providerName: string, documentType: string, confidenceScore: number, baseUrl: string = "https://bluetika.co.nz") {
   return sendEmail({
     to: toEmail,
@@ -248,6 +286,8 @@ export const sesEmailService = {
   sendSessionReminderEmail,
   sendAdminSuspensionAlert,
   sendBidDeclinedEmail,
+  sendPasswordResetEmail,
+  sendWelcomeEmail,
   sendDocumentAutoApproved,
   sendDocumentManuallyApproved,
   sendDocumentRejected

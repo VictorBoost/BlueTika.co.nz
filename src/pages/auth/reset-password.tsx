@@ -9,11 +9,12 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { supabase } from "@/integrations/supabase/client";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
+  const { token } = router.query;
   const [loading, setLoading] = useState(false);
+  const [verifying, setVerifying] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [password, setPassword] = useState("");
@@ -22,15 +23,31 @@ export default function ResetPasswordPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
-    // Check if user has a valid session (came from reset link)
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        setError("Invalid or expired reset link. Please request a new password reset.");
+    if (token) {
+      verifyToken();
+    }
+  }, [token]);
+
+  const verifyToken = async () => {
+    try {
+      const response = await fetch("/api/auth/verify-reset-token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || "Invalid or expired reset link. Please request a new password reset.");
       }
-    };
-    checkSession();
-  }, []);
+    } catch (err) {
+      console.error("Token verification error:", err);
+      setError("Failed to verify reset link. Please try again.");
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,24 +70,49 @@ export default function ResetPasswordPage() {
 
     setLoading(true);
 
-    const { error: updateError } = await supabase.auth.updateUser({
-      password: password
-    });
+    try {
+      const response = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, password }),
+      });
 
-    if (updateError) {
-      setError(updateError.message || "Failed to reset password");
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || "Failed to reset password");
+        setLoading(false);
+        return;
+      }
+
+      setSuccess(true);
       setLoading(false);
-      return;
+
+      // Redirect to login after 2 seconds
+      setTimeout(() => {
+        router.push("/login");
+      }, 2000);
+    } catch (err) {
+      console.error("Password reset error:", err);
+      setError("An error occurred. Please try again.");
+      setLoading(false);
     }
-
-    setSuccess(true);
-    setLoading(false);
-
-    // Redirect to login after 2 seconds
-    setTimeout(() => {
-      router.push("/login");
-    }, 2000);
   };
+
+  if (verifying) {
+    return (
+      <>
+        <SEO title="Reset Password - BlueTika" />
+        <div className="min-h-screen bg-background flex items-center justify-center p-4">
+          <Card className="max-w-md w-full">
+            <CardContent className="p-8 text-center">
+              <p className="text-muted-foreground">Verifying reset link...</p>
+            </CardContent>
+          </Card>
+        </div>
+      </>
+    );
+  }
 
   if (success) {
     return (
@@ -165,7 +207,7 @@ export default function ResetPasswordPage() {
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     >
-                      {showConfirmPassword ? <EyeOff className="w-4 w-4" /> : <Eye className="w-4 h-4" />}
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
