@@ -51,12 +51,17 @@ export const projectService = {
     }
   },
 
-  async getAllProjects(): Promise<{ data: Project[] | null; error: any }> {
-    const { data, error } = await supabase
+  async getAllProjects(status?: string): Promise<{ data: Project[] | null; error: any }> {
+    let query = supabase
       .from("projects")
       .select("*")
       .order("created_at", { ascending: false });
+      
+    if (status) {
+      query = query.eq("status", status);
+    }
     
+    const { data, error } = await query;
     return { data, error };
   },
 
