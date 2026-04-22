@@ -96,7 +96,7 @@ export default async function handler(
           .from("profiles")
           .update({
             stripe_account_status: isComplete ? "active" : "pending",
-          })
+          } as any)
           .eq("stripe_account_id", account.id);
 
         if (updateError) {
@@ -139,7 +139,7 @@ export default async function handler(
             .update({
               stripe_account_id: null,
               stripe_account_status: "not_connected"
-            })
+            } as any)
             .eq("stripe_account_id", accountId);
 
           if (updateError) {
