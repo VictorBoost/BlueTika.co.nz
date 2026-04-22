@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Trophy, TrendingUp } from "lucide-react";
+import { Trophy, TrendingUp, Info } from "lucide-react";
 import { getProviderTierStatus } from "@/services/commissionService";
 import type { ProviderTierStatus } from "@/services/commissionService";
 
@@ -50,6 +50,13 @@ export function TierProgressCard({ providerId }: TierProgressCardProps) {
                     PROMO
                   </Badge>
                 )}
+                {/* Small tier drop warning badge - subtle and informative */}
+                {warningDaysLeft !== null && warningDaysLeft <= 7 && (
+                  <Badge variant="outline" className="text-xs px-1.5 py-0 border-muted-foreground/30 text-muted-foreground">
+                    <Info className="w-3 h-3 mr-1" />
+                    Tier renewal soon
+                  </Badge>
+                )}
               </div>
               <p className="text-sm text-muted-foreground">
                 Commission: {currentTier.currentRate}%
@@ -79,16 +86,10 @@ export function TierProgressCard({ providerId }: TierProgressCardProps) {
           </div>
         )}
 
-        {/* Warning or Encouragement Message */}
-        {warningDaysLeft !== null && warningDaysLeft <= 7 ? (
-          <div className="p-3 rounded-md bg-destructive/10 border border-destructive/20">
-            <p className="text-sm text-destructive font-medium">{message}</p>
-          </div>
-        ) : (
-          <div className="p-3 rounded-md bg-accent/10 border border-accent/20">
-            <p className="text-sm text-accent-foreground">{message}</p>
-          </div>
-        )}
+        {/* Encouragement Message - always subtle blue/green tone */}
+        <div className="p-3 rounded-md bg-accent/10 border border-accent/20">
+          <p className="text-sm text-accent-foreground">{message}</p>
+        </div>
       </div>
     </Card>
   );
