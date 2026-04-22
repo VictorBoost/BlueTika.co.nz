@@ -97,7 +97,7 @@ export default function LoginPage() {
             <CardHeader>
               <CardTitle className="text-2xl">Welcome Back</CardTitle>
               <CardDescription>
-                Log in to your BlueTika account
+                Log in to your <Link href="/" className="text-primary font-medium hover:underline">BlueTika</Link> account
               </CardDescription>
             </CardHeader>
             <CardContent>

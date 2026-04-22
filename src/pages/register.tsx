@@ -159,7 +159,7 @@ export default function RegisterPage() {
             <CardHeader>
               <CardTitle className="text-2xl">Create Your Account</CardTitle>
               <CardDescription>
-                Join BlueTika - New Zealand's trusted marketplace for local services
+                Join <Link href="/" className="text-primary font-medium hover:underline">BlueTika</Link> - New Zealand's trusted marketplace for local services
               </CardDescription>
             </CardHeader>
             <CardContent>
