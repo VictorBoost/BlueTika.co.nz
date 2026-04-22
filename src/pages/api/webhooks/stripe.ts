@@ -52,13 +52,13 @@ export default async function handler(
         const isAdditionalCharge = paymentIntent.metadata.additional_charge_id;
 
         if (isAdditionalCharge) {
-          // Handle additional charge payment
+          // Handle additional charge payment - use raw update to avoid type conflicts
           const { error: chargeError } = await supabase
             .from("additional_charges")
             .update({ 
-              status: "paid",
-              paid_at: new Date().toISOString(),
-            } as any)
+              status: "paid" as any,
+              paid_at: new Date().toISOString() as any,
+            })
             .eq("id", isAdditionalCharge);
 
           if (chargeError) {
@@ -95,8 +95,8 @@ export default async function handler(
         const { error: updateError } = await supabase
           .from("profiles")
           .update({
-            stripe_account_status: isComplete ? "active" : "pending",
-          } as any)
+            stripe_account_status: (isComplete ? "active" : "pending") as any,
+          })
           .eq("stripe_account_id", account.id);
 
         if (updateError) {
@@ -137,9 +137,9 @@ export default async function handler(
           const { error: updateError } = await supabase
             .from("profiles")
             .update({
-              stripe_account_id: null,
-              stripe_account_status: "not_connected"
-            } as any)
+              stripe_account_id: null as any,
+              stripe_account_status: "not_connected" as any
+            })
             .eq("stripe_account_id", accountId);
 
           if (updateError) {
