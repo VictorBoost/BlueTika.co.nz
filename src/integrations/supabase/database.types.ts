@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -2015,6 +2015,8 @@ export type Database = {
           google_calendar_token_expires_at: string | null
           gst_enabled: boolean | null
           id: string
+          is_banned: boolean | null
+          is_bot: boolean | null
           is_client: boolean | null
           is_provider: boolean | null
           last_name: string | null
@@ -2033,6 +2035,8 @@ export type Database = {
           tier_updated_at: string | null
           total_reviews: number | null
           updated_at: string | null
+          uses_marketplace: boolean | null
+          uses_tikachat: boolean | null
           verification_rejection_reason: string | null
           verification_reviewed_at: string | null
           verification_status: string | null
@@ -2059,6 +2063,8 @@ export type Database = {
           google_calendar_token_expires_at?: string | null
           gst_enabled?: boolean | null
           id: string
+          is_banned?: boolean | null
+          is_bot?: boolean | null
           is_client?: boolean | null
           is_provider?: boolean | null
           last_name?: string | null
@@ -2077,6 +2083,8 @@ export type Database = {
           tier_updated_at?: string | null
           total_reviews?: number | null
           updated_at?: string | null
+          uses_marketplace?: boolean | null
+          uses_tikachat?: boolean | null
           verification_rejection_reason?: string | null
           verification_reviewed_at?: string | null
           verification_status?: string | null
@@ -2103,6 +2111,8 @@ export type Database = {
           google_calendar_token_expires_at?: string | null
           gst_enabled?: boolean | null
           id?: string
+          is_banned?: boolean | null
+          is_bot?: boolean | null
           is_client?: boolean | null
           is_provider?: boolean | null
           last_name?: string | null
@@ -2121,6 +2131,8 @@ export type Database = {
           tier_updated_at?: string | null
           total_reviews?: number | null
           updated_at?: string | null
+          uses_marketplace?: boolean | null
+          uses_tikachat?: boolean | null
           verification_rejection_reason?: string | null
           verification_reviewed_at?: string | null
           verification_status?: string | null
@@ -2146,6 +2158,9 @@ export type Database = {
           location: string
           photos: string[] | null
           reopened_count: number | null
+          routine_custom_days: number | null
+          routine_frequency: string | null
+          routine_start_date: string | null
           selected_days: string[] | null
           specific_date: string | null
           start_date: string | null
@@ -2173,6 +2188,9 @@ export type Database = {
           location: string
           photos?: string[] | null
           reopened_count?: number | null
+          routine_custom_days?: number | null
+          routine_frequency?: string | null
+          routine_start_date?: string | null
           selected_days?: string[] | null
           specific_date?: string | null
           start_date?: string | null
@@ -2200,6 +2218,9 @@ export type Database = {
           location?: string
           photos?: string[] | null
           reopened_count?: number | null
+          routine_custom_days?: number | null
+          routine_frequency?: string | null
+          routine_start_date?: string | null
           selected_days?: string[] | null
           specific_date?: string | null
           start_date?: string | null
