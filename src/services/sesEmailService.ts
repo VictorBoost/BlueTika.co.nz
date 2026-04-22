@@ -183,6 +183,21 @@ export async function sendAdminSuspensionAlert(userName: string, userEmail: stri
   });
 }
 
+export async function sendBidDeclinedEmail(recipientEmail: string, recipientName: string, projectTitle: string, baseUrl: string = "https://bluetika.co.nz"): Promise<boolean> {
+  return sendEmail({
+    to: recipientEmail,
+    subject: "BlueTika: Bid Not Accepted",
+    htmlBody: baseHtml("Bid Update", `
+      <p>Kia ora ${recipientName},</p>
+      <p>Thank you for submitting your bid for <strong>${projectTitle}</strong>.</p>
+      <p>Unfortunately, the client has accepted another bid for this project.</p>
+      <p>Don't be discouraged — there are plenty of other opportunities available. Keep bidding!</p>
+      <a href="${baseUrl}/projects" class="button">Browse Open Projects</a>
+      <p style="margin-top: 20px; color: #666; font-size: 14px;">Every successful service provider has received declined bids. Your next win is just around the corner!</p>
+    `, baseUrl)
+  });
+}
+
 export async function sendDocumentAutoApproved(toEmail: string, providerName: string, documentType: string, confidenceScore: number, baseUrl: string = "https://bluetika.co.nz") {
   return sendEmail({
     to: toEmail,
@@ -232,6 +247,7 @@ export const sesEmailService = {
   sendRoutineContractInvitation,
   sendSessionReminderEmail,
   sendAdminSuspensionAlert,
+  sendBidDeclinedEmail,
   sendDocumentAutoApproved,
   sendDocumentManuallyApproved,
   sendDocumentRejected
