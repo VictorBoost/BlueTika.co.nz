@@ -13,29 +13,21 @@ export default async function handler(
   }
 
   try {
-    // Create a server-side Supabase client
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const baseUrl = `https://${req.headers.host}`;
 
-    // Get the base URL for redirect
-    const baseUrl = req.headers.origin || `https://${req.headers.host}`;
-
-    // Initiate Google OAuth
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: `${baseUrl}/api/auth/google-callback`,
-        queryParams: {
-          access_type: "offline",
-          prompt: "consent",
-        },
       },
     });
 
     if (error) {
+      console.error("Google OAuth error:", error);
       return res.status(400).json({ error: error.message });
     }
 
-    // Redirect to Google OAuth
     return res.redirect(302, data.url);
   } catch (error) {
     console.error("Google OAuth error:", error);

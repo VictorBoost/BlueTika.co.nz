@@ -1,10 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
-import cookie from "cookie";
 import { sesEmailService } from "@/services/sesEmailService";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -18,10 +18,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Create auth user with email confirmation
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
@@ -39,8 +38,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: "User creation failed" });
     }
 
-    // Update profile with all registration data (trigger should create basic profile)
-    const { error: profileError } = await supabase
+    const { error: profileError } = await supabaseAdmin
       .from("profiles")
       .update({
         full_name: `${firstName} ${lastName}`,
@@ -55,18 +53,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (profileError) {
       console.error("Profile update error:", profileError);
-      // Don't fail registration if profile update fails - user is created
     }
 
-    // Generate session for the new user
-    const { data: sessionData, error: sessionError } = await supabase.auth.admin.generateLink({
-      type: "magiclink",
-      email: email,
-    });
-
-    // Use regular client to sign in and get session
-    const regularClient = createClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
-    const { data: signInData, error: signInError } = await regularClient.auth.signInWithPassword({
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+    const { data: signInData, error: signInError } = await supabaseClient.auth.signInWithPassword({
       email,
       password,
     });
@@ -76,21 +66,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: "Failed to create session" });
     }
 
-    // Send welcome email (non-blocking)
     sesEmailService.sendWelcomeEmail(email, `${firstName} ${lastName}`, "https://bluetika.co.nz").catch(error => {
       console.error("Welcome email failed (non-critical):", error);
     });
-
-    // Set httpOnly cookie with session
-    const sessionCookie = cookie.serialize("sb-session", signInData.session.access_token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 28800, // 8 hours
-      path: "/",
-    });
-
-    res.setHeader("Set-Cookie", sessionCookie);
 
     return res.status(200).json({
       user: signInData.user,

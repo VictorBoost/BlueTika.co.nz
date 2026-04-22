@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { authService } from "@/services/authService";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -21,12 +21,11 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    // Check if already logged in
     checkSession();
   }, []);
 
   const checkSession = async () => {
-    const session = await authService.getCurrentSession();
+    const { data: { session } } = await supabase.auth.getSession();
     if (session) {
       const redirect = router.query.redirect as string;
       router.push(redirect || "/");
@@ -50,10 +49,10 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const { error: signInError } = await authService.signInWithPassword(
-        formData.email,
-        formData.password
-      );
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      });
 
       if (signInError) {
         console.error("Sign in error:", signInError);
@@ -62,12 +61,17 @@ export default function LoginPage() {
         return;
       }
 
-      // Redirect to /muna if that's where they came from, otherwise homepage
+      if (!data.session) {
+        setError("Failed to create session");
+        setLoading(false);
+        return;
+      }
+
       const redirect = router.query.redirect as string;
       router.push(redirect || "/");
     } catch (err) {
       console.error("Unexpected login error:", err);
-      setError("Connection error. Please check your internet connection and try again.");
+      setError("Connection error. Please try again.");
       setLoading(false);
     }
   };
@@ -76,13 +80,24 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
-    const { error } = await authService.signInWithGoogle();
+    try {
+      const baseUrl = window.location.origin;
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${baseUrl}/`,
+        },
+      });
 
-    if (error) {
-      setError(error.message || "Failed to sign in with Google");
+      if (error) {
+        setError(error.message || "Failed to sign in with Google");
+        setLoading(false);
+      }
+    } catch (err) {
+      console.error("Google sign in error:", err);
+      setError("Failed to sign in with Google");
       setLoading(false);
     }
-    // If successful, user will be redirected by Supabase OAuth flow
   };
 
   return (
@@ -109,7 +124,6 @@ export default function LoginPage() {
                   </Alert>
                 )}
 
-                {/* Google OAuth Button */}
                 <Button
                   type="button"
                   variant="outline"
