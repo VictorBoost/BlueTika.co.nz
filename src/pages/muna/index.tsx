@@ -842,13 +842,22 @@ export default function ControlCentre() {
                       Directory Categories
                     </Button>
                     {adminInfo?.isOwner && (
-                      <Button
-                        variant="outline"
-                        onClick={() => router.push("/muna/monalisa-logs")}
-                        className="border-accent"
-                      >
-                        MonaLisa Logs
-                      </Button>
+                      <>
+                        <Button
+                          variant="outline"
+                          onClick={() => router.push("/muna/monalisa")}
+                          className="border-accent"
+                        >
+                          MonaLisa Control
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => router.push("/muna/monalisa-logs")}
+                          className="border-accent"
+                        >
+                          MonaLisa Logs
+                        </Button>
+                      </>
                     )}
                   </div>
                 </CardContent>
