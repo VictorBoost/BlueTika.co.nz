@@ -105,14 +105,9 @@ export const authService = {
   // Sign in with Google OAuth
   async signInWithGoogle(): Promise<{ error: AuthError | null }> {
     try {
-      // CRITICAL FIX: Use exact Supabase callback URL format
-      // Supabase expects: {YOUR_SUPABASE_URL}/auth/v1/callback
-      // The redirectTo must match what's configured in Supabase Dashboard
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          // Don't override redirectTo - let Supabase use its default callback URL
-          // which is: https://{project-ref}.supabase.co/auth/v1/callback
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
