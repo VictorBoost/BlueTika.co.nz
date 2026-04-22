@@ -24,6 +24,7 @@ import { TierProgressCard } from "@/components/TierProgressCard";
 import { StaffManagementCard } from "@/components/StaffManagementCard";
 import { AccountingLedgerCard } from "@/components/AccountingLedgerCard";
 import { SubscriptionsCard } from "@/components/SubscriptionsCard";
+import { sesEmailService } from "@/services/sesEmailService";
 
 type Profile = Tables<"profiles">;
 
@@ -563,6 +564,54 @@ export default function Account() {
                         description: "Password updated successfully!",
                       });
                       (e.target as HTMLFormElement).reset();
+
+                      // Send password change confirmation email
+                      if (profile?.email && profile?.full_name) {
+                        const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://bluetika.co.nz";
+                        await sesEmailService.sendEmail({
+                          to: profile.email,
+                          subject: "BlueTika: Password Changed Successfully",
+                          htmlBody: `
+                            <!DOCTYPE html>
+                            <html>
+                            <head>
+                              <style>
+                                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                                .header { background: #1B4FD8; color: white; padding: 20px; text-align: center; }
+                                .content { background: #f9f9f9; padding: 30px; }
+                                .warning { background: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; margin: 20px 0; }
+                                .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+                              </style>
+                            </head>
+                            <body>
+                              <div class="container">
+                                <div class="header"><h1>Password Changed</h1></div>
+                                <div class="content">
+                                  <p>Kia ora ${profile.full_name},</p>
+                                  <p>Your BlueTika account password was successfully changed.</p>
+                                  <p>Changed on: ${new Date().toLocaleString('en-NZ', { timeZone: 'Pacific/Auckland' })} (NZ Time)</p>
+                                  <div class="warning">
+                                    <p style="margin: 0; font-size: 14px;"><strong>Did not make this change?</strong><br>If you didn't change your password, please contact us immediately at support@bluetika.co.nz</p>
+                                  </div>
+                                </div>
+                                <div class="footer">
+                                  <p>100% NZ Owned · Kiwis Helping Kiwis · <a href="${baseUrl}">bluetika.co.nz</a></p>
+                                </div>
+                              </div>
+                            </body>
+                            </html>
+                          `,
+                        });
+
+                        // Log the email
+                        await supabase.from("email_logs").insert({
+                          recipient_email: profile.email,
+                          email_type: "password_change_confirmation",
+                          subject: "BlueTika: Password Changed Successfully",
+                          status: "sent",
+                        });
+                      }
                     }
                   }} className="space-y-4">
                     <div className="space-y-2">
