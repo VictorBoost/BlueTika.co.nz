@@ -29,6 +29,7 @@ import {
 } from "@/services/controlCentreService";
 import { authService } from "@/services/authService";
 import { monalisaService } from "@/services/monalisaService";
+import { supabase } from "@/integrations/supabase/client";
 
 const sections = [
   {
@@ -148,6 +149,21 @@ export default function ControlCentre() {
   }, [passwordVerified]);
 
   const checkPasswordVerification = () => {
+    // Check for lockout
+    const lockout = localStorage.getItem("muna_lockout");
+    if (lockout) {
+      const lockoutData = JSON.parse(lockout);
+      const lockedUntil = new Date(lockoutData.lockedUntil);
+      if (lockedUntil > new Date()) {
+        const minutesLeft = Math.ceil((lockedUntil.getTime() - Date.now()) / 60000);
+        setPasswordError(`Too many failed attempts. Locked for ${minutesLeft} minutes.`);
+        setIsCheckingPassword(false);
+        return;
+      } else {
+        localStorage.removeItem("muna_lockout");
+      }
+    }
+
     const verified = sessionStorage.getItem("muna_password_verified");
     if (verified === "true") {
       setPasswordVerified(true);
@@ -155,15 +171,69 @@ export default function ControlCentre() {
     setIsCheckingPassword(false);
   };
 
-  const handlePasswordSubmit = (e: React.FormEvent) => {
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setPasswordError("");
 
+    // Check lockout again
+    const lockout = localStorage.getItem("muna_lockout");
+    if (lockout) {
+      const lockoutData = JSON.parse(lockout);
+      const lockedUntil = new Date(lockoutData.lockedUntil);
+      if (lockedUntil > new Date()) {
+        const minutesLeft = Math.ceil((lockedUntil.getTime() - Date.now()) / 60000);
+        setPasswordError(`Too many failed attempts. Locked for ${minutesLeft} minutes.`);
+        return;
+      } else {
+        localStorage.removeItem("muna_lockout");
+      }
+    }
+
     if (verifyControlCentrePassword(password)) {
+      // Log successful password verification
+      const ipAddress = await fetch("https://api.ipify.org?format=json")
+        .then(r => r.json())
+        .then(d => d.ip)
+        .catch(() => "unknown");
+
+      await supabase.from("admin_login_logs").insert({
+        email: "control_centre_password",
+        success: true,
+        ip_address: ipAddress,
+        user_agent: navigator.userAgent,
+      });
+
+      // Clear failed attempts
+      localStorage.removeItem("muna_failed_attempts");
       sessionStorage.setItem("muna_password_verified", "true");
       setPasswordVerified(true);
     } else {
-      setPasswordError("Incorrect password");
+      // Track failed attempt
+      const failedAttempts = JSON.parse(localStorage.getItem("muna_failed_attempts") || "0") + 1;
+      localStorage.setItem("muna_failed_attempts", JSON.stringify(failedAttempts));
+
+      // Log failed attempt
+      const ipAddress = await fetch("https://api.ipify.org?format=json")
+        .then(r => r.json())
+        .then(d => d.ip)
+        .catch(() => "unknown");
+
+      await supabase.from("admin_login_logs").insert({
+        email: "control_centre_password",
+        success: false,
+        ip_address: ipAddress,
+        user_agent: navigator.userAgent,
+      });
+
+      if (failedAttempts >= 5) {
+        // Lockout for 30 minutes
+        const lockedUntil = new Date(Date.now() + 30 * 60 * 1000);
+        localStorage.setItem("muna_lockout", JSON.stringify({ lockedUntil: lockedUntil.toISOString() }));
+        setPasswordError("Too many failed attempts. Locked for 30 minutes.");
+        localStorage.removeItem("muna_failed_attempts");
+      } else {
+        setPasswordError(`Incorrect password (${failedAttempts}/5 attempts)`);
+      }
       setPassword("");
     }
   };
@@ -196,6 +266,38 @@ export default function ControlCentre() {
     setIsAuthenticated(true);
     setIsLoading(false);
     loadStats();
+    
+    // Send email alert to owner on successful admin login
+    if (info?.email) {
+      const ipAddress = await fetch("https://api.ipify.org?format=json")
+        .then(r => r.json())
+        .then(d => d.ip)
+        .catch(() => "unknown");
+
+      // Log successful admin login
+      await supabase.from("admin_login_logs").insert({
+        email: info.email,
+        success: true,
+        ip_address: ipAddress,
+        user_agent: navigator.userAgent,
+      });
+
+      // Send email alert to owner
+      try {
+        await fetch("/api/send-admin-login-alert", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            adminEmail: info.email,
+            ipAddress,
+            timestamp: new Date().toISOString(),
+          }),
+        });
+      } catch (err) {
+        console.error("Failed to send login alert:", err);
+      }
+    }
+    
     if (info?.isOwner) {
       loadMonalisaStatus();
     }
@@ -287,13 +389,26 @@ export default function ControlCentre() {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter password"
                     autoFocus
+                    disabled={!!passwordError && passwordError.includes("Locked")}
                   />
                   {passwordError && (
                     <p className="text-sm text-destructive">{passwordError}</p>
                   )}
                 </div>
-                <Button type="submit" className="w-full">
+                <Button 
+                  type="submit" 
+                  className="w-full"
+                  disabled={!!passwordError && passwordError.includes("Locked")}
+                >
                   Access Control Centre
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full text-xs"
+                  onClick={() => router.push("/muna/recovery")}
+                >
+                  Emergency Recovery
                 </Button>
               </form>
             </CardContent>

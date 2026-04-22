@@ -232,6 +232,33 @@ export type Database = {
           },
         ]
       }
+      admin_login_logs: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          ip_address: string | null
+          success: boolean
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id?: string
+          ip_address?: string | null
+          success: boolean
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          ip_address?: string | null
+          success?: boolean
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       agent_performance: {
         Row: {
           agent_id: string | null
@@ -1406,6 +1433,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      failed_login_lockouts: {
+        Row: {
+          created_at: string | null
+          email: string
+          failed_attempts: number | null
+          id: string
+          locked_until: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          failed_attempts?: number | null
+          id?: string
+          locked_until?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          failed_attempts?: number | null
+          id?: string
+          locked_until?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       fund_releases: {
         Row: {
@@ -2918,6 +2972,7 @@ export type Database = {
           action: string
           details: Json | null
           id: string
+          ip_address: string | null
           record_id: string | null
           record_type: string
           staff_id: string
@@ -2928,6 +2983,7 @@ export type Database = {
           action: string
           details?: Json | null
           id?: string
+          ip_address?: string | null
           record_id?: string | null
           record_type: string
           staff_id: string
@@ -2938,6 +2994,7 @@ export type Database = {
           action?: string
           details?: Json | null
           id?: string
+          ip_address?: string | null
           record_id?: string | null
           record_type?: string
           staff_id?: string
