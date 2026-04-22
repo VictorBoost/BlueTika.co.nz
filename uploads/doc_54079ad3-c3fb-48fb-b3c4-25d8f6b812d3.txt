@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+  <!-- Core Public Pages -->
+  <url><loc>https://bluetika.co.nz/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://bluetika.co.nz/how-it-works</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://bluetika.co.nz/about</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://bluetika.co.nz/browse</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://bluetika.co.nz/faq</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://bluetika.co.nz/terms</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://bluetika.co.nz/privacy</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://bluetika.co.nz/contact</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://bluetika.co.nz/register</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://bluetika.co.nz/login</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://bluetika.co.nz/directory</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+
+  <!-- Category Browse Pages -->
+  <url><loc>https://bluetika.co.nz/browse/cleaning</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://bluetika.co.nz/browse/movers</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://bluetika.co.nz/browse/handyman</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://bluetika.co.nz/browse/electrical</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://bluetika.co.nz/browse/plumbers-gas</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://bluetika.co.nz/browse/landscaping</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://bluetika.co.nz/browse/painting</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://bluetika.co.nz/browse/domestic-helper</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://bluetika.co.nz/browse/domestic-helper/nanny</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://bluetika.co.nz/browse/domestic-helper/babysitter</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://bluetika.co.nz/browse/domestic-helper/pet-care</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+
+  <!-- City Landing Pages -->
+  <url><loc>https://bluetika.co.nz/auckland</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://bluetika.co.nz/wellington</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://bluetika.co.nz/christchurch</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://bluetika.co.nz/hamilton</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://bluetika.co.nz/tauranga</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://bluetika.co.nz/dunedin</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://bluetika.co.nz/palmerston-north</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://bluetika.co.nz/napier</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://bluetika.co.nz/rotorua</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://bluetika.co.nz/new-plymouth</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://bluetika.co.nz/whangarei</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+
+  <!-- Website Services -->
+  <url><loc>https://bluetika.co.nz/websites</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+
+</urlset>
