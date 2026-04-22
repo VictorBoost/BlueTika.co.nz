@@ -1,4 +1,6 @@
 {
+  "version": 2,
+  "alias": ["bluetika.co.nz", "www.bluetika.co.nz"],
   "framework": "nextjs",
   "redirects": [
     {
