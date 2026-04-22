@@ -236,6 +236,56 @@ export async function sendWelcomeEmail(recipientEmail: string, recipientName: st
   });
 }
 
+export async function sendFirstProjectPosted(recipientEmail: string, recipientName: string, projectTitle: string, projectId: string, baseUrl: string = "https://bluetika.co.nz"): Promise<boolean> {
+  return sendEmail({
+    to: recipientEmail,
+    subject: "🎉 Your First Project is Live on BlueTika!",
+    htmlBody: baseHtml("Your Project is Live!", `
+      <p>Kia ora ${recipientName},</p>
+      <p>Congratulations! Your project <strong>"${projectTitle}"</strong> is now live on BlueTika.</p>
+      <div class="highlight">
+        <h3 style="margin-top: 0;">What Happens Next?</h3>
+        <p style="margin-bottom: 0;">
+          ✓ Verified service providers will review your project<br>
+          ✓ You'll receive competitive bids within 24-48 hours<br>
+          ✓ Review provider profiles, ratings, and past work<br>
+          ✓ Accept the bid that best fits your needs
+        </p>
+      </div>
+      <a href="${baseUrl}/project/${projectId}" class="button">View Your Project</a>
+      <div class="warning" style="margin-top: 20px;">
+        <p style="margin: 0; font-size: 14px;"><strong>Pro Tip:</strong> Respond quickly to bids and questions — providers are more likely to prioritize responsive clients!</p>
+      </div>
+      <p style="margin-top: 20px; color: #666; font-size: 14px;">Your funds are held securely until the job is completed. Only released after both parties submit reviews.</p>
+    `, baseUrl)
+  });
+}
+
+export async function sendFirstBidSubmitted(recipientEmail: string, recipientName: string, projectTitle: string, projectId: string, bidAmount: number, baseUrl: string = "https://bluetika.co.nz"): Promise<boolean> {
+  return sendEmail({
+    to: recipientEmail,
+    subject: "🎉 Your First Bid is Submitted on BlueTika!",
+    htmlBody: baseHtml("Your Bid is Live!", `
+      <p>Kia ora ${recipientName},</p>
+      <p>Congratulations! You've submitted your first bid on BlueTika for the project <strong>"${projectTitle}"</strong> at <strong>NZD $${bidAmount.toFixed(2)}</strong>.</p>
+      <div class="highlight">
+        <h3 style="margin-top: 0;">What Happens Next?</h3>
+        <p style="margin-bottom: 0;">
+          ✓ The client will review your bid and profile<br>
+          ✓ They may ask questions — respond quickly to stand out!<br>
+          ✓ If accepted, you'll be notified immediately<br>
+          ✓ Complete the work and get paid securely
+        </p>
+      </div>
+      <a href="${baseUrl}/project/${projectId}" class="button">View Project</a>
+      <div class="warning" style="margin-top: 20px;">
+        <p style="margin: 0; font-size: 14px;"><strong>Pro Tip:</strong> Keep your profile updated with recent work, photos, and reviews to build trust with clients!</p>
+      </div>
+      <p style="margin-top: 20px; color: #666; font-size: 14px;">Payment is held securely until job completion. Commission is tier-based (currently 8% promo rate).</p>
+    `, baseUrl)
+  });
+}
+
 export async function sendDocumentAutoApproved(toEmail: string, providerName: string, documentType: string, confidenceScore: number, baseUrl: string = "https://bluetika.co.nz") {
   return sendEmail({
     to: toEmail,
@@ -288,6 +338,8 @@ export const sesEmailService = {
   sendBidDeclinedEmail,
   sendPasswordResetEmail,
   sendWelcomeEmail,
+  sendFirstProjectPosted,
+  sendFirstBidSubmitted,
   sendDocumentAutoApproved,
   sendDocumentManuallyApproved,
   sendDocumentRejected
