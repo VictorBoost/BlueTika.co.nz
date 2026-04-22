@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { supabase } from "@/integrations/supabase/client";
+import { authService } from "@/services/authService";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -25,8 +25,8 @@ export default function LoginPage() {
   }, []);
 
   const checkSession = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
+    const user = await authService.getCurrentUser();
+    if (user) {
       const redirect = router.query.redirect as string;
       router.push(redirect || "/");
     }
@@ -49,20 +49,20 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password,
-      });
+      const { user, error: signInError } = await authService.signInWithPassword(
+        formData.email,
+        formData.password
+      );
 
       if (signInError) {
         console.error("Sign in error:", signInError);
-        setError(signInError.message || "Invalid email or password");
+        setError(signInError.message || "Incorrect email or password");
         setLoading(false);
         return;
       }
 
-      if (!data.session) {
-        setError("Failed to create session");
+      if (!user) {
+        setError("Login failed. Please try again.");
         setLoading(false);
         return;
       }
@@ -81,21 +81,15 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const baseUrl = window.location.origin;
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${baseUrl}/`,
-        },
-      });
-
-      if (error) {
-        setError(error.message || "Failed to sign in with Google");
+      const { error: signInError } = await authService.signInWithGoogle();
+      
+      if (signInError) {
+        setError(signInError.message || "Failed to sign in with Google");
         setLoading(false);
       }
     } catch (err) {
       console.error("Google sign in error:", err);
-      setError("Failed to sign in with Google");
+      setError("Failed to sign in with Google. Please try again.");
       setLoading(false);
     }
   };

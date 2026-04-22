@@ -14,7 +14,10 @@ export default async function handler(
 
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const baseUrl = `https://${req.headers.host}`;
+    
+    const baseUrl = process.env.VERCEL_URL 
+      ? `https://${process.env.VERCEL_URL}` 
+      : "https://bluetika.co.nz";
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -25,12 +28,16 @@ export default async function handler(
 
     if (error) {
       console.error("Google OAuth error:", error);
-      return res.status(400).json({ error: error.message });
+      return res.redirect("/login?error=oauth_failed");
     }
 
-    return res.redirect(302, data.url);
+    if (data.url) {
+      return res.redirect(data.url);
+    }
+
+    return res.redirect("/login?error=oauth_failed");
   } catch (error) {
     console.error("Google OAuth error:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.redirect("/login?error=oauth_failed");
   }
 }

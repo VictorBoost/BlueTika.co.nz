@@ -28,19 +28,35 @@ export default async function handler(
 
     if (error) {
       console.error("Login error:", error);
+      
+      if (error.message.includes("Invalid login credentials")) {
+        return res.status(401).json({ error: "Incorrect email or password" });
+      }
+      
+      if (error.message.includes("Email not confirmed")) {
+        return res.status(401).json({ error: "Please verify your email address" });
+      }
+      
       return res.status(401).json({ error: error.message });
     }
 
     if (!data.session) {
-      return res.status(401).json({ error: "No session created" });
+      return res.status(401).json({ error: "Failed to create session" });
     }
+
+    res.setHeader(
+      "Set-Cookie",
+      `sb-access-token=${data.session.access_token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=3600`
+    );
 
     return res.status(200).json({
       user: data.user,
       session: data.session,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Login error:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ 
+      error: error?.message || "Connection error. Please try again." 
+    });
   }
 }

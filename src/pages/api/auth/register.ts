@@ -31,6 +31,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (authError) {
       console.error("Auth creation error:", authError);
+      
+      if (authError.message.includes("already registered")) {
+        return res.status(400).json({ error: "This email is already registered" });
+      }
+      
       return res.status(400).json({ error: authError.message });
     }
 
@@ -63,8 +68,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (signInError || !signInData.session) {
       console.error("Session creation error:", signInError);
-      return res.status(400).json({ error: "Failed to create session" });
+      return res.status(400).json({ error: "Registration successful but failed to log in. Please log in manually." });
     }
+
+    res.setHeader(
+      "Set-Cookie",
+      `sb-access-token=${signInData.session.access_token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=3600`
+    );
 
     sesEmailService.sendWelcomeEmail(email, `${firstName} ${lastName}`, "https://bluetika.co.nz").catch(error => {
       console.error("Welcome email failed (non-critical):", error);
@@ -74,8 +84,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       user: signInData.user,
       session: signInData.session,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Registration error:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ 
+      error: error?.message || "Connection error. Please try again." 
+    });
   }
 }
