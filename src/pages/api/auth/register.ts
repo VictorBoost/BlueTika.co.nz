@@ -88,17 +88,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.log("✅ Profile updated");
     }
 
-    // Sign in to create session
+    // Sign in to create session - use service role to bypass any restrictions
     console.log("Creating session...");
-    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
-    const { data: signInData, error: signInError } = await supabaseClient.auth.signInWithPassword({
+    const { data: signInData, error: signInError } = await supabaseAdmin.auth.signInWithPassword({
       email,
       password,
     });
 
     if (signInError || !signInData.session) {
       console.error("❌ Session creation error:", signInError);
-      return res.status(400).json({ error: "Registration successful but failed to log in. Please log in manually." });
+      // User was created successfully, just couldn't auto-login
+      return res.status(200).json({ 
+        success: true,
+        message: "Registration successful! Please log in to continue.",
+        requiresManualLogin: true
+      });
     }
 
     console.log("✅ Session created");
