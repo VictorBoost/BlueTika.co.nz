@@ -3,6 +3,7 @@ import { Features } from "@/components/Features";
 import { HowItWorks } from "@/components/HowItWorks";
 import { Footer } from "@/components/Footer";
 import { SEO } from "@/components/SEO";
+import { Navigation } from "@/components/Navigation";
 
 export default function Home() {
   return (
@@ -13,6 +14,7 @@ export default function Home() {
         image="/og-image.png"
       />
       <div className="min-h-screen">
+        <Navigation />
         <Hero />
         <Features />
         <HowItWorks />
