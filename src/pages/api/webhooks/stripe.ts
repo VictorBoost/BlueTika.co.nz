@@ -95,9 +95,7 @@ export default async function handler(
         const { error: updateError } = await supabase
           .from("profiles")
           .update({
-            stripe_onboarding_complete: isComplete,
-            stripe_charges_enabled: account.charges_enabled,
-            stripe_payouts_enabled: account.payouts_enabled,
+            stripe_account_status: isComplete ? "active" : "pending",
           })
           .eq("stripe_account_id", account.id);
 
@@ -132,22 +130,23 @@ export default async function handler(
       }
 
       case "account.application.deauthorized": {
-        const account = event.data.object as Stripe.Account;
+        const application = event.data.object as any;
+        const accountId = application.id || application.account;
         
-        const { error: updateError } = await supabase
-          .from("profiles")
-          .update({
-            stripe_account_id: null,
-            stripe_onboarding_complete: false,
-            stripe_charges_enabled: false,
-            stripe_payouts_enabled: false,
-          })
-          .eq("stripe_account_id", account.id);
+        if (accountId) {
+          const { error: updateError } = await supabase
+            .from("profiles")
+            .update({
+              stripe_account_id: null,
+              stripe_account_status: "not_connected"
+            })
+            .eq("stripe_account_id", accountId);
 
-        if (updateError) {
-          console.error("Error disconnecting account:", updateError);
-        } else {
-          console.log(`Disconnected account ${account.id}`);
+          if (updateError) {
+            console.error("Error disconnecting account:", updateError);
+          } else {
+            console.log(`Disconnected account ${accountId}`);
+          }
         }
         break;
       }
