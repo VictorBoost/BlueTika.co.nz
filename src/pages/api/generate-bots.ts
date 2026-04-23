@@ -42,7 +42,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const firstName = randomItem(NZ_FIRST_NAMES);
       const lastName = randomItem(NZ_LAST_NAMES);
       const city = randomItem(NZ_CITIES);
-      const email = `bot.${firstName.toLowerCase()}.${lastName.toLowerCase()}.${batch}.${i}@bluetika.test`;
+      const email = `bot.provider.${i}.${batch}@bluetika.test`;
       const password = `BotPass${batch}!`;
 
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
@@ -61,7 +61,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         continue;
       }
 
-      await supabaseAdmin.from("profiles").update({
+      const { error: profileError } = await supabaseAdmin.from("profiles").update({
         first_name: firstName,
         last_name: lastName,
         full_name: `${firstName} ${lastName}`,
@@ -74,11 +74,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         bio: `Experienced ${city} service provider. Quality workmanship guaranteed.`
       }).eq("id", authData.user.id);
 
-      await supabaseAdmin.from("bot_accounts").insert({
+      if (profileError) {
+        results.failed++;
+        results.errors.push(`Provider ${i} profile: ${profileError.message}`);
+        continue;
+      }
+
+      const { error: botError } = await supabaseAdmin.from("bot_accounts").insert({
         profile_id: authData.user.id,
-        bot_type: "service_provider",
-        generation_batch: batch
+        bot_type: "provider",
+        generation_batch: batch,
+        is_active: true
       });
+
+      if (botError) {
+        results.failed++;
+        results.errors.push(`Provider ${i} bot_account: ${botError.message}`);
+        continue;
+      }
 
       results.success++;
     } catch (error) {
@@ -93,7 +106,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const firstName = randomItem(NZ_FIRST_NAMES);
       const lastName = randomItem(NZ_LAST_NAMES);
       const city = randomItem(NZ_CITIES);
-      const email = `bot.${firstName.toLowerCase()}.${lastName.toLowerCase()}.${batch}.${i + providerCount}@bluetika.test`;
+      const email = `bot.client.${i}.${batch}@bluetika.test`;
       const password = `BotPass${batch}!`;
 
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
@@ -112,7 +125,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         continue;
       }
 
-      await supabaseAdmin.from("profiles").update({
+      const { error: profileError } = await supabaseAdmin.from("profiles").update({
         first_name: firstName,
         last_name: lastName,
         full_name: `${firstName} ${lastName}`,
@@ -124,11 +137,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         bio: `Homeowner looking for reliable service providers in ${city}.`
       }).eq("id", authData.user.id);
 
-      await supabaseAdmin.from("bot_accounts").insert({
+      if (profileError) {
+        results.failed++;
+        results.errors.push(`Client ${i} profile: ${profileError.message}`);
+        continue;
+      }
+
+      const { error: botError } = await supabaseAdmin.from("bot_accounts").insert({
         profile_id: authData.user.id,
         bot_type: "client",
-        generation_batch: batch
+        generation_batch: batch,
+        is_active: true
       });
+
+      if (botError) {
+        results.failed++;
+        results.errors.push(`Client ${i} bot_account: ${botError.message}`);
+        continue;
+      }
 
       results.success++;
     } catch (error) {
