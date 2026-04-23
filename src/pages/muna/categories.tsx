@@ -216,6 +216,14 @@ export default function AdminCategories() {
       <div className="min-h-screen flex flex-col">
         <main className="flex-grow py-12">
           <div className="container">
+            <Button
+              variant="outline"
+              onClick={() => router.push("/muna")}
+              className="mb-4"
+            >
+              ← Back to Control Centre
+            </Button>
+
             <div className="flex justify-between items-center mb-8">
               <div>
                 <h1 className="text-3xl font-bold mb-2">Manage Categories</h1>

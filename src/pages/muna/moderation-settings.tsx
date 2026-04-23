@@ -88,6 +88,14 @@ export default function ModerationSettingsPage() {
         </div>
 
         <div className="container mx-auto px-4 py-8">
+          <Button
+            variant="outline"
+            onClick={() => router.push("/muna")}
+            className="mb-4"
+          >
+            ← Back to Control Centre
+          </Button>
+
           <ModerationSettingsPanel />
         </div>
       </div>

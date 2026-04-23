@@ -110,10 +110,15 @@ export default function MonalisaLogsPage() {
 
       <div className="min-h-screen bg-background">
         <div className="max-w-7xl mx-auto px-4 py-8">
+          <Button
+            variant="outline"
+            onClick={() => router.push("/muna/monalisa")}
+            className="mb-4"
+          >
+            ← Back to MonaLisa
+          </Button>
+
           <div className="mb-8">
-            <Button variant="ghost" onClick={() => router.push("/muna")}>
-              ← Back to Admin
-            </Button>
             <h1 className="text-4xl font-bold mt-4">MonaLisa Activity Logs</h1>
             <p className="text-muted-foreground mt-2">
               AI agent monitoring and system health reports

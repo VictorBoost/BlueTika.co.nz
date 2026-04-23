@@ -170,12 +170,20 @@ export default function CommissionSettingsPage() {
   const currentWarningDays = editedSettings.warning_days ?? settings?.warning_days ?? 7;
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="space-y-6">
-          {/* Header */}
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Commission Settings</h1>
+    <>
+      <SEO title="Commission Settings - BlueTika Admin" />
+      <div className="min-h-screen bg-background">
+        <div className="container py-12 px-4">
+          <Button
+            variant="outline"
+            onClick={() => router.push("/muna")}
+            className="mb-4"
+          >
+            ← Back to Control Centre
+          </Button>
+
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold mb-2">Commission Settings</h1>
             <p className="text-muted-foreground mt-2">
               Manage commission tiers, rates, and promotional settings
             </p>
@@ -341,6 +349,6 @@ export default function CommissionSettingsPage() {
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

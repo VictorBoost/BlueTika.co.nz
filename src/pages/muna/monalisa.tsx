@@ -173,7 +173,7 @@ export default function MonaLisaPage() {
     <>
       <SEO
         title="MonaLisa AI Agent - BlueTika Control Centre"
-        description="AI-powered content moderation and safety monitoring"
+        description="24/7 AI-powered monitoring of human and bot marketplace activity"
       />
 
       <div className="min-h-screen bg-background">
@@ -193,7 +193,7 @@ export default function MonaLisaPage() {
                 <div>
                   <h1 className="text-3xl font-bold">MonaLisa AI Agent</h1>
                   <p className="text-muted-foreground">
-                    AI-powered content moderation and safety monitoring
+                    24/7 AI monitoring of human AND bot activity • Platform security & loophole detection
                   </p>
                 </div>
               </div>
@@ -252,14 +252,14 @@ export default function MonaLisaPage() {
             <Alert className="mb-6 border-green-500 bg-green-500/10">
               <CheckCircle className="h-4 w-4 text-green-500" />
               <AlertDescription className="text-green-600 dark:text-green-400">
-                ✓ MonaLisa is monitoring all new posts, bids, and contracts for safety violations, scams, and inappropriate content.
+                ✓ MonaLisa is ACTIVE - Monitoring all human AND bot activities 24/7. Detecting scams, safety violations, loopholes, and suspicious patterns across the marketplace.
               </AlertDescription>
             </Alert>
           ) : (
             <Alert className="mb-6 border-yellow-500 bg-yellow-500/10">
               <AlertTriangle className="h-4 w-4 text-yellow-500" />
               <AlertDescription className="text-yellow-600 dark:text-yellow-400">
-                ⚠️ MonaLisa is offline. New content is not being automatically reviewed. Manual moderation only.
+                ⚠️ MonaLisa is OFFLINE. Human and bot content is not being automatically monitored. Manual moderation only.
               </AlertDescription>
             </Alert>
           )}
@@ -269,17 +269,24 @@ export default function MonaLisaPage() {
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Activity className="w-5 h-5 text-primary" />
-                  What MonaLisa Monitors
+                  What MonaLisa Monitors (Human + Bot)
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
+                <p className="font-semibold text-primary">👥 Human Activity:</p>
                 <p>✓ All new project posts</p>
                 <p>✓ All submitted bids</p>
-                <p>✓ All contract interactions</p>
-                <p>✓ User profile content</p>
-                <p>✓ Uploaded photos (evidence/before/after)</p>
+                <p>✓ Contract interactions & payments</p>
+                <p>✓ User profiles & content</p>
                 <p>✓ Reviews and ratings</p>
-                <p>✓ Direct messages (if enabled)</p>
+                <p>✓ Direct messages (when enabled)</p>
+                
+                <p className="font-semibold text-accent mt-4">🤖 Bot Activity:</p>
+                <p>✓ Bot-generated projects (quality check)</p>
+                <p>✓ Bot bidding patterns</p>
+                <p>✓ Bot payment transactions</p>
+                <p>✓ Detecting bot malfunctions</p>
+                <p>✓ Ensuring bots act human-like</p>
               </CardContent>
             </Card>
 
@@ -287,21 +294,27 @@ export default function MonaLisaPage() {
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Zap className="w-5 h-5 text-yellow-500" />
-                  MonaLisa Actions
+                  MonaLisa Duties (24/7 Admin/Police)
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
                 <p className="text-green-600 dark:text-green-400">
-                  ✓ <strong>Info:</strong> Logs unusual patterns
+                  ✓ <strong>Safety:</strong> Detects scams, explicit content, harassment
+                </p>
+                <p className="text-blue-600 dark:text-blue-400">
+                  ✓ <strong>Loophole Detection:</strong> Finds platform vulnerabilities and bugs
                 </p>
                 <p className="text-yellow-600 dark:text-yellow-400">
-                  ⚠️ <strong>Warning:</strong> Flags suspicious content for review
+                  ⚠️ <strong>Pattern Analysis:</strong> Flags unusual behavior (human or bot)
                 </p>
                 <p className="text-red-600 dark:text-red-400">
-                  🚨 <strong>Critical:</strong> Auto-flags severe violations (scams, explicit content)
+                  🚨 <strong>Critical Alerts:</strong> Auto-flags severe violations for admin review
+                </p>
+                <p className="text-purple-600 dark:text-purple-400">
+                  🔍 <strong>Bot Supervision:</strong> Ensures bots don't spam or malfunction
                 </p>
                 <p className="text-muted-foreground mt-4">
-                  MonaLisa never auto-deletes or auto-bans. All flagged content goes to Trust & Safety for manual review.
+                  <strong>Important:</strong> MonaLisa acts like a 24/7 online police/admin, monitoring EVERYTHING (humans + bots), finding problems and loopholes, then reporting them to you for action. Never auto-deletes or auto-bans.
                 </p>
               </CardContent>
             </Card>

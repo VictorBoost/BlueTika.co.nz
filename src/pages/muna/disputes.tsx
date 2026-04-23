@@ -251,6 +251,14 @@ export default function AdminDisputes() {
       
       <div className="min-h-screen flex flex-col">
         <div className="container py-8">
+          <Button
+            variant="outline"
+            onClick={() => router.push("/muna")}
+            className="mb-4"
+          >
+            ← Back to Control Centre
+          </Button>
+
           <div className="mb-8">
             <h1 className="text-4xl font-bold mb-2">Dispute Management</h1>
             <p className="text-muted-foreground">Review and resolve active project disputes</p>

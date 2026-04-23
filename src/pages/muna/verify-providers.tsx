@@ -16,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { authService } from "@/services/authService";
 import { verificationService } from "@/services/verificationService";
 import { sendDocumentManuallyApproved, sendDocumentRejected } from "@/services/sesEmailService";
-import { useRouter } from "next/navigation";
+import { useRouter } from "next/router";
 
 export default function AdminVerifyProviders() {
   const { toast } = useToast();
@@ -365,6 +365,14 @@ export default function AdminVerifyProviders() {
       <div className="min-h-screen flex flex-col bg-background">
         <main className="flex-1 py-12">
           <div className="container">
+            <Button
+              variant="outline"
+              onClick={() => router.push("/muna")}
+              className="mb-4"
+            >
+              ← Back to Control Centre
+            </Button>
+
             <div className="mb-8">
               <h1 className="text-3xl font-bold mb-2">Verification Queue</h1>
               <p className="text-muted-foreground">

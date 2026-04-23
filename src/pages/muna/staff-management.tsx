@@ -162,24 +162,20 @@ export default function StaffManagement() {
 
   return (
     <>
-      <SEO title="Staff Management - BlueTika Control Centre" />
-      <div className="min-h-screen bg-background p-6">
-        <div className="max-w-7xl mx-auto">
-          {/* Header */}
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">Staff Management</h1>
-              <p className="text-muted-foreground mt-1">Manage team members and access control</p>
-            </div>
-            <div className="flex gap-4">
-              <Button variant="outline" onClick={() => router.push("/muna")}>
-                Back to Dashboard
-              </Button>
-              <Button onClick={() => setInviteDialogOpen(true)}>
-                <UserPlus className="w-4 h-4 mr-2" />
-                Invite New Staff
-              </Button>
-            </div>
+      <SEO title="Staff Management - BlueTika Admin" />
+      <div className="min-h-screen bg-background">
+        <div className="container py-12 px-4">
+          <Button
+            variant="outline"
+            onClick={() => router.push("/muna")}
+            className="mb-4"
+          >
+            ← Back to Control Centre
+          </Button>
+
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold mb-2">Platform Staff Management</h1>
+            <p className="text-muted-foreground mt-1">Manage team members and access control</p>
           </div>
 
           <div className="grid gap-6">

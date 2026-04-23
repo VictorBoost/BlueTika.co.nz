@@ -188,15 +188,19 @@ export default function FundReleases() {
 
   return (
     <>
-      <SEO 
-        title="Fund Release Queue - Admin - BlueTika" 
-        description="Admin fund release management" 
-      />
-      
-      <div className="min-h-screen flex flex-col">
-        <div className="container py-8">
+      <SEO title="Fund Releases - BlueTika Control Centre" />
+      <div className="min-h-screen bg-background">
+        <div className="container py-12 px-4">
+          <Button
+            variant="outline"
+            onClick={() => router.push("/muna")}
+            className="mb-4"
+          >
+            ← Back to Control Centre
+          </Button>
+
           <div className="mb-8">
-            <h1 className="text-4xl font-bold mb-2">Fund Release Queue</h1>
+            <h1 className="text-4xl font-bold mb-2">Fund Release Management</h1>
             <p className="text-muted-foreground">Review and approve fund releases for completed contracts</p>
           </div>
 

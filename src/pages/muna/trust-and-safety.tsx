@@ -303,6 +303,14 @@ export default function TrustAndSafety() {
       <div className="min-h-screen bg-background py-12 px-4">
         <div className="max-w-7xl mx-auto space-y-8">
           <div>
+            <Button
+              variant="outline"
+              onClick={() => router.push("/muna")}
+              className="mb-4"
+            >
+              ← Back to Control Centre
+            </Button>
+
             <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
               <Shield className="w-10 h-10 text-accent" />
               Trust and Safety
