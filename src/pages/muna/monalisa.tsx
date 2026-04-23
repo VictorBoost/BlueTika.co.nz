@@ -6,10 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Power, Activity, Clock, CheckCircle, AlertTriangle, Zap } from "lucide-react";
+import { Eye, Power, Activity, Clock, CheckCircle, AlertTriangle, Zap, Mail } from "lucide-react";
 import { monalisaService } from "@/services/monalisaService";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 export default function MonaLisaPage() {
   const router = useRouter();
@@ -101,7 +100,6 @@ export default function MonaLisaPage() {
             : "MonaLisa has been turned off. Manual moderation only.",
         });
 
-        // Reload status and logs
         await loadMonaLisaStatus();
         await loadRecentLogs();
       } else {
@@ -130,7 +128,7 @@ export default function MonaLisaPage() {
       if (success) {
         toast({
           title: "Weekly Summary Sent",
-          description: "MonaLisa weekly report sent to admin email",
+          description: "MonaLisa weekly report sent to admin email (bluetikanz@gmail.com)",
         });
       } else {
         throw new Error("Failed to send summary");
@@ -180,7 +178,6 @@ export default function MonaLisaPage() {
 
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8 max-w-7xl">
-          {/* Header */}
           <div className="mb-8">
             <Button
               variant="outline"
@@ -190,17 +187,31 @@ export default function MonaLisaPage() {
               ← Back to Control Centre
             </Button>
 
-            <div className="flex items-center gap-3 mb-2">
-              <Eye className="w-8 h-8 text-primary" />
-              <h1 className="text-3xl font-bold">MonaLisa AI Agent</h1>
-              <Badge variant="destructive" className="ml-auto">OWNER ONLY</Badge>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Eye className="w-8 h-8 text-primary" />
+                <div>
+                  <h1 className="text-3xl font-bold">MonaLisa AI Agent</h1>
+                  <p className="text-muted-foreground">
+                    AI-powered content moderation and safety monitoring
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Badge variant="destructive">OWNER ONLY</Badge>
+                <Button
+                  onClick={handleSendWeeklySummary}
+                  disabled={sendingSummary}
+                  variant="outline"
+                  size="sm"
+                >
+                  <Mail className="w-4 h-4 mr-2" />
+                  {sendingSummary ? "Sending..." : "Send Weekly Summary"}
+                </Button>
+              </div>
             </div>
-            <p className="text-muted-foreground">
-              AI-powered content moderation and safety monitoring for BlueTika marketplace
-            </p>
           </div>
 
-          {/* Activation Control */}
           <Card className="mb-6 border-primary">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -237,7 +248,6 @@ export default function MonaLisaPage() {
             )}
           </Card>
 
-          {/* Status Banner */}
           {isActive ? (
             <Alert className="mb-6 border-green-500 bg-green-500/10">
               <CheckCircle className="h-4 w-4 text-green-500" />
@@ -254,7 +264,6 @@ export default function MonaLisaPage() {
             </Alert>
           )}
 
-          {/* What MonaLisa Does */}
           <div className="grid md:grid-cols-2 gap-6 mb-8">
             <Card>
               <CardHeader>
@@ -298,7 +307,38 @@ export default function MonaLisaPage() {
             </Card>
           </div>
 
-          {/* Recent Activity */}
+          <Card className="mb-6 border-primary/30">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Mail className="w-5 h-5 text-primary" />
+                Weekly Summary Reports
+              </CardTitle>
+              <CardDescription>
+                MonaLisa automatically sends weekly summary emails every Monday at 9am NZST with bot activity stats, 
+                issues detected, AI-generated suggestions, and system health metrics.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Reports include: Bot performance, critical issues, warnings, top problems, and actionable insights.
+                  </p>
+                  <p className="text-sm font-medium">
+                    📧 Sent to: bluetikanz@gmail.com
+                  </p>
+                </div>
+                <Button
+                  onClick={handleSendWeeklySummary}
+                  disabled={sendingSummary}
+                  variant="default"
+                >
+                  {sendingSummary ? "Sending..." : "Send Now"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
