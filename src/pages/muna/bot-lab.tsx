@@ -27,6 +27,7 @@ export default function BotLab() {
   const [triggeringPayments, setTriggeringPayments] = useState(false);
   const [togglingAutomation, setTogglingAutomation] = useState(false);
   const [togglingPayments, setTogglingPayments] = useState(false);
+  const [generatingActivity, setGeneratingActivity] = useState(false);
 
   useEffect(() => {
     checkOwnerAccess();
@@ -303,6 +304,68 @@ export default function BotLab() {
     }
   };
 
+  const handleGenerateActivity = async () => {
+    setGeneratingActivity(true);
+    
+    try {
+      let totalProjects = 0;
+      let totalBids = 0;
+      let totalContracts = 0;
+
+      toast({
+        title: "Generating Bot Activity",
+        description: "Step 1/3: Posting projects...",
+      });
+
+      // Step 1: Post projects
+      const { data: projectData, error: projectError } = await supabase.functions.invoke("bot-post-projects");
+      if (projectError) throw new Error(`Projects: ${projectError.message}`);
+      totalProjects = projectData?.created || 0;
+
+      toast({
+        title: "Projects Created!",
+        description: `Step 2/3: Submitting bids on ${totalProjects} projects...`,
+      });
+
+      // Wait a bit for projects to be indexed
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Step 2: Submit bids
+      const { data: bidData, error: bidError } = await supabase.functions.invoke("bot-submit-bids");
+      if (bidError) throw new Error(`Bids: ${bidError.message}`);
+      totalBids = bidData?.created || 0;
+
+      toast({
+        title: "Bids Submitted!",
+        description: `Step 3/3: Creating contracts...`,
+      });
+
+      // Wait a bit for bids to be processed
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Step 3: Accept bids and create contracts
+      const { data: contractData, error: contractError } = await supabase.functions.invoke("bot-accept-bids");
+      if (contractError) throw new Error(`Contracts: ${contractError.message}`);
+      totalContracts = contractData?.accepted || 0;
+
+      // Success!
+      toast({
+        title: "✅ Bot Activity Generated!",
+        description: `Created ${totalProjects} projects, ${totalBids} bids, and ${totalContracts} contracts!`,
+      });
+
+      await loadStats();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to generate bot activity",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingActivity(false);
+    }
+  };
+
   if (checkingOwner) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -358,43 +421,76 @@ export default function BotLab() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid md:grid-cols-3 gap-4">
+              <div className="grid md:grid-cols-4 gap-4">
+                <Button
+                  onClick={handleGenerateActivity}
+                  disabled={generatingActivity || !status?.isActive}
+                  variant="default"
+                  size="lg"
+                  className="w-full bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90"
+                >
+                  {generatingActivity ? (
+                    <>
+                      <Activity className="w-4 h-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-4 h-4 mr-2" />
+                      🚀 Generate Bot Activity
+                    </>
+                  )}
+                </Button>
+
                 <Button
                   onClick={handleTriggerProjects}
                   disabled={triggeringProjects || !status?.isActive}
-                  variant="default"
+                  variant="outline"
                   size="lg"
                   className="w-full"
                 >
-                  {triggeringProjects ? "Posting..." : "📝 Post Projects (5-8 per bot)"}
+                  {triggeringProjects ? "Posting..." : "📝 Post Projects"}
                 </Button>
                 
                 <Button
                   onClick={handleTriggerBids}
                   disabled={triggeringBids || !status?.isActive}
-                  variant="default"
+                  variant="outline"
                   size="lg"
                   className="w-full"
                 >
-                  {triggeringBids ? "Bidding..." : "💰 Submit Bids (1-2 per bot)"}
+                  {triggeringBids ? "Bidding..." : "💰 Submit Bids"}
                 </Button>
                 
                 <Button
                   onClick={handleTriggerPayments}
                   disabled={triggeringPayments || !status?.isActive || !status?.paymentsEnabled}
-                  variant="default"
+                  variant="outline"
                   size="lg"
                   className="w-full"
                 >
-                  {triggeringPayments ? "Processing..." : "💳 Accept & Pay (Test Cards)"}
+                  {triggeringPayments ? "Processing..." : "💳 Accept & Pay"}
                 </Button>
+              </div>
+
+              <div className="mt-4 p-4 bg-muted rounded-lg">
+                <p className="text-sm font-semibold mb-2 flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-accent" />
+                  What "Generate Bot Activity" Does:
+                </p>
+                <ul className="text-sm space-y-1 text-muted-foreground">
+                  <li>✓ Step 1: Bots post 5-8 realistic projects each (human-like listings)</li>
+                  <li>✓ Step 2: Bots submit 1-2 competitive bids per project</li>
+                  <li>✓ Step 3: Bots accept winning bids and create contracts</li>
+                  <li>✓ Result: Full marketplace with projects, bids, and active contracts!</li>
+                </ul>
               </div>
               
               {!status?.isActive && (
                 <Alert className="mt-4 border-yellow-500 bg-yellow-500/10">
                   <AlertTriangle className="h-4 w-4 text-yellow-500" />
                   <AlertDescription className="text-yellow-600 dark:text-yellow-400">
-                    Enable bot automation below to activate these quick actions
+                    Enable bot automation above to activate these quick actions
                   </AlertDescription>
                 </Alert>
               )}
@@ -402,7 +498,7 @@ export default function BotLab() {
               {!status?.paymentsEnabled && status?.isActive && (
                 <Alert className="mt-4 border-blue-500 bg-blue-500/10">
                   <AlertDescription className="text-blue-600 dark:text-blue-400">
-                    Bot payments are disabled. Enable below to allow contract acceptance and test payments.
+                    Bot payments are disabled. Enable to allow contract acceptance and test payments.
                   </AlertDescription>
                 </Alert>
               )}
