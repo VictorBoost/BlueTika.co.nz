@@ -67,25 +67,60 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     console.log("✅ Auth user created:", authData.user.id);
 
-    // Update profile (ignore errors as profile might already exist from trigger)
-    console.log("Updating profile...");
-    const { error: profileError } = await supabaseAdmin
+    // Create or update profile (trigger might have created it already)
+    console.log("Creating/updating profile...");
+    
+    // First, try to get existing profile
+    const { data: existingProfile } = await supabaseAdmin
       .from("profiles")
-      .update({
-        full_name: `${firstName} ${lastName}`,
-        first_name: firstName,
-        last_name: lastName,
-        phone_number: phoneNumber,
-        city_region: cityRegion,
-        is_client: isClient || false,
-        is_provider: isProvider || false,
-      })
-      .eq("id", authData.user.id);
+      .select("id")
+      .eq("id", authData.user.id)
+      .single();
 
-    if (profileError) {
-      console.error("⚠️ Profile update error (non-critical):", profileError);
+    if (existingProfile) {
+      // Update existing profile
+      const { error: profileError } = await supabaseAdmin
+        .from("profiles")
+        .update({
+          full_name: `${firstName} ${lastName}`,
+          first_name: firstName,
+          last_name: lastName,
+          phone_number: phoneNumber,
+          city_region: cityRegion,
+          is_client: isClient || false,
+          is_provider: isProvider || false,
+        })
+        .eq("id", authData.user.id);
+
+      if (profileError) {
+        console.error("⚠️ Profile update error:", profileError);
+      } else {
+        console.log("✅ Profile updated");
+      }
     } else {
-      console.log("✅ Profile updated");
+      // Create new profile
+      const { error: profileError } = await supabaseAdmin
+        .from("profiles")
+        .insert({
+          id: authData.user.id,
+          email: email,
+          full_name: `${firstName} ${lastName}`,
+          first_name: firstName,
+          last_name: lastName,
+          phone_number: phoneNumber,
+          city_region: cityRegion,
+          is_client: isClient || false,
+          is_provider: isProvider || false,
+        });
+
+      if (profileError) {
+        console.error("❌ Profile creation error:", profileError);
+        // Delete the auth user since profile creation failed
+        await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+        return res.status(500).json({ error: "Failed to create profile. Please try again." });
+      } else {
+        console.log("✅ Profile created");
+      }
     }
 
     // Sign in to create session using regular client (not admin)
