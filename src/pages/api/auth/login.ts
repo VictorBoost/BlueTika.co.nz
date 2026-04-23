@@ -27,7 +27,12 @@ export default async function handler(
     });
 
     if (error) {
-      console.error("Login error:", error);
+      console.error("Login error details:", {
+        message: error.message,
+        status: error.status,
+        name: error.name,
+        email: email
+      });
       
       if (error.message.includes("Invalid login credentials")) {
         return res.status(401).json({ error: "Incorrect email or password" });
@@ -40,14 +45,18 @@ export default async function handler(
       return res.status(401).json({ error: error.message });
     }
 
-    if (!data.session) {
+    if (!data.session || !data.user) {
+      console.error("Login failed: No session or user returned", { email });
       return res.status(401).json({ error: "Failed to create session" });
     }
 
+    // Set HTTP-only cookie with session token
     res.setHeader(
       "Set-Cookie",
       `sb-access-token=${data.session.access_token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=3600`
     );
+
+    console.log("Login successful:", { email, userId: data.user.id });
 
     return res.status(200).json({
       user: data.user,
