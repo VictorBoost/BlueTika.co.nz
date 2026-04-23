@@ -136,31 +136,59 @@ export default function PostProject() {
   }, [formData.category_id, categories]);
 
   const checkVerification = async () => {
-    const session = await authService.getCurrentSession();
-    if (!session?.user) {
+    try {
+      // Use session API to check if user is logged in
+      const response = await fetch("/api/auth/session", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (response.status === 401 || !response.ok) {
+        // Not logged in
+        toast({
+          title: "Authentication required",
+          description: "Please log in to post a project",
+          variant: "destructive",
+        });
+        router.push("/login?redirect=/post-project");
+        return;
+      }
+
+      const { user } = await response.json();
+      
+      if (!user) {
+        toast({
+          title: "Authentication required",
+          description: "Please log in to post a project",
+          variant: "destructive",
+        });
+        router.push("/login?redirect=/post-project");
+        return;
+      }
+
+      // Check if user is a client
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_client")
+        .eq("id", user.id)
+        .single();
+
+      if (!profile?.is_client) {
+        toast({
+          title: "Access denied",
+          description: "Only clients can post projects. Please register as a client.",
+          variant: "destructive",
+        });
+        router.push("/");
+      }
+    } catch (error) {
+      console.error("Verification error:", error);
       toast({
         title: "Authentication required",
         description: "Please log in to post a project",
         variant: "destructive",
       });
-      router.push("/login");
-      return;
-    }
-
-    // Check if user is a client
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("is_client")
-      .eq("id", session.user.id)
-      .single();
-
-    if (!profile?.is_client) {
-      toast({
-        title: "Access denied",
-        description: "Only clients can post projects",
-        variant: "destructive",
-      });
-      router.push("/");
+      router.push("/login?redirect=/post-project");
     }
   };
 
@@ -323,14 +351,31 @@ export default function PostProject() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const session = await authService.getCurrentSession();
-    if (!session?.user) {
+    // Use session API to get current user
+    const sessionResponse = await fetch("/api/auth/session", {
+      method: "GET",
+      credentials: "include",
+    });
+
+    if (!sessionResponse.ok) {
       toast({
         title: "Authentication required",
         description: "Please log in to post a project",
         variant: "destructive",
       });
-      router.push("/login");
+      router.push("/login?redirect=/post-project");
+      return;
+    }
+
+    const { user } = await sessionResponse.json();
+    
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to post a project",
+        variant: "destructive",
+      });
+      router.push("/login?redirect=/post-project");
       return;
     }
 
@@ -419,7 +464,7 @@ export default function PostProject() {
       });
       
       await contentSafetyService.logBypassAttempt(
-        session.user.id,
+        user.id,
         formData.title,
         titleCheck.detectedPatterns,
         "post_project_title"
@@ -436,7 +481,7 @@ export default function PostProject() {
       });
       
       await contentSafetyService.logBypassAttempt(
-        session.user.id,
+        user.id,
         formData.description,
         descriptionCheck.detectedPatterns,
         "post_project_description"
@@ -448,14 +493,14 @@ export default function PostProject() {
     setUploadingMedia(true);
 
     try {
-      const { photoUrls, videoUrl } = await uploadMedia(session.user.id);
+      const { photoUrls, videoUrl } = await uploadMedia(user.id);
 
       const projectData: any = {
         title: formData.title,
         description: formData.description,
         budget: parseFloat(formData.budget),
         location: formData.location,
-        client_id: session.user.id,
+        client_id: user.id,
         status: "open",
         category_id: formData.category_id,
         date_preference: formData.date_preference,
