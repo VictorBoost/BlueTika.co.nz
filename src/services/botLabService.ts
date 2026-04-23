@@ -215,61 +215,67 @@ export const botLabService = {
     const email = generateEmail(firstName, lastName, batch);
     const password = `BotPass${batch}!`;
 
-    // Create auth user
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: `${firstName} ${lastName}`,
-          is_bot: true
-        }
+    try {
+      // Create auth user via server-side API (more reliable than client-side signUp)
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          password,
+          firstName,
+          lastName,
+          phoneNumber: `021 ${randomInRange(100, 999)} ${randomInRange(1000, 9999)}`,
+          cityRegion: city,
+          isClient: type === "client" || type === "provider",
+          isProvider: type === "provider"
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.user) {
+        console.error("Bot registration failed:", data.error);
+        return null;
       }
-    });
 
-    if (authError || !authData.user) {
-      console.error("Auth creation failed:", authError);
+      const userId = data.user.id;
+
+      // Update profile with bot-specific data
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          bio: generateBio(type === "provider", city),
+          location: city,
+          verification_status: type === "provider" ? "approved" : "not_started"
+        })
+        .eq("id", userId);
+
+      if (profileError) {
+        console.error("Profile update failed:", profileError);
+      }
+
+      // Create bot account record
+      const { data: botData, error: botError } = await supabase
+        .from("bot_accounts")
+        .insert({
+          profile_id: userId,
+          bot_type: type,
+          generation_batch: batch
+        })
+        .select()
+        .single();
+
+      if (botError || !botData) {
+        console.error("Bot account creation failed:", botError);
+        return null;
+      }
+
+      return botData.id;
+    } catch (error) {
+      console.error("Error creating bot:", error);
       return null;
     }
-
-    // Update profile
-    const { error: profileError } = await supabase
-      .from("profiles")
-      .update({
-        first_name: firstName,
-        last_name: lastName,
-        full_name: `${firstName} ${lastName}`,
-        city_region: city,
-        location: city,
-        bio: generateBio(type === "provider", city),
-        is_client: type === "client" || type === "provider",
-        is_provider: type === "provider",
-        verification_status: type === "provider" ? "approved" : "not_started"
-      })
-      .eq("id", authData.user.id);
-
-    if (profileError) {
-      console.error("Profile update failed:", profileError);
-      return null;
-    }
-
-    // Create bot account record
-    const { data: botData, error: botError } = await supabase
-      .from("bot_accounts")
-      .insert({
-        profile_id: authData.user.id,
-        bot_type: type,
-        generation_batch: batch
-      })
-      .select()
-      .single();
-
-    if (botError || !botData) {
-      console.error("Bot account creation failed:", botError);
-      return null;
-    }
-
-    return botData.id;
   },
 
   async removeBots(count: number = 50) {
