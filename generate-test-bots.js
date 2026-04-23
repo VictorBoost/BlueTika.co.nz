@@ -4,6 +4,19 @@ const { createClient } = require('@supabase/supabase-js');
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+console.log('Environment check:');
+console.log('- Supabase URL:', supabaseUrl ? '✅ Set' : '❌ Missing');
+console.log('- Service Key:', supabaseServiceKey ? '✅ Set' : '❌ Missing');
+console.log('- Service Key length:', supabaseServiceKey?.length || 0);
+
+if (!supabaseUrl || !supabaseServiceKey) {
+  console.error('\n❌ Missing required environment variables!');
+  console.error('Please check .env.local file for:');
+  console.error('- NEXT_PUBLIC_SUPABASE_URL');
+  console.error('- SUPABASE_SERVICE_ROLE_KEY');
+  process.exit(1);
+}
+
 const NZ_FIRST_NAMES = [
   "Aroha", "Hemi", "Kiri", "Matiu", "Ngaire", "Rawiri", "Tane", "Whetu",
   "James", "Sophie", "Liam", "Emma", "Oliver", "Charlotte", "Mason", "Amelia",
