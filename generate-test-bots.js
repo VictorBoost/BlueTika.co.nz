@@ -75,12 +75,14 @@ async function generateBots(count = 50) {
 
       if (authError || !authData.user) {
         results.failed++;
-        results.errors.push(`Provider ${i}: ${authError?.message}`);
+        const errorMsg = `Provider ${i}: ${authError?.message || 'Unknown auth error'}`;
+        results.errors.push(errorMsg);
+        console.error(`❌ ${errorMsg}`);
         continue;
       }
 
       // Update profile
-      await supabase.from("profiles").update({
+      const { error: profileError } = await supabase.from("profiles").update({
         first_name: firstName,
         last_name: lastName,
         full_name: fullName,
@@ -93,18 +95,28 @@ async function generateBots(count = 50) {
         bio: randomItem(PROVIDER_BIOS).replace("{city}", city)
       }).eq("id", authData.user.id);
 
+      if (profileError) {
+        console.error(`⚠️ Profile update error for ${email}:`, profileError);
+      }
+
       // Create bot account
-      await supabase.from("bot_accounts").insert({
+      const { error: botError } = await supabase.from("bot_accounts").insert({
         profile_id: authData.user.id,
         bot_type: "service_provider",
         generation_batch: batch
       });
 
+      if (botError) {
+        console.error(`⚠️ Bot account creation error for ${email}:`, botError);
+      }
+
       results.success++;
       process.stdout.write(`✅ Provider bot ${i + 1}/${providerCount}\r`);
     } catch (error) {
       results.failed++;
-      results.errors.push(`Provider ${i}: ${error.message}`);
+      const errorMsg = `Provider ${i}: ${error.message}`;
+      results.errors.push(errorMsg);
+      console.error(`\n❌ ${errorMsg}`);
     }
   }
 
@@ -133,12 +145,14 @@ async function generateBots(count = 50) {
 
       if (authError || !authData.user) {
         results.failed++;
-        results.errors.push(`Client ${i}: ${authError?.message}`);
+        const errorMsg = `Client ${i}: ${authError?.message || 'Unknown auth error'}`;
+        results.errors.push(errorMsg);
+        console.error(`❌ ${errorMsg}`);
         continue;
       }
 
       // Update profile
-      await supabase.from("profiles").update({
+      const { error: profileError } = await supabase.from("profiles").update({
         first_name: firstName,
         last_name: lastName,
         full_name: fullName,
@@ -150,18 +164,28 @@ async function generateBots(count = 50) {
         bio: randomItem(CLIENT_BIOS).replace("{city}", city)
       }).eq("id", authData.user.id);
 
+      if (profileError) {
+        console.error(`⚠️ Profile update error for ${email}:`, profileError);
+      }
+
       // Create bot account
-      await supabase.from("bot_accounts").insert({
+      const { error: botError } = await supabase.from("bot_accounts").insert({
         profile_id: authData.user.id,
         bot_type: "client",
         generation_batch: batch
       });
 
+      if (botError) {
+        console.error(`⚠️ Bot account creation error for ${email}:`, botError);
+      }
+
       results.success++;
       process.stdout.write(`✅ Client bot ${i + 1}/${clientCount}\r`);
     } catch (error) {
       results.failed++;
-      results.errors.push(`Client ${i}: ${error.message}`);
+      const errorMsg = `Client ${i}: ${error.message}`;
+      results.errors.push(errorMsg);
+      console.error(`\n❌ ${errorMsg}`);
     }
   }
 
