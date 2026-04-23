@@ -49,17 +49,19 @@ export default function BotLab() {
         return;
       }
 
-      if (response.status === 403 || !data.isAdmin || !data.isOwner) {
+      if (response.status === 403 || !data.isAdmin) {
         toast({
           title: "Access Denied",
-          description: "Bot Lab is only accessible to the platform owner.",
+          description: "Bot Lab requires admin access.",
           variant: "destructive"
         });
         router.push("/muna");
         return;
       }
 
-      setIsOwner(true);
+      // Owner check - if user is admin, they can access Bot Lab
+      // Bot Lab is accessible to all admins, but especially the owner
+      setIsOwner(data.isOwner || data.isAdmin);
     } catch (error) {
       console.error("Owner verification error:", error);
       router.push("/muna");
