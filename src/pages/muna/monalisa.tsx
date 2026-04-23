@@ -21,6 +21,7 @@ export default function MonaLisaPage() {
   const [lastCheck, setLastCheck] = useState<string | null>(null);
   const [recentLogs, setRecentLogs] = useState<any[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
+  const [sendingSummary, setSendingSummary] = useState(false);
 
   useEffect(() => {
     checkOwnerAccess();
@@ -118,6 +119,30 @@ export default function MonaLisaPage() {
       });
     } finally {
       setIsToggling(false);
+    }
+  };
+
+  const handleSendWeeklySummary = async () => {
+    setSendingSummary(true);
+    try {
+      const success = await monalisaService.sendWeeklySummary();
+      
+      if (success) {
+        toast({
+          title: "Weekly Summary Sent",
+          description: "MonaLisa weekly report sent to admin email",
+        });
+      } else {
+        throw new Error("Failed to send summary");
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send weekly summary",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingSummary(false);
     }
   };
 

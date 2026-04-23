@@ -331,6 +331,153 @@ export async function sendDocumentRejected(toEmail: string, providerName: string
   });
 }
 
+export async function sendMonalisaWeeklySummary(
+  recipientEmail: string,
+  weekStartDate: string,
+  weekEndDate: string,
+  summary: {
+    botStats: {
+      totalBots: number;
+      newBotsThisWeek: number;
+      activeBots: number;
+      projectsPosted: number;
+      bidsSubmitted: number;
+      contractsCreated: number;
+      paymentsProcessed: number;
+    };
+    issues: {
+      critical: number;
+      warnings: number;
+      topIssues: Array<{ type: string; count: number; description: string }>;
+    };
+    suggestions: Array<{ priority: string; suggestion: string }>;
+    systemHealth: {
+      overallScore: number;
+      uptime: string;
+      errorRate: number;
+    };
+  },
+  baseUrl: string = "https://bluetika.co.nz"
+): Promise<boolean> {
+  const healthColor = summary.systemHealth.overallScore >= 80 ? '#10B981' : 
+                      summary.systemHealth.overallScore >= 60 ? '#F59E0B' : '#EF4444';
+
+  const issuesHtml = summary.issues.topIssues.length > 0 ? `
+    <h3 style="color: #1B4FD8; margin-top: 30px;">⚠️ Top Issues This Week</h3>
+    <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+      <thead>
+        <tr style="background: #f3f4f6; border-bottom: 2px solid #e5e7eb;">
+          <th style="padding: 12px; text-align: left;">Issue Type</th>
+          <th style="padding: 12px; text-align: left;">Occurrences</th>
+          <th style="padding: 12px; text-align: left;">Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${summary.issues.topIssues.map(issue => `
+          <tr style="border-bottom: 1px solid #e5e7eb;">
+            <td style="padding: 12px;">${issue.type}</td>
+            <td style="padding: 12px; font-weight: bold; color: ${issue.count > 10 ? '#EF4444' : '#F59E0B'};">${issue.count}</td>
+            <td style="padding: 12px; font-size: 14px; color: #666;">${issue.description}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  ` : '<p style="color: #10B981; margin-top: 20px;">✅ No significant issues detected this week!</p>';
+
+  const suggestionsHtml = summary.suggestions.length > 0 ? `
+    <h3 style="color: #1B4FD8; margin-top: 30px;">💡 MonaLisa Suggestions</h3>
+    <div style="margin-top: 15px;">
+      ${summary.suggestions.map((item, idx) => `
+        <div style="background: ${item.priority === 'high' ? '#FEF3C7' : '#E0F2FE'}; 
+                    border-left: 4px solid ${item.priority === 'high' ? '#F59E0B' : '#06B6D4'}; 
+                    padding: 15px; margin-bottom: 15px; border-radius: 4px;">
+          <strong style="color: ${item.priority === 'high' ? '#F59E0B' : '#06B6D4'};">
+            ${item.priority === 'high' ? '🔥 High Priority' : '💡 Suggestion'} #${idx + 1}:
+          </strong>
+          <p style="margin: 8px 0 0 0; font-size: 14px; color: #333;">${item.suggestion}</p>
+        </div>
+      `).join('')}
+    </div>
+  ` : '<p style="color: #666; margin-top: 20px;">No suggestions this week - system running smoothly!</p>';
+
+  return sendEmail({
+    to: recipientEmail,
+    subject: `MonaLisa Weekly Summary: ${weekStartDate} - ${weekEndDate}`,
+    htmlBody: baseHtml("MonaLisa Weekly Summary", `
+      <div style="background: linear-gradient(135deg, #1B4FD8 0%, #06B6D4 100%); 
+                  color: white; padding: 30px; text-align: center; border-radius: 8px; margin-bottom: 30px;">
+        <h2 style="margin: 0; font-size: 28px;">🤖 MonaLisa Weekly Report</h2>
+        <p style="margin: 10px 0 0 0; opacity: 0.9; font-size: 16px;">${weekStartDate} → ${weekEndDate}</p>
+      </div>
+
+      <div style="background: #f9fafb; padding: 25px; border-radius: 8px; margin-bottom: 25px;">
+        <h3 style="color: #1B4FD8; margin-top: 0;">📊 System Health Score</h3>
+        <div style="display: flex; align-items: center; gap: 15px;">
+          <div style="font-size: 48px; font-weight: bold; color: ${healthColor};">
+            ${summary.systemHealth.overallScore}%
+          </div>
+          <div style="flex: 1;">
+            <div style="background: #e5e7eb; height: 20px; border-radius: 10px; overflow: hidden;">
+              <div style="background: ${healthColor}; height: 100%; width: ${summary.systemHealth.overallScore}%; 
+                          transition: width 0.5s ease;"></div>
+            </div>
+            <p style="margin: 8px 0 0 0; font-size: 14px; color: #666;">
+              Uptime: ${summary.systemHealth.uptime} | Error Rate: ${summary.systemHealth.errorRate.toFixed(2)}%
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <h3 style="color: #1B4FD8; margin-top: 30px;">🤖 Bot Activity This Week</h3>
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 15px;">
+        <div style="background: #E0F2FE; padding: 20px; border-radius: 8px; border-left: 4px solid #06B6D4;">
+          <div style="font-size: 32px; font-weight: bold; color: #06B6D4;">${summary.botStats.totalBots}</div>
+          <div style="font-size: 14px; color: #0369a1; margin-top: 5px;">Total Bots Active</div>
+          <div style="font-size: 12px; color: #666; margin-top: 5px;">
+            +${summary.botStats.newBotsThisWeek} new this week
+          </div>
+        </div>
+        <div style="background: #ECFDF5; padding: 20px; border-radius: 8px; border-left: 4px solid #10B981;">
+          <div style="font-size: 32px; font-weight: bold; color: #10B981;">${summary.botStats.projectsPosted}</div>
+          <div style="font-size: 14px; color: #047857; margin-top: 5px;">Projects Posted</div>
+        </div>
+        <div style="background: #FEF3C7; padding: 20px; border-radius: 8px; border-left: 4px solid #F59E0B;">
+          <div style="font-size: 32px; font-weight: bold; color: #F59E0B;">${summary.botStats.bidsSubmitted}</div>
+          <div style="font-size: 14px; color: #D97706; margin-top: 5px;">Bids Submitted</div>
+        </div>
+        <div style="background: #F3E8FF; padding: 20px; border-radius: 8px; border-left: 4px solid #A855F7;">
+          <div style="font-size: 32px; font-weight: bold; color: #A855F7;">${summary.botStats.contractsCreated}</div>
+          <div style="font-size: 14px; color: #7C3AED; margin-top: 5px;">Contracts Created</div>
+        </div>
+      </div>
+
+      <div style="background: #FEE2E2; padding: 20px; border-radius: 8px; margin-top: 25px; border-left: 4px solid #EF4444;">
+        <h4 style="margin: 0 0 10px 0; color: #DC2626;">⚠️ Issues Detected</h4>
+        <div style="display: flex; gap: 30px;">
+          <div>
+            <span style="font-size: 24px; font-weight: bold; color: #DC2626;">${summary.issues.critical}</span>
+            <span style="font-size: 14px; color: #991B1B; margin-left: 5px;">Critical</span>
+          </div>
+          <div>
+            <span style="font-size: 24px; font-weight: bold; color: #F59E0B;">${summary.issues.warnings}</span>
+            <span style="font-size: 14px; color: #D97706; margin-left: 5px;">Warnings</span>
+          </div>
+        </div>
+      </div>
+
+      ${issuesHtml}
+      ${suggestionsHtml}
+
+      <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin-top: 30px; text-align: center;">
+        <p style="margin: 0; color: #666; font-size: 14px;">
+          This automated report was generated by MonaLisa AI monitoring system.
+        </p>
+        <a href="${baseUrl}/muna/monalisa" class="button" style="margin-top: 15px;">View Full MonaLisa Dashboard</a>
+      </div>
+    `, baseUrl)
+  });
+}
+
 export const sesEmailService = {
   sendEmail,
   sendEvidencePhotoReminder,
@@ -353,5 +500,6 @@ export const sesEmailService = {
   sendFirstBidSubmitted,
   sendDocumentAutoApproved,
   sendDocumentManuallyApproved,
-  sendDocumentRejected
+  sendDocumentRejected,
+  sendMonalisaWeeklySummary
 };
