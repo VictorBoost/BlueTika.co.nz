@@ -1,22 +1,13 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
 import { sesEmailService } from "@/services/sesEmailService";
 import { emailLogService } from "@/services/emailLogService";
 import { notificationService } from "@/services/notificationService";
 
-type Bid = Database["public"]["Tables"]["bids"]["Row"];
-
 export const bidService = {
-  async submitBid(projectId: string, providerId: string, bidAmount: number, coverLetter: string) {
+  async createBid(bidData: any) {
     const { data, error } = await supabase
       .from("bids")
-      .insert({
-        project_id: projectId,
-        provider_id: providerId,
-        amount: bidAmount,
-        message: coverLetter,
-        status: "submitted",
-      } as any)
+      .insert(bidData)
       .select(`*, project:projects(title, client_id, id), provider:profiles!bids_provider_id_fkey(full_name, email)`)
       .single();
 
@@ -28,9 +19,9 @@ export const bidService = {
         (data.provider as any).full_name || "Provider",
         (data.project as any).title,
         (data.project as any).id,
-        bidAmount
+        bidData.amount
       );
-      await emailLogService.logEmail((data.provider as any).email, "first_bid_submitted", emailSent ? "sent" : "failed", { bid_id: data.id, project_id: projectId });
+      await emailLogService.logEmail((data.provider as any).email, "first_bid_submitted", emailSent ? "sent" : "failed", { bid_id: data.id, project_id: bidData.project_id });
     }
 
     if ((data.project as any)?.client_id) {
@@ -38,19 +29,15 @@ export const bidService = {
         user_id: (data.project as any).client_id,
         type: "new_bid",
         title: "New Bid Received",
-        message: `${(data.provider as any)?.full_name || "A provider"} submitted a bid of NZD $${bidAmount}`,
-        link: `/project/${projectId}`,
+        message: `${(data.provider as any)?.full_name || "A provider"} submitted a bid of NZD $${bidData.amount}`,
+        link: `/project/${bidData.project_id}`,
       });
     }
 
     return { data, error: null };
   },
 
-  async createBid(projectId: string, providerId: string, bidAmount: number, coverLetter: string) {
-    return this.submitBid(projectId, providerId, bidAmount, coverLetter);
-  },
-
-  async acceptBid(bidId: string, clientId: string) {
+  async acceptBid(bidId: string, projectId: string, clientId: string) {
     const { data: bid, error: bidError } = await supabase
       .from("bids")
       .select(`*, project:projects(title, client_id, id, client:profiles!projects_client_id_fkey(email, full_name)), provider:profiles!bids_provider_id_fkey(email, full_name)`)
@@ -72,16 +59,16 @@ export const bidService = {
     const { data: otherBids } = await supabase
       .from("bids")
       .select(`id, provider:profiles!bids_provider_id_fkey(email, full_name)`)
-      .eq("project_id", bid.project_id)
+      .eq("project_id", projectId)
       .neq("id", bidId)
       .eq("status", "submitted");
 
     if (otherBids && otherBids.length > 0) {
-      await supabase.from("bids").update({ status: "declined" }).eq("project_id", bid.project_id).neq("id", bidId);
+      await supabase.from("bids").update({ status: "declined" }).eq("project_id", projectId).neq("id", bidId);
       for (const otherBid of otherBids) {
         if (otherBid.provider) {
           const emailSent = await sesEmailService.sendBidDeclinedEmail((otherBid.provider as any).email, (otherBid.provider as any).full_name || "Provider", (bid.project as any)?.title || "Project");
-          await emailLogService.logEmail((otherBid.provider as any).email, "bid_declined", emailSent ? "sent" : "failed", { bid_id: otherBid.id, project_id: bid.project_id });
+          await emailLogService.logEmail((otherBid.provider as any).email, "bid_declined", emailSent ? "sent" : "failed", { bid_id: otherBid.id, project_id: projectId });
         }
       }
     }
@@ -89,7 +76,7 @@ export const bidService = {
     const { data: contract, error: contractError } = await supabase
       .from("contracts")
       .insert({
-        project_id: bid.project_id,
+        project_id: projectId,
         client_id: clientId,
         provider_id: bid.provider_id,
         bid_id: bidId,
@@ -124,33 +111,11 @@ export const bidService = {
     return { data: contract, error: null };
   },
 
-  async getBidsByProject(projectId: string) {
-    const { data, error } = await supabase.from("bids").select(`*, provider:profiles!bids_provider_id_fkey(*)`).eq("project_id", projectId).order("created_at", { ascending: false });
-    return { data: data || [], error };
-  },
-
-  async getBidsByProvider(providerId: string) {
-    const { data, error } = await supabase.from("bids").select(`*, project:projects(*)`).eq("provider_id", providerId).order("created_at", { ascending: false });
-    return { data: data || [], error };
-  },
-
-  async getProviderBids(providerId: string) {
-    return this.getBidsByProvider(providerId);
-  },
-
-  async updateBid(bidId: string, updates: Partial<Bid>) {
-    const { data, error } = await supabase.from("bids").update(updates).eq("id", bidId).select().single();
-    return { data, error };
-  },
-
-  async deleteBid(bidId: string, providerId: string) {
-    const { data: bid } = await supabase.from("bids").select("provider_id, status").eq("id", bidId).single();
-    if (!bid || bid.provider_id !== providerId) return { data: null, error: new Error("Unauthorized") };
-    const { error } = await supabase.from("bids").delete().eq("id", bidId);
-    return { data: !error, error };
-  },
-
   async uploadTradeCertificate(file: File, providerId: string) {
-    return { data: { url: "mock-url" }, error: null };
+    const fileName = `${providerId}-${Date.now()}-${file.name}`;
+    const { data, error } = await supabase.storage.from("trade-certificates").upload(fileName, file);
+    if (error) return null;
+    const { data: urlData } = supabase.storage.from("trade-certificates").getPublicUrl(fileName);
+    return urlData.publicUrl;
   }
 };

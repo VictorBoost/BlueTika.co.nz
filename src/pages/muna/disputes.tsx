@@ -71,8 +71,9 @@ export default function AdminDisputes() {
   const loadDisputes = async () => {
     setLoading(true);
     try {
-      const data = await disputeService.getPendingDisputes();
-      setDisputes(data);
+      const { data, error } = await disputeService.getPendingDisputes();
+      if (error) throw error;
+      setDisputes(data || []);
     } catch (error) {
       console.error("Error loading disputes:", error);
       toast({
@@ -143,14 +144,13 @@ export default function AdminDisputes() {
       const clientRefund = resolutionType === "partial_split" ? parseFloat(clientRefundAmount) : 0;
       const providerPayout = resolutionType === "partial_split" ? parseFloat(providerPayoutAmount) : 0;
 
-      await disputeService.resolveDispute({
-        disputeId: selectedDispute.id,
-        resolutionType: resolutionType as any,
+      await disputeService.resolveDispute(
+        selectedDispute.id,
+        resolutionType,
         resolutionReason,
-        resolvedBy: userId,
-        clientRefundAmount: clientRefund,
-        providerPayoutAmount: providerPayout,
-      });
+        clientRefund,
+        providerPayout
+      );
 
       // If funds are released to provider, create fund release record
       if (resolutionType === "release_to_provider" || resolutionType === "partial_split") {

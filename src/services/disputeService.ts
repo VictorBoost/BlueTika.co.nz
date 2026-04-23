@@ -1,5 +1,4 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
 import { sesEmailService } from "@/services/sesEmailService";
 import { emailLogService } from "@/services/emailLogService";
 
@@ -64,7 +63,7 @@ export const disputeService = {
     return { data: data || [], error };
   },
 
-  async resolveDispute(disputeId: string, resolutionType: "refund_client" | "pay_provider" | "split_payment" | "custom", resolutionReason: string, refundAmount?: number, payoutAmount?: number) {
+  async resolveDispute(disputeId: string, resolutionType: string, resolutionReason: string, refundAmount?: number, payoutAmount?: number) {
     const { data: dispute } = await supabase.from("disputes").select(`*, contract:contracts(*, project:projects(title), client:profiles!contracts_client_id_fkey(email, full_name), provider:profiles!contracts_provider_id_fkey(email, full_name))`).eq("id", disputeId).single();
 
     const { data, error } = await supabase.from("disputes").update({
