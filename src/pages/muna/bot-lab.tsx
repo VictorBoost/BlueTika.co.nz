@@ -78,7 +78,7 @@ export default function BotLab() {
   const loadStats = async () => {
     setLoadingStats(true);
     try {
-      const botStats = await botLabService.getBotStatistics();
+      const botStats = await botLabService.getBotStats();
       setStats(botStats);
     } catch (error) {
       console.error("Failed to load stats:", error);
@@ -139,13 +139,13 @@ export default function BotLab() {
   const handleTogglePayments = async (enabled: boolean) => {
     setTogglingPayments(true);
     try {
-      const success = await botLabService.togglePayments(enabled);
+      const success = await botLabService.toggleBotPayments(enabled);
       
       if (success) {
         toast({
           title: enabled ? "Bot Payments Enabled" : "Bot Payments Disabled",
           description: enabled
-            ? "Bots can accept bids and process test payments"
+            ? "Bots can now accept bids and process test payments"
             : "Bot payments have been disabled",
         });
         await loadStatus();
