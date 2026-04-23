@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Bot, Users, Activity, Zap, AlertTriangle, CheckCircle, TrendingUp, DollarSign } from "lucide-react";
+import { Bot, Users, Activity, Zap, AlertTriangle, CheckCircle, TrendingUp, DollarSign, Skull, Trash2 } from "lucide-react";
 import { botLabService } from "@/services/botLabService";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -20,6 +20,8 @@ export default function BotLab() {
   const [stats, setStats] = useState<any>(null);
   const [loadingStats, setLoadingStats] = useState(false);
   const [generatingBots, setGeneratingBots] = useState(false);
+  const [removingBots, setRemovingBots] = useState(false);
+  const [killingAll, setKillingAll] = useState(false);
   const [triggeringProjects, setTriggeringProjects] = useState(false);
   const [triggeringBids, setTriggeringBids] = useState(false);
   const [triggeringPayments, setTriggeringPayments] = useState(false);
@@ -94,8 +96,12 @@ export default function BotLab() {
       
       toast({
         title: "Bot Generation Complete",
-        description: `Created ${result.success} bots successfully. ${result.failed} failed.`,
+        description: `Created ${result.success} bots (80% clients, 20% providers). ${result.failed} failed.`,
       });
+      
+      if (result.errors && result.errors.length > 0) {
+        console.error("Bot generation errors:", result.errors);
+      }
       
       await loadStats();
     } catch (error: any) {
@@ -106,6 +112,64 @@ export default function BotLab() {
       });
     } finally {
       setGeneratingBots(false);
+    }
+  };
+
+  const handleRemoveBots = async () => {
+    if (!confirm("Remove 50 bots and all their content (projects, bids, contracts)? This cannot be undone.")) {
+      return;
+    }
+
+    setRemovingBots(true);
+    try {
+      const result = await botLabService.removeBots(50);
+      
+      toast({
+        title: "Bots Removed",
+        description: `Removed ${result.success} bots. ${result.failed} failed.`,
+      });
+      
+      await loadStats();
+    } catch (error: any) {
+      toast({
+        title: "Removal Failed",
+        description: error.message || "Failed to remove bots",
+        variant: "destructive",
+      });
+    } finally {
+      setRemovingBots(false);
+    }
+  };
+
+  const handleKillSwitch = async () => {
+    if (!confirm("⚠️ KILL SWITCH: Delete ALL bots and their content? Automation will be disabled. This cannot be undone!")) {
+      return;
+    }
+
+    setKillingAll(true);
+    try {
+      const result = await botLabService.killSwitch();
+      
+      if (result.success) {
+        toast({
+          title: "Kill Switch Activated",
+          description: `Deleted ${result.deleted} bots and all their content. Automation disabled.`,
+          variant: "destructive"
+        });
+      } else {
+        throw new Error(result.error || "Kill switch failed");
+      }
+      
+      await loadStatus();
+      await loadStats();
+    } catch (error: any) {
+      toast({
+        title: "Kill Switch Failed",
+        description: error.message || "Failed to execute kill switch",
+        variant: "destructive",
+      });
+    } finally {
+      setKillingAll(false);
     }
   };
 
@@ -477,23 +541,68 @@ export default function BotLab() {
             </Card>
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Generate New Bots</CardTitle>
-              <CardDescription>
-                Create 50 new bot accounts (25 clients + 25 providers) with NZ names and locations
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button
-                onClick={handleGenerateBots}
-                disabled={generatingBots}
-                size="lg"
-              >
-                {generatingBots ? "Generating 50 Bots..." : "Generate 50 Bots"}
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="grid md:grid-cols-3 gap-4 mb-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Generate New Bots</CardTitle>
+                <CardDescription>
+                  Create 50 new bot accounts (80% clients who post projects + 20% providers)
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  onClick={handleGenerateBots}
+                  disabled={generatingBots}
+                  size="lg"
+                  className="w-full"
+                >
+                  {generatingBots ? "Generating 50 Bots..." : "➕ Generate 50 Bots"}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Remove Bots</CardTitle>
+                <CardDescription>
+                  Delete 50 oldest bots and all their content (projects, bids, contracts)
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  onClick={handleRemoveBots}
+                  disabled={removingBots || (stats?.totalBots || 0) === 0}
+                  size="lg"
+                  variant="outline"
+                  className="w-full"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  {removingBots ? "Removing..." : "Remove 50 Bots"}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="border-red-500">
+              <CardHeader>
+                <CardTitle className="text-red-600">Kill Switch</CardTitle>
+                <CardDescription>
+                  ⚠️ Delete ALL bots and content. Disables automation. Cannot be undone!
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  onClick={handleKillSwitch}
+                  disabled={killingAll || (stats?.totalBots || 0) === 0}
+                  size="lg"
+                  variant="destructive"
+                  className="w-full"
+                >
+                  <Skull className="w-4 h-4 mr-2" />
+                  {killingAll ? "Deleting..." : "Kill All Bots"}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </>

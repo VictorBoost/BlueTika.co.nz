@@ -28,140 +28,168 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { count = 50 } = req.body;
-  const batch = Date.now();
-  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+  try {
+    const { count = 50 } = req.body;
+    const batch = Date.now();
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-  const results = { success: 0, failed: 0, errors: [] as string[] };
-  const providerCount = Math.floor(count * 0.5);
-  const clientCount = count - providerCount;
+    const results = { success: 0, failed: 0, errors: [] as string[] };
+    
+    // 80% clients (buyers who post projects) / 20% providers (sellers who bid)
+    const clientCount = Math.floor(count * 0.8);
+    const providerCount = count - clientCount;
 
-  // Generate provider bots
-  for (let i = 0; i < providerCount; i++) {
-    try {
-      const firstName = randomItem(NZ_FIRST_NAMES);
-      const lastName = randomItem(NZ_LAST_NAMES);
-      const city = randomItem(NZ_CITIES);
-      const email = `bot.provider.${i}.${batch}@bluetika.test`;
-      const password = `BotPass${batch}!`;
+    console.log(`Generating ${count} bots: ${clientCount} clients, ${providerCount} providers`);
 
-      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-        user_metadata: {
-          full_name: `${firstName} ${lastName}`,
-          is_bot: true
+    // Generate provider bots (20%)
+    for (let i = 0; i < providerCount; i++) {
+      try {
+        const firstName = randomItem(NZ_FIRST_NAMES);
+        const lastName = randomItem(NZ_LAST_NAMES);
+        const city = randomItem(NZ_CITIES);
+        const email = `bot.provider.${i}.${batch}@bluetika.test`;
+        const password = `BotPass${batch}!`;
+
+        console.log(`Creating provider bot ${i + 1}/${providerCount}: ${email}`);
+
+        const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+          email,
+          password,
+          email_confirm: true,
+          user_metadata: {
+            full_name: `${firstName} ${lastName}`,
+            is_bot: true
+          }
+        });
+
+        if (authError || !authData.user) {
+          results.failed++;
+          results.errors.push(`Provider ${i}: ${authError?.message || "User creation failed"}`);
+          console.error(`Provider ${i} auth error:`, authError);
+          continue;
         }
-      });
 
-      if (authError || !authData.user) {
-        results.failed++;
-        results.errors.push(`Provider ${i}: ${authError?.message}`);
-        continue;
-      }
-
-      const { error: profileError } = await supabaseAdmin.from("profiles").update({
-        first_name: firstName,
-        last_name: lastName,
-        full_name: `${firstName} ${lastName}`,
-        city_region: city,
-        location: city,
-        phone_number: `021 ${Math.floor(Math.random() * 900 + 100)} ${Math.floor(Math.random() * 9000 + 1000)}`,
-        is_client: true,
-        is_provider: true,
-        verification_status: "approved",
-        bio: `Experienced ${city} service provider. Quality workmanship guaranteed.`
-      }).eq("id", authData.user.id);
-
-      if (profileError) {
-        results.failed++;
-        results.errors.push(`Provider ${i} profile: ${profileError.message}`);
-        continue;
-      }
-
-      const { error: botError } = await supabaseAdmin.from("bot_accounts").insert({
-        profile_id: authData.user.id,
-        bot_type: "provider",
-        generation_batch: batch,
-        is_active: true
-      });
-
-      if (botError) {
-        results.failed++;
-        results.errors.push(`Provider ${i} bot_account: ${botError.message}`);
-        continue;
-      }
-
-      results.success++;
-    } catch (error) {
-      results.failed++;
-      results.errors.push(`Provider ${i}: ${error}`);
-    }
-  }
-
-  // Generate client bots
-  for (let i = 0; i < clientCount; i++) {
-    try {
-      const firstName = randomItem(NZ_FIRST_NAMES);
-      const lastName = randomItem(NZ_LAST_NAMES);
-      const city = randomItem(NZ_CITIES);
-      const email = `bot.client.${i}.${batch}@bluetika.test`;
-      const password = `BotPass${batch}!`;
-
-      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-        user_metadata: {
+        const { error: profileError } = await supabaseAdmin.from("profiles").update({
+          first_name: firstName,
+          last_name: lastName,
           full_name: `${firstName} ${lastName}`,
-          is_bot: true
+          city_region: city,
+          location: city,
+          phone_number: `021 ${Math.floor(Math.random() * 900 + 100)} ${Math.floor(Math.random() * 9000 + 1000)}`,
+          is_client: true,
+          is_provider: true,
+          verification_status: "approved",
+          bio: `Experienced ${city} service provider. Quality workmanship guaranteed.`
+        }).eq("id", authData.user.id);
+
+        if (profileError) {
+          results.failed++;
+          results.errors.push(`Provider ${i} profile: ${profileError.message}`);
+          console.error(`Provider ${i} profile error:`, profileError);
+          continue;
         }
-      });
 
-      if (authError || !authData.user) {
+        const { error: botError } = await supabaseAdmin.from("bot_accounts").insert({
+          profile_id: authData.user.id,
+          bot_type: "provider",
+          generation_batch: batch,
+          is_active: true
+        });
+
+        if (botError) {
+          results.failed++;
+          results.errors.push(`Provider ${i} bot_account: ${botError.message}`);
+          console.error(`Provider ${i} bot_account error:`, botError);
+          continue;
+        }
+
+        results.success++;
+        console.log(`✓ Provider bot ${i + 1} created successfully`);
+      } catch (error: any) {
         results.failed++;
-        results.errors.push(`Client ${i}: ${authError?.message}`);
-        continue;
+        results.errors.push(`Provider ${i}: ${error.message || "Unknown error"}`);
+        console.error(`Provider ${i} exception:`, error);
       }
-
-      const { error: profileError } = await supabaseAdmin.from("profiles").update({
-        first_name: firstName,
-        last_name: lastName,
-        full_name: `${firstName} ${lastName}`,
-        city_region: city,
-        location: city,
-        phone_number: `021 ${Math.floor(Math.random() * 900 + 100)} ${Math.floor(Math.random() * 9000 + 1000)}`,
-        is_client: true,
-        is_provider: false,
-        bio: `Homeowner looking for reliable service providers in ${city}.`
-      }).eq("id", authData.user.id);
-
-      if (profileError) {
-        results.failed++;
-        results.errors.push(`Client ${i} profile: ${profileError.message}`);
-        continue;
-      }
-
-      const { error: botError } = await supabaseAdmin.from("bot_accounts").insert({
-        profile_id: authData.user.id,
-        bot_type: "client",
-        generation_batch: batch,
-        is_active: true
-      });
-
-      if (botError) {
-        results.failed++;
-        results.errors.push(`Client ${i} bot_account: ${botError.message}`);
-        continue;
-      }
-
-      results.success++;
-    } catch (error) {
-      results.failed++;
-      results.errors.push(`Client ${i}: ${error}`);
     }
-  }
 
-  return res.status(200).json(results);
+    // Generate client bots (80% - these post projects)
+    for (let i = 0; i < clientCount; i++) {
+      try {
+        const firstName = randomItem(NZ_FIRST_NAMES);
+        const lastName = randomItem(NZ_LAST_NAMES);
+        const city = randomItem(NZ_CITIES);
+        const email = `bot.client.${i}.${batch}@bluetika.test`;
+        const password = `BotPass${batch}!`;
+
+        console.log(`Creating client bot ${i + 1}/${clientCount}: ${email}`);
+
+        const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+          email,
+          password,
+          email_confirm: true,
+          user_metadata: {
+            full_name: `${firstName} ${lastName}`,
+            is_bot: true
+          }
+        });
+
+        if (authError || !authData.user) {
+          results.failed++;
+          results.errors.push(`Client ${i}: ${authError?.message || "User creation failed"}`);
+          console.error(`Client ${i} auth error:`, authError);
+          continue;
+        }
+
+        const { error: profileError } = await supabaseAdmin.from("profiles").update({
+          first_name: firstName,
+          last_name: lastName,
+          full_name: `${firstName} ${lastName}`,
+          city_region: city,
+          location: city,
+          phone_number: `021 ${Math.floor(Math.random() * 900 + 100)} ${Math.floor(Math.random() * 9000 + 1000)}`,
+          is_client: true,
+          is_provider: false,
+          bio: `Homeowner looking for reliable service providers in ${city}.`
+        }).eq("id", authData.user.id);
+
+        if (profileError) {
+          results.failed++;
+          results.errors.push(`Client ${i} profile: ${profileError.message}`);
+          console.error(`Client ${i} profile error:`, profileError);
+          continue;
+        }
+
+        const { error: botError } = await supabaseAdmin.from("bot_accounts").insert({
+          profile_id: authData.user.id,
+          bot_type: "client",
+          generation_batch: batch,
+          is_active: true
+        });
+
+        if (botError) {
+          results.failed++;
+          results.errors.push(`Client ${i} bot_account: ${botError.message}`);
+          console.error(`Client ${i} bot_account error:`, botError);
+          continue;
+        }
+
+        results.success++;
+        console.log(`✓ Client bot ${i + 1} created successfully`);
+      } catch (error: any) {
+        results.failed++;
+        results.errors.push(`Client ${i}: ${error.message || "Unknown error"}`);
+        console.error(`Client ${i} exception:`, error);
+      }
+    }
+
+    console.log(`Bot generation complete: ${results.success} success, ${results.failed} failed`);
+    return res.status(200).json(results);
+  } catch (error: any) {
+    console.error("Fatal error in bot generation:", error);
+    return res.status(500).json({ 
+      success: 0, 
+      failed: 50, 
+      errors: [error.message || "Unknown server error"] 
+    });
+  }
 }
