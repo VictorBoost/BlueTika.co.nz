@@ -1,4 +1,5 @@
 import { SEO } from "@/components/SEO";
+import Link from "next/link";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import {
@@ -115,12 +116,12 @@ export default function FAQ() {
             <p className="text-muted-foreground mb-4">
               Can&apos;t find what you&apos;re looking for? Get in touch with our support team.
             </p>
-            <a 
+            <Link 
               href="/contact" 
               className="inline-block bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors"
             >
               Contact Support
-            </a>
+            </Link>
           </div>
         </div>
       </main>

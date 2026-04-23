@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Link from "next/link";
 import { SEO } from "@/components/SEO";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
@@ -207,18 +208,18 @@ export default function Contact() {
                   <CardTitle>Quick Links</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <a href="/faq" className="block text-sm text-primary hover:underline">
+                  <Link href="/faq" className="block text-sm text-primary hover:underline">
                     Frequently Asked Questions
-                  </a>
-                  <a href="/terms" className="block text-sm text-primary hover:underline">
+                  </Link>
+                  <Link href="/terms" className="block text-sm text-primary hover:underline">
                     Terms of Service
-                  </a>
-                  <a href="/privacy" className="block text-sm text-primary hover:underline">
+                  </Link>
+                  <Link href="/privacy" className="block text-sm text-primary hover:underline">
                     Privacy Policy
-                  </a>
-                  <a href="/about" className="block text-sm text-primary hover:underline">
+                  </Link>
+                  <Link href="/about" className="block text-sm text-primary hover:underline">
                     About BlueTika
-                  </a>
+                  </Link>
                 </CardContent>
               </Card>
             </div>
