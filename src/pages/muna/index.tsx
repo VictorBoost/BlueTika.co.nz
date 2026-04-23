@@ -242,42 +242,45 @@ export default function ControlCentre() {
     setIsLoading(true);
     
     try {
-      // Check if user has active BlueTika platform session
-      const session = await authService.getCurrentSession();
+      // Use server-side admin verification API
+      const response = await fetch("/api/auth/verify-admin", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      const data = await response.json();
       
-      console.log("Session check result:", session);
+      console.log("Admin verification result:", data);
       
-      if (!session) {
-        console.log("No session found - redirecting to login");
-        // Not logged into platform - redirect to login
+      if (response.status === 401) {
+        // Not logged in - redirect to login
+        console.log("Not authenticated - redirecting to login");
         router.push("/login?redirect=/muna");
         return;
       }
 
-      // Check if user is admin (owner or staff)
-      const isAdmin = await isAdminUser();
-      
-      console.log("Admin check result:", isAdmin);
-      
-      if (!isAdmin) {
-        console.log("User is not admin - showing access denied");
+      if (response.status === 403 || !data.isAdmin) {
         // Logged in but not admin - show access denied
+        console.log("Not authorized - showing access denied");
         setIsAuthenticated(false);
         setIsLoading(false);
         return;
       }
 
       // User is authenticated and is admin
-      const info = await getAdminUserInfo();
-      console.log("Admin info:", info);
+      console.log("Admin verified:", data);
       
-      setAdminInfo(info);
+      setAdminInfo({
+        email: data.email,
+        isOwner: data.isOwner,
+        role: data.role
+      });
       setIsAuthenticated(true);
       setIsLoading(false);
       loadStats();
       
       // Send email alert to owner on successful admin login
-      if (info?.email) {
+      if (data.email) {
         const ipAddress = await fetch("https://api.ipify.org?format=json")
           .then(r => r.json())
           .then(d => d.ip)
@@ -285,7 +288,7 @@ export default function ControlCentre() {
 
         // Log successful admin login
         await supabase.from("admin_login_logs").insert({
-          email: info.email,
+          email: data.email,
           success: true,
           ip_address: ipAddress,
           user_agent: navigator.userAgent,
@@ -297,7 +300,7 @@ export default function ControlCentre() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              adminEmail: info.email,
+              adminEmail: data.email,
               ipAddress,
               timestamp: new Date().toISOString(),
             }),
@@ -307,7 +310,7 @@ export default function ControlCentre() {
         }
       }
       
-      if (info?.isOwner) {
+      if (data.isOwner) {
         loadMonalisaStatus();
       }
     } catch (error) {
