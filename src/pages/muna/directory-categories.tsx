@@ -1,3 +1,4 @@
+import { SEO } from "@/components/SEO";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
