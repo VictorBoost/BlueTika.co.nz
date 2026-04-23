@@ -42,16 +42,43 @@ export default function AdminCategories() {
   }, []);
 
   const checkAdminAccess = async () => {
-    const session = await authService.getCurrentSession();
-    if (!session?.user) {
-      router.push("/login");
-      return;
-    }
+    setLoading(true);
+    
+    try {
+      // Use server-side admin verification API (same as /muna dashboard)
+      const response = await fetch("/api/auth/verify-admin", {
+        method: "GET",
+        credentials: "include",
+      });
 
-    // For now, any authenticated user can access admin
-    // TODO: Add proper admin role checking
-    setIsAdmin(true);
-    loadCategories();
+      const data = await response.json();
+      
+      if (response.status === 401) {
+        // Not logged in - redirect to login
+        router.push("/muna/login");
+        return;
+      }
+
+      if (response.status === 403 || !data.isAdmin) {
+        // Logged in but not admin - redirect to main dashboard
+        toast({
+          title: "Access Denied",
+          description: "You do not have permission to access this page.",
+          variant: "destructive",
+        });
+        router.push("/muna");
+        return;
+      }
+
+      // User is authenticated and is admin
+      setIsAdmin(true);
+      loadCategories();
+    } catch (error) {
+      console.error("Error in checkAdminAccess:", error);
+      router.push("/muna");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const loadCategories = async () => {
