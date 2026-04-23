@@ -111,16 +111,16 @@ export const botLabService = {
       dailyBotCount: "20-30 bots per day",
       actions: paymentsEnabled ? [
         "Generate 20-30 new bot accounts",
-        "Bots post 1-3 project listings",
-        "Bots submit 2-5 bids on other listings", 
+        "Bots post 5-8 project listings each",
+        "Bots submit 1-2 bids on other listings each", 
         "Bots accept bids and create contracts",
         "Bots complete Stripe payments (TEST MODE)",
         "Bots upload before/after photos",
         "Bots leave 4-5 star reviews"
       ] : [
         "Generate 20-30 new bot accounts",
-        "Bots post 1-3 project listings",
-        "Bots submit 2-5 bids on other listings",
+        "Bots post 5-8 project listings each",
+        "Bots submit 1-2 bids on other listings each",
         "❌ Bot payments disabled - no contract acceptance",
         "❌ No contract completion or reviews"
       ]
@@ -130,11 +130,13 @@ export const botLabService = {
   async toggleAutomation(enabled: boolean): Promise<boolean> {
     const { error } = await supabase
       .from("platform_settings")
-      .update({ 
+      .upsert({ 
+        setting_key: "bot_automation_enabled",
         setting_value: enabled ? "true" : "false",
         updated_at: new Date().toISOString()
-      })
-      .eq("setting_key", "bot_automation_enabled");
+      }, {
+        onConflict: "setting_key"
+      });
 
     if (error) {
       console.error("Failed to toggle automation:", error);
@@ -147,11 +149,13 @@ export const botLabService = {
   async toggleBotPayments(enabled: boolean): Promise<boolean> {
     const { error } = await supabase
       .from("platform_settings")
-      .update({ 
+      .upsert({ 
+        setting_key: "bot_payments_enabled",
         setting_value: enabled ? "true" : "false",
         updated_at: new Date().toISOString()
-      })
-      .eq("setting_key", "bot_payments_enabled");
+      }, {
+        onConflict: "setting_key"
+      });
 
     if (error) {
       console.error("Failed to toggle bot payments:", error);
@@ -182,6 +186,7 @@ export const botLabService = {
           results.botIds.push(botId);
         } else {
           results.failed++;
+          results.errors.push(`Provider bot ${i}: Registration failed`);
         }
       } catch (error) {
         results.failed++;
@@ -198,6 +203,7 @@ export const botLabService = {
           results.botIds.push(botId);
         } else {
           results.failed++;
+          results.errors.push(`Client bot ${i}: Registration failed`);
         }
       } catch (error) {
         results.failed++;
@@ -216,39 +222,39 @@ export const botLabService = {
     const password = `BotPass${batch}!`;
 
     try {
-      // Create auth user via server-side API (more reliable than client-side signUp)
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          password,
-          firstName,
-          lastName,
-          phoneNumber: `021 ${randomInRange(100, 999)} ${randomInRange(1000, 9999)}`,
-          cityRegion: city,
-          isClient: type === "client" || type === "provider",
-          isProvider: type === "provider"
-        })
+      // Create auth user directly with Supabase Admin API
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: `${firstName} ${lastName}`,
+            is_bot: true
+          },
+          emailRedirectTo: undefined // Skip email confirmation for bots
+        }
       });
 
-      const data = await response.json();
-
-      if (!response.ok || !data.user) {
-        console.error("Bot registration failed:", data.error);
+      if (authError || !authData.user) {
+        console.error("Bot auth creation failed:", authError);
         return null;
       }
 
-      const userId = data.user.id;
+      const userId = authData.user.id;
 
       // Update profile with bot-specific data
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
+          full_name: `${firstName} ${lastName}`,
           bio: generateBio(type === "provider", city),
-          location: city,
+          city_region: city,
+          phone_number: `021 ${randomInRange(100, 999)} ${randomInRange(1000, 9999)}`,
+          user_type: type === "provider" ? "both" : "client",
+          is_provider: type === "provider",
+          is_client: true,
           verification_status: type === "provider" ? "approved" : "not_started"
-        })
+        } as any)
         .eq("id", userId);
 
       if (profileError) {
@@ -260,7 +266,7 @@ export const botLabService = {
         .from("bot_accounts")
         .insert({
           profile_id: userId,
-          bot_type: type,
+          bot_type: type === "provider" ? "service_provider" : "client",
           generation_batch: batch
         })
         .select()

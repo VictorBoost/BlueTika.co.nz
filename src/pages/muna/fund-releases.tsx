@@ -17,7 +17,7 @@ import { sendFundReleaseNotification } from "@/services/sesEmailService";
 import { notificationService } from "@/services/notificationService";
 import { useToast } from "@/hooks/use-toast";
 
-export default function AdminFundReleases() {
+export default function FundReleases() {
   const router = useRouter();
   const { toast } = useToast();
   const [contracts, setContracts] = useState<any[]>([]);
@@ -73,6 +73,32 @@ export default function AdminFundReleases() {
       });
     }
     setLoading(false);
+  };
+
+  const loadReleases = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await fundReleaseService.getAllFundReleases();
+      if (error) {
+        console.error("Error loading fund releases:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load fund releases",
+          variant: "destructive",
+        });
+      } else {
+        setReleases(data || []);
+      }
+    } catch (error) {
+      console.error("Error loading fund releases:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load fund releases",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleOpenReleaseDialog = (contract: any) => {

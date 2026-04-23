@@ -31,17 +31,27 @@ export const monalisaService = {
    * Toggle MonaLisa on/off (owner only)
    */
   async toggleMonaLisa(isActive: boolean): Promise<boolean> {
-    const { error } = await supabase
-      .from("monalisa_settings")
-      .update({ is_active: isActive, updated_at: new Date().toISOString() })
-      .eq("id", "00000000-0000-0000-0000-000000000000");
+    try {
+      const { error } = await supabase
+        .from("monalisa_settings")
+        .upsert({
+          id: "00000000-0000-0000-0000-000000000000",
+          is_active: isActive,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: "id"
+        });
 
-    if (error) {
+      if (error) {
+        console.error("Error toggling MonaLisa:", error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
       console.error("Error toggling MonaLisa:", error);
       return false;
     }
-
-    return true;
   },
 
   /**

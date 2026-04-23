@@ -34,9 +34,11 @@ serve(async (req) => {
       );
     }
 
-    // Generate random number of bots (20-30)
-    const botCount = Math.floor(Math.random() * 11) + 20;
-    console.log(`Generating ${botCount} bots`);
+    console.log("Daily bot generation started");
+    
+    const botsToGenerate = randomInRange(20, 30);
+    const providerCount = Math.floor(botsToGenerate * 0.4);
+    const clientCount = botsToGenerate - providerCount;
 
     const nzFirstNames = [
       "Aroha", "Wiremu", "Kahu", "Mere", "Hemi", "Ngaio", "Rawiri", "Anahera",
@@ -96,7 +98,7 @@ serve(async (req) => {
       errors: [] as string[]
     };
 
-    for (let i = 0; i < botCount; i++) {
+    for (let i = 0; i < botsToGenerate; i++) {
       try {
         const isProvider = Math.random() < 0.4; // 40% providers, 60% clients
         const firstName = nzFirstNames[Math.floor(Math.random() * nzFirstNames.length)];
@@ -154,6 +156,12 @@ serve(async (req) => {
         results.errors.push(`Unexpected error: ${err.message}`);
       }
     }
+
+    // Each bot posts 5-8 projects (changed from 1-3)
+    const projectsPerBot = randomInRange(5, 8);
+    
+    // Each bot submits 1-2 bids (changed from 2-5)
+    const bidsPerBot = randomInRange(1, 2);
 
     console.log(`Created ${results.created} bots with ${results.errors.length} errors`);
 

@@ -59,9 +59,9 @@ export default function AdminRoutineContractsPage() {
     if (error) {
       console.error("Error loading routine contracts:", error);
       toast({
-        title: "Load Failed",
-        description: "Could not load routine contracts.",
-        variant: "destructive"
+        title: "Error",
+        description: "Failed to load routine contracts",
+        variant: "destructive",
       });
       setLoading(false);
       return;
