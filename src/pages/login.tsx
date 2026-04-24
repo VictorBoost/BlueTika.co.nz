@@ -21,16 +21,15 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    checkSession();
+    // Only check session on mount, don't redirect immediately
+    // This allows logged-in users to visit the login page if needed
+    const checkInitialSession = async () => {
+      const user = await authService.getCurrentUser();
+      // Don't auto-redirect if user is already logged in
+      // They might be trying to switch accounts
+    };
+    checkInitialSession();
   }, []);
-
-  const checkSession = async () => {
-    const user = await authService.getCurrentUser();
-    if (user) {
-      const redirect = router.query.redirect as string;
-      router.push(redirect || "/");
-    }
-  };
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));

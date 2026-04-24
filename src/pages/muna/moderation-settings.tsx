@@ -67,7 +67,7 @@ export default function ModerationSettingsPage() {
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <Link href="/admin/trust-and-safety">
+                <Link href="/muna/trust-and-safety">
                   <Button variant="ghost" size="sm">
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Back to Safety Dashboard
