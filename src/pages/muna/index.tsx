@@ -821,6 +821,13 @@ export default function ControlCentre() {
                     </Button>
                     <Button
                       variant="outline"
+                      onClick={() => router.push("/muna/escrow-management")}
+                      className="border-success"
+                    >
+                      Escrow Management
+                    </Button>
+                    <Button
+                      variant="outline"
                       onClick={() => router.push("/muna/trust-and-safety")}
                     >
                       Trust & Safety
