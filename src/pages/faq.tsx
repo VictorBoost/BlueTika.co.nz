@@ -33,6 +33,20 @@ export default function FAQ() {
               </AccordionContent>
             </AccordionItem>
 
+            <AccordionItem value="escrow-payment">
+              <AccordionTrigger>How does the escrow payment system work?</AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-3">
+                  <p><strong>1. Upfront Payment:</strong> When you accept a bid, you pay 102% upfront (agreed price + 2% payment processing). BlueTika holds these funds securely until the job is complete.</p>
+                  <p><strong>2. Extra Charges:</strong> Either party can request additional payments during the project using the &quot;Add Payment&quot; button. You must accept any additions before the job ends.</p>
+                  <p><strong>3. Job Completion:</strong> The service provider uploads &quot;Before & After&quot; photos with an explanation to mark the project complete.</p>
+                  <p><strong>4. 24-Hour Review Window:</strong> Once photos are uploaded, you have exactly 24 hours to raise any disputes. After 24 hours, the payment is considered &quot;earned&quot; by the provider.</p>
+                  <p><strong>5. Weekly Fund Release:</strong> BlueTika reviews all &quot;earned&quot; jobs and releases payments (92% to provider after 8% commission) every Friday.</p>
+                  <p className="text-sm text-muted-foreground mt-2">Important: All communication and payments must happen within BlueTika to maintain payment protection. Off-platform deals void all protections.</p>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
             <AccordionItem value="item-2">
               <AccordionTrigger>How does the bidding system work?</AccordionTrigger>
               <AccordionContent>
@@ -40,10 +54,24 @@ export default function FAQ() {
               </AccordionContent>
             </AccordionItem>
 
+            <AccordionItem value="dispute-window">
+              <AccordionTrigger>What happens during the 24-hour dispute window?</AccordionTrigger>
+              <AccordionContent>
+                After the service provider uploads completion photos, you have exactly 24 hours to review the work and raise any concerns. During this window, you can open a dispute if the work doesn&apos;t match what was agreed. After 24 hours pass, the funds are considered earned by the provider. Any workmanship guarantees or warranty claims after fund release are handled directly between you and the provider.
+              </AccordionContent>
+            </AccordionItem>
+
             <AccordionItem value="item-3">
               <AccordionTrigger>How do payments work?</AccordionTrigger>
               <AccordionContent>
                 BlueTika holds your payment securely until the job is complete. After the service provider uploads evidence photos and you submit a review, funds are released. This protects both parties and ensures quality work.
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="extra-payments">
+              <AccordionTrigger>Can additional charges be added during a project?</AccordionTrigger>
+              <AccordionContent>
+                Yes. Either party can request additional payments during the project using the &quot;Add Payment&quot; button in the contract. These must be approved by the client before the job ends. Common examples include extra materials needed, scope changes, or additional work requested. All additions must be processed through BlueTika to maintain payment protection.
               </AccordionContent>
             </AccordionItem>
 

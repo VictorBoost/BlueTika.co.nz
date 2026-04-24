@@ -301,6 +301,13 @@ export default function ContractsPage() {
           <p className="text-muted-foreground">Track your ongoing projects and agreements</p>
         </div>
 
+        <Alert className="mb-6 border-accent bg-accent/5">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Payment Protection Notice:</strong> To keep your funds safe, all communication and extra payments must happen within BlueTika. Once the Service Provider submits &apos;After&apos; photos, the Client has 24 hours to raise a dispute. Any workmanship guarantees after payment release are handled directly between the Client and Provider. Approved funds are released to your account every Friday.
+          </AlertDescription>
+        </Alert>
+
         <Alert className="mb-6">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
