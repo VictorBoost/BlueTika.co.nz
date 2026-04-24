@@ -40,7 +40,7 @@ export default function EscrowManagementPage() {
       .eq("id", user.id)
       .single();
 
-    if (!profile || profile.email !== "sam@bluetika.co.nz") {
+    if (!profile || profile.email !== "bluetikanz@gmail.com") {
       router.push("/");
       return;
     }
