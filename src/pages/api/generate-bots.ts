@@ -136,7 +136,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             city_region: city,
             location: city,
             phone_number: `021 ${Math.floor(Math.random() * 900 + 100)} ${Math.floor(Math.random() * 9000 + 1000)}`,
-            is_client: true,
+            is_client: false,
             is_provider: true,
             verification_status: "approved",
             bio: `Experienced ${city} service provider. Quality workmanship guaranteed.`
