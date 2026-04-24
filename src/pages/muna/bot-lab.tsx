@@ -311,51 +311,95 @@ export default function BotLab() {
       let totalProjects = 0;
       let totalBids = 0;
       let totalContracts = 0;
+      let totalPayments = 0;
 
       toast({
         title: "Generating Bot Activity",
-        description: "Step 1/3: Posting projects...",
+        description: "Step 1/4: Posting projects...",
       });
 
       // Step 1: Post projects
       const { data: projectData, error: projectError } = await supabase.functions.invoke("bot-post-projects");
-      if (projectError) throw new Error(`Projects: ${projectError.message}`);
+      if (projectError) {
+        console.error("Project error:", projectError);
+        throw new Error(`Projects failed: ${projectError.message}`);
+      }
       totalProjects = projectData?.created || 0;
+      console.log(`Projects created: ${totalProjects}`);
 
       toast({
         title: "Projects Created!",
-        description: `Step 2/3: Submitting bids on ${totalProjects} projects...`,
+        description: `Step 2/4: Submitting bids on ${totalProjects} projects...`,
       });
 
-      // Wait a bit for projects to be indexed
+      // Wait for projects to be indexed
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       // Step 2: Submit bids
       const { data: bidData, error: bidError } = await supabase.functions.invoke("bot-submit-bids");
-      if (bidError) throw new Error(`Bids: ${bidError.message}`);
+      if (bidError) {
+        console.error("Bid error:", bidError);
+        throw new Error(`Bids failed: ${bidError.message}`);
+      }
       totalBids = bidData?.created || 0;
+      console.log(`Bids submitted: ${totalBids}`);
 
       toast({
         title: "Bids Submitted!",
-        description: `Step 3/3: Creating contracts...`,
+        description: `Step 3/4: Creating contracts...`,
       });
 
-      // Wait a bit for bids to be processed
+      // Wait for bids to be processed
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       // Step 3: Accept bids and create contracts
       const { data: contractData, error: contractError } = await supabase.functions.invoke("bot-accept-bids");
-      if (contractError) throw new Error(`Contracts: ${contractError.message}`);
+      if (contractError) {
+        console.error("Contract error:", contractError);
+        throw new Error(`Contracts failed: ${contractError.message}`);
+      }
       totalContracts = contractData?.accepted || 0;
+      console.log(`Contracts created: ${totalContracts}`);
+
+      // Step 4: Process payments (if enabled)
+      if (status?.paymentsEnabled) {
+        toast({
+          title: "Contracts Created!",
+          description: `Step 4/4: Processing test payments...`,
+        });
+
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        const { data: paymentData, error: paymentError } = await supabase.functions.invoke("bot-complete-contracts");
+        if (paymentError) {
+          console.error("Payment error:", paymentError);
+          // Don't throw - payments are optional
+          console.warn("Payments failed but continuing:", paymentError.message);
+        } else {
+          totalPayments = paymentData?.paid || 0;
+          console.log(`Payments processed: ${totalPayments}`);
+        }
+      }
 
       // Success!
+      const summary = [
+        `${totalProjects} projects`,
+        `${totalBids} bids`,
+        `${totalContracts} contracts`
+      ];
+      
+      if (status?.paymentsEnabled && totalPayments > 0) {
+        summary.push(`${totalPayments} payments`);
+      }
+
       toast({
         title: "✅ Bot Activity Generated!",
-        description: `Created ${totalProjects} projects, ${totalBids} bids, and ${totalContracts} contracts!`,
+        description: `Created ${summary.join(", ")}!`,
       });
 
       await loadStats();
     } catch (error: any) {
+      console.error("Activity generation error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to generate bot activity",
