@@ -32,7 +32,7 @@ export const paymentService = {
     };
   },
 
-  async createPaymentIntent(contractId: string) {
+  async createPaymentIntent(contractId: string, captureMethod: "automatic" | "manual" = "manual") {
     const { data: contract, error: contractError } = await supabase
       .from("contracts")
       .select(`
@@ -69,6 +69,7 @@ export const paymentService = {
           contractId,
           platformFee: Math.round(platformFee * 100),
           paymentProcessingFee: Math.round(paymentProcessingFee * 100),
+          captureMethod, // Pass capture method to API
         }),
       });
 
@@ -154,16 +155,22 @@ export const paymentService = {
   },
 
   async confirmPayment(contractId: string, paymentIntentId: string) {
+    // Set payment to "held" status with 48-hour approval window
+    const approvalDeadline = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48 hours
+
     const { data, error } = await supabase
       .from("contracts")
       .update({
-        payment_status: "confirmed",
+        payment_status: "held",
         stripe_payment_intent_id: paymentIntentId,
+        client_approval_deadline: approvalDeadline.toISOString(),
+        auto_release_eligible_at: approvalDeadline.toISOString(),
       })
       .eq("id", contractId)
       .select()
       .single();
 
+    console.log("confirmPayment (held):", { data, error, approvalDeadline });
     return { data, error };
   },
 
@@ -174,22 +181,74 @@ export const paymentService = {
     processingFee: number,
     totalAmount: number
   ) {
+    // Set payment to "held" with approval window
+    const approvalDeadline = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48 hours
+
     const { data, error } = await supabase
       .from("contracts")
       .update({
-        payment_status: "confirmed",
+        payment_status: "held",
         stripe_payment_intent_id: paymentIntentId,
         platform_fee: platformFee,
         payment_processing_fee: processingFee,
         total_amount: totalAmount,
+        client_approval_deadline: approvalDeadline.toISOString(),
+        auto_release_eligible_at: approvalDeadline.toISOString(),
       })
       .eq("id", contractId)
       .select()
       .single();
 
-    console.log("updateContractPayment:", { data, error });
+    console.log("updateContractPayment (held):", { data, error, approvalDeadline });
     if (error) console.error("Contract payment update error:", error);
     return { data, error };
+  },
+
+  async capturePayment(contractId: string, method: "client_approval" | "auto_release" | "admin_release") {
+    // Get contract and payment intent
+    const { data: contract, error: contractError } = await supabase
+      .from("contracts")
+      .select("stripe_payment_intent_id")
+      .eq("id", contractId)
+      .single();
+
+    if (contractError || !contract?.stripe_payment_intent_id) {
+      return { data: null, error: contractError || new Error("No payment intent found") };
+    }
+
+    try {
+      // Call API to capture the payment
+      const response = await fetch("/api/stripe/capture-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          paymentIntentId: contract.stripe_payment_intent_id,
+        }),
+      });
+
+      const { success, error } = await response.json();
+      if (error) throw new Error(error);
+
+      // Update contract to released status
+      const { data, error: updateError } = await supabase
+        .from("contracts")
+        .update({
+          payment_status: "released",
+          payment_captured_at: new Date().toISOString(),
+          escrow_released_method: method,
+        })
+        .eq("id", contractId)
+        .select()
+        .single();
+
+      console.log("capturePayment:", { method, success, data, updateError });
+      if (updateError) console.error("Contract release update error:", updateError);
+
+      return { data, error: updateError };
+    } catch (err) {
+      console.error("Payment capture error:", err);
+      return { data: null, error: err };
+    }
   },
 
   async getStripe() {

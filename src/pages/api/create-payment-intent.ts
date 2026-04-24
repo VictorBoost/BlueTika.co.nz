@@ -1,9 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
-import { supabase } from "@/integrations/supabase/client";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2025-02-24.acacia",
+  apiVersion: "2024-12-18.acacia",
 });
 
 export default async function handler(
@@ -14,56 +13,33 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  const { amount, contractId, platformFee, paymentProcessingFee, captureMethod = "manual" } = req.body;
+
+  if (!amount || !contractId) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
   try {
-    const { amount, contractId, platformFee, paymentProcessingFee } = req.body;
-
-    // Get contract details to fetch provider's Stripe account
-    const { data: contract, error: contractError } = await supabase
-      .from("contracts")
-      .select(`
-        provider_id,
-        profiles!contracts_provider_id_fkey(stripe_account_id, stripe_onboarding_complete)
-      `)
-      .eq("id", contractId)
-      .single();
-
-    if (contractError || !contract) {
-      return res.status(404).json({ error: "Contract not found" });
-    }
-
-    const providerProfile = contract.profiles as any;
-    const stripeAccountId = providerProfile?.stripe_account_id;
-    const onboardingComplete = providerProfile?.stripe_onboarding_complete;
-
-    if (!stripeAccountId || !onboardingComplete) {
-      return res.status(400).json({ 
-        error: "Provider has not completed Stripe onboarding" 
-      });
-    }
-
-    // Calculate application fee (BlueTika's commission)
-    // platformFee is already calculated as percentage of contract amount
-    const applicationFeeAmount = Math.round(platformFee * 100); // Convert to cents
-
-    // Create payment intent with Stripe Connect
     const paymentIntent = await stripe.paymentIntents.create({
-      amount, // Total amount in cents (contract + platform fee + processing fee)
+      amount,
       currency: "nzd",
-      application_fee_amount: applicationFeeAmount, // BlueTika's commission
-      transfer_data: {
-        destination: stripeAccountId, // Provider's connected account
-      },
+      capture_method: captureMethod, // "manual" holds funds, "automatic" charges immediately
       metadata: {
         contractId,
-        platformFee: platformFee.toString(),
-        paymentProcessingFee: paymentProcessingFee.toString(),
+        platformFee: platformFee?.toString() || "0",
+        paymentProcessingFee: paymentProcessingFee?.toString() || "0",
       },
-      description: `BlueTika Contract ${contractId}`,
+      description: `BlueTika Contract #${contractId}`,
+      statement_descriptor: "BlueTika",
     });
 
-    res.status(200).json({ clientSecret: paymentIntent.client_secret });
-  } catch (error: any) {
+    return res.status(200).json({
+      clientSecret: paymentIntent.client_secret,
+    });
+  } catch (error) {
     console.error("Payment intent creation error:", error);
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({
+      error: error instanceof Error ? error.message : "Failed to create payment intent",
+    });
   }
 }

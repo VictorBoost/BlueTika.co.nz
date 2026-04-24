@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -987,15 +987,19 @@ export type Database = {
       contracts: {
         Row: {
           after_photos_submitted_at: string | null
+          auto_release_eligible_at: string | null
           bid_id: string
+          client_approval_deadline: string | null
           client_dispute_deadline: string | null
           client_id: string
           completed_at: string | null
           created_at: string | null
+          escrow_released_method: string | null
           final_amount: number
           funds_released_at: string | null
           google_calendar_event_id: string | null
           id: string
+          payment_captured_at: string | null
           payment_processing_fee: number | null
           payment_status: string | null
           platform_fee: number | null
@@ -1012,15 +1016,19 @@ export type Database = {
         }
         Insert: {
           after_photos_submitted_at?: string | null
+          auto_release_eligible_at?: string | null
           bid_id: string
+          client_approval_deadline?: string | null
           client_dispute_deadline?: string | null
           client_id: string
           completed_at?: string | null
           created_at?: string | null
+          escrow_released_method?: string | null
           final_amount: number
           funds_released_at?: string | null
           google_calendar_event_id?: string | null
           id?: string
+          payment_captured_at?: string | null
           payment_processing_fee?: number | null
           payment_status?: string | null
           platform_fee?: number | null
@@ -1037,15 +1045,19 @@ export type Database = {
         }
         Update: {
           after_photos_submitted_at?: string | null
+          auto_release_eligible_at?: string | null
           bid_id?: string
+          client_approval_deadline?: string | null
           client_dispute_deadline?: string | null
           client_id?: string
           completed_at?: string | null
           created_at?: string | null
+          escrow_released_method?: string | null
           final_amount?: number
           funds_released_at?: string | null
           google_calendar_event_id?: string | null
           id?: string
+          payment_captured_at?: string | null
           payment_processing_fee?: number | null
           payment_status?: string | null
           platform_fee?: number | null
