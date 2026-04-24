@@ -519,6 +519,13 @@ export default function ProjectDetail() {
 
         <main className="flex-1 py-12">
           <div className="container max-w-5xl">
+            <Alert className="mb-6 border-accent bg-accent/5">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Payment Protection Notice:</strong> All communication and payments must happen within BlueTika. Once you submit 'After' photos, the Client has 24 hours to raise a dispute. After payment release, workmanship guarantees are handled directly between parties. Funds are released every Friday.
+              </AlertDescription>
+            </Alert>
+
             <div className="grid lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 space-y-6">
                 <Card>

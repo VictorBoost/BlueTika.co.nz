@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Upload, X, AlertTriangle, CheckCircle, Clock, Camera } from "lucide-react";
+import { Upload, X, AlertTriangle, CheckCircle, Clock, Camera, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -165,6 +165,15 @@ export function EvidencePhotoUpload({
           <AlertTriangle className="w-4 h-4 text-yellow-600" />
           <AlertDescription className="text-sm">
             <strong>Important:</strong> Photos can be changed until you click Confirm. Once confirmed they are permanently locked for guarantee and dispute purposes. This protects both parties.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {photoType === "after" && uploaderRole === "provider" && (
+        <Alert className="border-accent bg-accent/5 mb-4">
+          <AlertCircle className="w-4 h-4" />
+          <AlertDescription className="text-sm">
+            <strong>24-Hour Dispute Window:</strong> Once you confirm these 'After' photos, the client has exactly 24 hours to review and raise any disputes. After 24 hours, the payment is considered earned and will be released on Friday.
           </AlertDescription>
         </Alert>
       )}

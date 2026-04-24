@@ -14,7 +14,7 @@ import { paymentService } from "@/services/paymentService";
 import { receiptService } from "@/services/receiptService";
 import { notificationService } from "@/services/notificationService";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, HelpCircle, ShieldCheck, CheckCircle2, Calendar } from "lucide-react";
+import { Loader2, HelpCircle, ShieldCheck, CheckCircle2, Calendar, AlertCircle } from "lucide-react";
 import { ProgressSteps } from "@/components/ProgressSteps";
 import {
   Tooltip,
@@ -376,6 +376,13 @@ export default function Checkout() {
           <div className="mb-8">
             <ProgressSteps steps={steps} />
           </div>
+
+          <Alert className="mb-6 border-accent bg-accent/5">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Payment Protection Notice:</strong> To keep your funds safe, all communication and extra payments must happen within BlueTika. Once the Service Provider submits 'After' photos, you have 24 hours to raise a dispute. Any workmanship guarantees after payment release are handled directly between you and the Provider. Approved funds are released every Friday.
+            </AlertDescription>
+          </Alert>
 
           {paymentConfirmed ? (
             <Card className="border-success">
