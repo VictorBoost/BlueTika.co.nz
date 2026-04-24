@@ -520,13 +520,14 @@ export default function BotLab() {
               <div className="mt-4 p-4 bg-muted rounded-lg">
                 <p className="text-sm font-semibold mb-2 flex items-center gap-2">
                   <Zap className="w-4 h-4 text-accent" />
-                  What "Generate Bot Activity" Does:
+                  Automatic Bot Activity:
                 </p>
                 <ul className="text-sm space-y-1 text-muted-foreground">
-                  <li>✓ Step 1: Bots post 5-8 realistic projects each (human-like listings)</li>
-                  <li>✓ Step 2: Bots submit 1-2 competitive bids per project</li>
-                  <li>✓ Step 3: Bots accept winning bids and create contracts</li>
-                  <li>✓ Result: Full marketplace with projects, bids, and active contracts!</li>
+                  <li>🤖 Bots automatically create projects every 3-6 hours (randomized)</li>
+                  <li>💼 Provider bots submit competitive bids on new projects</li>
+                  <li>✅ Client bots accept winning bids and create contracts</li>
+                  <li>💳 Sandbox Stripe payments processed (test mode only)</li>
+                  <li>⚡ Manual trigger: Use "Generate Bot Activity" button above</li>
                 </ul>
               </div>
               
@@ -534,7 +535,7 @@ export default function BotLab() {
                 <Alert className="mt-4 border-yellow-500 bg-yellow-500/10">
                   <AlertTriangle className="h-4 w-4 text-yellow-500" />
                   <AlertDescription className="text-yellow-600 dark:text-yellow-400">
-                    Enable bot automation above to activate these quick actions
+                    Enable bot automation above to activate automatic and manual bot activity
                   </AlertDescription>
                 </Alert>
               )}
