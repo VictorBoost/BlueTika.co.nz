@@ -1,10 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import Stripe from "https://esm.sh/stripe@14.21.0";
-
-const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-  apiVersion: "2025-02-24.acacia",
-});
 
 serve(async (req) => {
   try {
@@ -19,7 +14,7 @@ serve(async (req) => {
       }
     );
 
-    console.log("Auto-release job started at:", new Date().toISOString());
+    console.log("Escrow flagging job started at:", new Date().toISOString());
 
     // Get auto-release window from settings (default 10 seconds for testing, 172800 for 48 hours production)
     const { data: settingsData } = await supabaseClient
@@ -29,77 +24,80 @@ serve(async (req) => {
       .maybeSingle();
 
     const windowSeconds = parseInt(settingsData?.setting_value || "10");
-    console.log("Auto-release window:", windowSeconds, "seconds");
+    console.log("Review window:", windowSeconds, "seconds");
 
-    // Find all contracts eligible for auto-release
+    // Find all contracts that need manual review (past deadline, still held)
     const now = new Date();
-    const { data: eligibleContracts, error: fetchError } = await supabaseClient
+    const { data: needsReviewContracts, error: fetchError } = await supabaseClient
       .from("contracts")
       .select(`
         id,
-        stripe_payment_intent_id,
         provider_id,
         client_id,
         auto_release_eligible_at,
         project:projects(title)
       `)
       .eq("payment_status", "held")
+      .eq("escrow_needs_review", false)
       .not("auto_release_eligible_at", "is", null)
       .lte("auto_release_eligible_at", now.toISOString());
 
     if (fetchError) {
-      console.error("Error fetching eligible contracts:", fetchError);
+      console.error("Error fetching contracts:", fetchError);
       throw fetchError;
     }
 
-    console.log(`Found ${eligibleContracts?.length || 0} contracts eligible for auto-release`);
+    console.log(`Found ${needsReviewContracts?.length || 0} contracts needing manual review`);
 
-    let releasedCount = 0;
+    let flaggedCount = 0;
     const errors: any[] = [];
 
-    for (const contract of eligibleContracts || []) {
+    for (const contract of needsReviewContracts || []) {
       try {
-        console.log(`Processing contract ${contract.id}, payment intent: ${contract.stripe_payment_intent_id}`);
+        console.log(`Flagging contract ${contract.id} for manual review`);
 
-        // Capture the payment in Stripe
-        await stripe.paymentIntents.capture(contract.stripe_payment_intent_id);
-
-        // Update contract to released status
+        // Flag contract as needing review (don't auto-release)
         const { error: updateError } = await supabaseClient
           .from("contracts")
           .update({
-            payment_status: "released",
-            payment_captured_at: new Date().toISOString(),
-            escrow_released_method: "auto_release",
+            escrow_needs_review: true,
           })
           .eq("id", contract.id);
 
         if (updateError) {
-          console.error(`Failed to update contract ${contract.id}:`, updateError);
+          console.error(`Failed to flag contract ${contract.id}:`, updateError);
           errors.push({ contractId: contract.id, error: updateError });
           continue;
+        }
+
+        // Create notification for admin (sam@bluetika.co.nz)
+        const { data: adminProfile } = await supabaseClient
+          .from("profiles")
+          .select("id")
+          .eq("email", "sam@bluetika.co.nz")
+          .single();
+
+        if (adminProfile) {
+          await supabaseClient.from("notifications").insert({
+            user_id: adminProfile.id,
+            title: "Payment Needs Review",
+            message: `Contract "${contract.project?.title}" has been held for ${Math.floor(windowSeconds / 3600)} hours. Client has not approved. Manual review required.`,
+            type: "payment",
+            related_contract_id: contract.id,
+          });
         }
 
         // Create notification for provider
         await supabaseClient.from("notifications").insert({
           user_id: contract.provider_id,
-          title: "Payment Released",
-          message: `Payment for "${contract.project?.title}" has been auto-released. Funds will arrive in 2-3 business days.`,
+          title: "Payment Under Review",
+          message: `Payment for "${contract.project?.title}" is being reviewed by admin. You'll be notified once approved.`,
           type: "payment",
           related_contract_id: contract.id,
         });
 
-        // Create notification for client
-        await supabaseClient.from("notifications").insert({
-          user_id: contract.client_id,
-          title: "Payment Auto-Released",
-          message: `Payment for "${contract.project?.title}" was auto-released after the approval period expired.`,
-          type: "payment",
-          related_contract_id: contract.id,
-        });
-
-        releasedCount++;
-        console.log(`✅ Successfully released payment for contract ${contract.id}`);
+        flaggedCount++;
+        console.log(`✅ Successfully flagged contract ${contract.id} for review`);
       } catch (error) {
         console.error(`Error processing contract ${contract.id}:`, error);
         errors.push({ contractId: contract.id, error: error instanceof Error ? error.message : String(error) });
@@ -109,8 +107,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        releasedCount,
-        eligibleCount: eligibleContracts?.length || 0,
+        flaggedCount,
+        eligibleCount: needsReviewContracts?.length || 0,
         errors: errors.length > 0 ? errors : undefined,
         timestamp: new Date().toISOString(),
         windowSeconds,
@@ -121,7 +119,7 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error("Auto-release job error:", error);
+    console.error("Escrow flagging job error:", error);
     return new Response(JSON.stringify({
       success: false,
       error: error instanceof Error ? error.message : String(error),

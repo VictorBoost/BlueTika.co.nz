@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -994,6 +994,7 @@ export type Database = {
           client_id: string
           completed_at: string | null
           created_at: string | null
+          escrow_needs_review: boolean | null
           escrow_released_method: string | null
           final_amount: number
           funds_released_at: string | null
@@ -1023,6 +1024,7 @@ export type Database = {
           client_id: string
           completed_at?: string | null
           created_at?: string | null
+          escrow_needs_review?: boolean | null
           escrow_released_method?: string | null
           final_amount: number
           funds_released_at?: string | null
@@ -1052,6 +1054,7 @@ export type Database = {
           client_id?: string
           completed_at?: string | null
           created_at?: string | null
+          escrow_needs_review?: boolean | null
           escrow_released_method?: string | null
           final_amount?: number
           funds_released_at?: string | null

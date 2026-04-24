@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Clock, CheckCircle2, AlertTriangle, DollarSign } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function EscrowManagementPage() {
   const router = useRouter();
@@ -48,7 +49,7 @@ export default function EscrowManagementPage() {
   }
 
   async function loadData() {
-    // Load all contracts with held payments
+    // Load all contracts with held payments OR needing review
     const { data: contracts } = await supabase
       .from("contracts")
       .select(`
@@ -57,7 +58,7 @@ export default function EscrowManagementPage() {
         client:profiles!contracts_client_id_fkey(full_name, email),
         provider:profiles!contracts_provider_id_fkey(full_name, email)
       `)
-      .eq("payment_status", "held")
+      .or("payment_status.eq.held,escrow_needs_review.eq.true")
       .order("auto_release_eligible_at", { ascending: true });
 
     setHeldContracts(contracts || []);
@@ -162,9 +163,9 @@ export default function EscrowManagementPage() {
         {/* Settings Card */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Auto-Release Settings</CardTitle>
+            <CardTitle>Escrow Review Window</CardTitle>
             <CardDescription>
-              Configure how long payments are held before automatic release
+              How long to wait for client approval before flagging for manual admin review
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -204,10 +205,10 @@ export default function EscrowManagementPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Clock className="h-5 w-5" />
-              Held Payments ({heldContracts.length})
+              Escrow Payments ({heldContracts.length})
             </CardTitle>
             <CardDescription>
-              Payments awaiting client approval or auto-release
+              Payments held for client approval. After {Math.floor(settings.autoReleaseWindowSeconds / 3600)} hours without approval, manual review is required.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -224,6 +225,7 @@ export default function EscrowManagementPage() {
                 {heldContracts.map((contract) => {
                   const deadline = new Date(contract.auto_release_eligible_at);
                   const isPastDeadline = now > deadline;
+                  const needsReview = contract.escrow_needs_review;
                   const hoursRemaining = Math.max(0, Math.floor((deadline.getTime() - now.getTime()) / (1000 * 60 * 60)));
 
                   return (
@@ -239,8 +241,8 @@ export default function EscrowManagementPage() {
                               Provider: {contract.provider?.full_name} ({contract.provider?.email})
                             </p>
                           </div>
-                          <Badge variant={isPastDeadline ? "destructive" : "secondary"}>
-                            {isPastDeadline ? "Eligible for Release" : `${hoursRemaining}h remaining`}
+                          <Badge variant={needsReview ? "destructive" : (isPastDeadline ? "destructive" : "secondary")}>
+                            {needsReview ? "⚠️ Needs Review" : (isPastDeadline ? "Past Deadline" : `${hoursRemaining}h remaining`)}
                           </Badge>
                         </div>
 
@@ -261,6 +263,15 @@ export default function EscrowManagementPage() {
                           </div>
                         </div>
 
+                        {needsReview && (
+                          <Alert className="mb-4">
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertDescription>
+                              Client has not approved within {Math.floor(settings.autoReleaseWindowSeconds / 3600)} hours. Manual review required before release.
+                            </AlertDescription>
+                          </Alert>
+                        )}
+
                         <div className="flex gap-2">
                           <Button
                             size="sm"
@@ -273,16 +284,28 @@ export default function EscrowManagementPage() {
                             ) : (
                               <CheckCircle2 className="w-4 h-4 mr-2" />
                             )}
-                            Manual Release
+                            {needsReview ? "Review & Approve" : "Manual Release"}
                           </Button>
                         </div>
 
                         <AlertDialog open={showReleaseDialog === contract.id} onOpenChange={(open) => !open && setShowReleaseDialog(null)}>
                           <AlertDialogContent>
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Manually Release Payment?</AlertDialogTitle>
+                              <AlertDialogTitle>
+                                {needsReview ? "Approve After Review?" : "Manually Release Payment?"}
+                              </AlertDialogTitle>
                               <AlertDialogDescription>
-                                This will immediately capture and release ${contract.final_amount?.toFixed(2)} to the service provider.
+                                {needsReview ? (
+                                  <>
+                                    Client has not approved this payment within the {Math.floor(settings.autoReleaseWindowSeconds / 3600)}-hour window.
+                                    <br /><br />
+                                    After reviewing the work, approve to release ${contract.final_amount?.toFixed(2)} to the provider.
+                                  </>
+                                ) : (
+                                  <>
+                                    This will immediately capture and release ${contract.final_amount?.toFixed(2)} to the service provider.
+                                  </>
+                                )}
                                 <br /><br />
                                 <strong>This action cannot be undone.</strong>
                               </AlertDialogDescription>
