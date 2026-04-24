@@ -127,6 +127,17 @@ export default function Privacy() {
               <p className="mt-4">
                 Deleted account data is anonymized or permanently removed within 30 days, except where legal retention is required.
               </p>
+
+              <h3 className="text-xl font-semibold mb-3 mt-6">7.1 Project and Contract Data</h3>
+              <ul>
+                <li><strong>Draft Projects:</strong> Retained indefinitely until published or manually deleted by you</li>
+                <li><strong>Active Projects:</strong> Visible in the public feed until deadline + 7 days, then automatically expired (data retained in your account)</li>
+                <li><strong>Archived Contracts:</strong> Completed and cancelled contracts are moved to your archive and retained for 7 years for legal/tax compliance</li>
+                <li><strong>Cancellation Requests:</strong> Stored with contract records for dispute resolution purposes</li>
+              </ul>
+              <p className="mt-4 text-sm text-muted-foreground">
+                While expired and cancelled contracts are removed from public view, they remain accessible in your account dashboard for record-keeping and tax purposes.
+              </p>
             </section>
 
             <section className="mb-8">

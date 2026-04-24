@@ -101,6 +101,29 @@ export default function Terms() {
                 <li>Receive payment upon contract completion and mutual review</li>
                 <li>Manage staff and subscriptions (Silver+ tier)</li>
               </ul>
+
+              <h3 className="text-xl font-semibold mb-3 mt-6">5.3 Project Lifecycle</h3>
+              <p className="mb-3">
+                Projects follow a managed lifecycle to maintain platform quality:
+              </p>
+              <ul>
+                <li><strong>Draft Projects:</strong> Saved projects remain in your account indefinitely until published or manually deleted</li>
+                <li><strong>Unassigned Projects:</strong> Expire from the public feed 7 days after the set deadline if no bid is accepted</li>
+                <li><strong>Overdue Projects:</strong> The system may auto-cancel inactive, overdue projects to keep the marketplace clean</li>
+                <li><strong>Archive:</strong> Completed and cancelled contracts are moved to your "Archive" tab. They are not permanently deleted and remain accessible for your records</li>
+              </ul>
+
+              <h3 className="text-xl font-semibold mb-3 mt-6">5.4 Cancellation Requests</h3>
+              <p className="mb-3">
+                Either party may request contract cancellation:
+              </p>
+              <ul>
+                <li>The requesting party must provide a reason for cancellation</li>
+                <li>The other party has <strong>48 hours</strong> to respond (approve or reject)</li>
+                <li>If no response is received within 48 hours, the contract is automatically cancelled</li>
+                <li>Approved cancellations will process refunds according to the stage of work completion</li>
+                <li>Rejected cancellation requests require both parties to continue the contract or escalate to dispute resolution</li>
+              </ul>
             </section>
 
             <section className="mb-8">
