@@ -130,8 +130,8 @@ export default function Terms() {
               <h2 className="text-2xl font-bold mb-4">6. Payments and Fees</h2>
               <h3 className="text-xl font-semibold mb-3">6.1 Platform Fees</h3>
               <ul>
-                <li><strong>Commission:</strong> BlueTika charges providers a commission on completed contracts (tier-based: 8%-15%)</li>
-                <li><strong>Payment Processing:</strong> Stripe fees apply (typically ~2.9% + $0.30 NZD per transaction)</li>
+                <li><strong>Commission:</strong> BlueTika charges Service Providers a commission of 8% on completed contracts and no Lead Fees</li>
+                <li><strong>Payment Processing:</strong> BlueTika charges Clients a reduced Payment Processing fee of 2% only* (Stripe fees apply typically ~2.65%-3.65% + $0.30 NZD per transaction)</li>
                 <li><strong>Subscriptions:</strong> Optional paid features (logo removal, email hosting, custom URL, additional staff)</li>
               </ul>
 
@@ -139,7 +139,7 @@ export default function Terms() {
               <ul>
                 <li>Clients pay the agreed price upfront via Stripe</li>
                 <li>Funds are held securely until both parties submit reviews</li>
-                <li>Providers receive payment (minus commission) after reviews are completed</li>
+                <li>Providers receive payment (minus 8% commission) after reviews are completed</li>
                 <li>All amounts are in New Zealand Dollars (NZD)</li>
               </ul>
 
