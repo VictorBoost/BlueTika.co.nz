@@ -13,7 +13,7 @@ import { projectService } from "@/services/projectService";
 import { categoryService } from "@/services/categoryService";
 import { subcategoryService } from "@/services/subcategoryService";
 import type { Tables } from "@/integrations/supabase/types";
-import { supabase } from "@/integrations/supabase/supabase";
+import { supabase } from "@/integrations/supabase/client";
 
 type Project = Tables<"projects">;
 type Category = Tables<"categories">;
