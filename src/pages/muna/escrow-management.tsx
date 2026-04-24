@@ -116,16 +116,18 @@ export default function EscrowManagementPage() {
       // Send notifications
       await notificationService.createNotification(
         providerId,
-        "payment_released",
-        contractId,
-        `Admin has manually released payment for "${projectTitle}". Funds will arrive in 2-3 business days.`
+        "Payment Released",
+        `Admin has manually released payment for "${projectTitle}". Funds will arrive in 2-3 business days.`,
+        "payment",
+        contractId
       );
 
       await notificationService.createNotification(
         clientId,
-        "payment_released",
-        contractId,
-        `Admin has manually released payment for "${projectTitle}".`
+        "Payment Released",
+        `Admin has manually released payment for "${projectTitle}".`,
+        "payment",
+        contractId
       );
 
       toast({

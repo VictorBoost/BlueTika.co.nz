@@ -46,9 +46,10 @@ export function ClientApprovalCard({
 
       await notificationService.createNotification(
         providerId,
-        "payment_released",
-        contractId,
-        "Payment for \"" + projectTitle + "\" has been approved and released. Funds will arrive in 2-3 business days."
+        "Payment Released",
+        "Payment for \"" + projectTitle + "\" has been approved and released. Funds will arrive in 2-3 business days.",
+        "payment",
+        contractId
       );
 
       toast({
