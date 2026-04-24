@@ -824,6 +824,7 @@ export default function ProjectDetail() {
                             key={bid.id} 
                             bid={bid}
                             isProjectOwner={isOwner}
+                            currentUserId={currentUser?.id}
                             onAccept={handleAcceptBidClick}
                             onViewProvider={handleViewProvider}
                             accepting={accepting}

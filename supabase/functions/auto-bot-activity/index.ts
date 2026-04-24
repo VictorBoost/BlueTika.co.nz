@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  console.log("🤖 AUTO-BOT-ACTIVITY: Automatic activity cycle started");
+  console.log("🤖 AUTO-BOT-ACTIVITY: Checking if activity cycle should run");
   
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -19,6 +19,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
+    // Check if automation is enabled
     const { data: automationSetting } = await supabaseClient
       .from("platform_settings")
       .select("setting_value")
@@ -33,6 +34,45 @@ serve(async (req) => {
       );
     }
 
+    // Check last run time to implement 1-6 hour randomized interval
+    const { data: lastRunSetting } = await supabaseClient
+      .from("platform_settings")
+      .select("setting_value")
+      .eq("setting_key", "bot_last_activity_run")
+      .single();
+
+    const now = new Date();
+    let shouldRun = true;
+    let nextRunTime = null;
+
+    if (lastRunSetting?.setting_value) {
+      const lastRun = new Date(lastRunSetting.setting_value);
+      const hoursSinceLastRun = (now.getTime() - lastRun.getTime()) / (1000 * 60 * 60);
+      
+      // Random interval between 1-6 hours
+      const randomInterval = 1 + Math.random() * 5; // 1-6 hours
+      
+      if (hoursSinceLastRun < randomInterval) {
+        shouldRun = false;
+        nextRunTime = new Date(lastRun.getTime() + randomInterval * 60 * 60 * 1000);
+        console.log(`⏰ AUTO-BOT-ACTIVITY: Not enough time passed. Last run: ${hoursSinceLastRun.toFixed(2)}h ago, next run in ${(randomInterval - hoursSinceLastRun).toFixed(2)}h`);
+      }
+    }
+
+    if (!shouldRun) {
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: "Waiting for next scheduled run", 
+          skipped: true,
+          nextRunTime: nextRunTime?.toISOString()
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("🚀 AUTO-BOT-ACTIVITY: Starting automatic activity cycle");
+
     const results = {
       projects: 0,
       bids: 0,
@@ -45,9 +85,10 @@ serve(async (req) => {
       setTimeout(resolve, Math.floor(Math.random() * 2000) + 1000)
     );
 
+    // Step 1: Post Projects
     console.log("\n📝 AUTO-BOT-ACTIVITY: Step 1 - Posting projects...");
     try {
-      const projectCount = Math.floor(Math.random() * 6) + 3;
+      const projectCount = Math.floor(Math.random() * 6) + 3; // 3-8 projects
       console.log(`🎯 AUTO-BOT-ACTIVITY: Will create ${projectCount} projects`);
 
       const { data: clientBots } = await supabaseClient
@@ -63,14 +104,14 @@ serve(async (req) => {
           .select("id, name, subcategories(id, name)");
 
         const projectTemplates = [
-          { title: "Need plumber for leaking tap", budget: [80, 150], urgency: "within_week" },
-          { title: "Garden maintenance this weekend", budget: [100, 200], urgency: "flexible" },
-          { title: "Help moving furniture", budget: [150, 300], urgency: "urgent" },
-          { title: "House cleaning needed", budget: [80, 150], urgency: "within_week" },
-          { title: "Painting bedroom walls", budget: [300, 600], urgency: "flexible" },
-          { title: "Lawn mowing service", budget: [50, 100], urgency: "within_week" },
-          { title: "Handyman for odd jobs", budget: [150, 300], urgency: "flexible" },
-          { title: "Fence repair needed", budget: [400, 800], urgency: "urgent" }
+          { title: "Need plumber for leaking tap", basePrice: 150, urgency: "within_week" },
+          { title: "Garden maintenance this weekend", basePrice: 200, urgency: "flexible" },
+          { title: "Help moving furniture", basePrice: 250, urgency: "urgent" },
+          { title: "House cleaning needed", basePrice: 120, urgency: "within_week" },
+          { title: "Painting bedroom walls", basePrice: 400, urgency: "flexible" },
+          { title: "Lawn mowing service", basePrice: 80, urgency: "within_week" },
+          { title: "Handyman for odd jobs", basePrice: 180, urgency: "flexible" },
+          { title: "Fence repair needed", basePrice: 500, urgency: "urgent" }
         ];
 
         for (const bot of clientBots.slice(0, projectCount)) {
@@ -78,7 +119,10 @@ serve(async (req) => {
           
           const template = projectTemplates[Math.floor(Math.random() * projectTemplates.length)];
           const category = categories?.[Math.floor(Math.random() * (categories?.length || 1))];
-          const budget = Math.floor(Math.random() * (template.budget[1] - template.budget[0])) + template.budget[0];
+          
+          // Reduce budget by 40-60% for realistic pricing
+          const reductionFactor = 0.4 + Math.random() * 0.2; // 40-60%
+          const budget = Math.floor(template.basePrice * (1 - reductionFactor));
 
           const { error } = await supabaseClient
             .from("projects")
@@ -107,9 +151,10 @@ serve(async (req) => {
 
     await randomDelay();
 
+    // Step 2: Submit Bids
     console.log("\n💰 AUTO-BOT-ACTIVITY: Step 2 - Submitting bids...");
     try {
-      const bidCount = Math.floor(Math.random() * 11) + 5;
+      const bidCount = Math.floor(Math.random() * 11) + 5; // 5-15 bids
       console.log(`🎯 AUTO-BOT-ACTIVITY: Will submit ${bidCount} bids`);
 
       const { data: openProjects } = await supabaseClient
@@ -141,8 +186,9 @@ serve(async (req) => {
 
           if (!existing) {
             const baseAmount = project.budget || 200;
-            const variation = Math.random() * 0.3 - 0.15;
-            const bidAmount = Math.max(50, Math.round(baseAmount * (1 + variation)));
+            // 5-20% cheaper: random discount between 0.05 and 0.20
+            const discountPercent = 0.05 + (Math.random() * 0.15);
+            const bidAmount = Math.max(50, Math.round(baseAmount * (1 - discountPercent)));
 
             const { error } = await supabaseClient
               .from("bids")
@@ -170,9 +216,10 @@ serve(async (req) => {
 
     await randomDelay();
 
+    // Step 3: Accept Bids (Create Contracts)
     console.log("\n📋 AUTO-BOT-ACTIVITY: Step 3 - Accepting bids...");
     try {
-      const acceptCount = Math.floor(Math.random() * 3) + 1;
+      const acceptCount = Math.floor(Math.random() * 3) + 1; // 1-3 acceptances
       console.log(`🎯 AUTO-BOT-ACTIVITY: Will accept ${acceptCount} bids`);
 
       const { data: projectsWithBids } = await supabaseClient
@@ -247,6 +294,7 @@ serve(async (req) => {
 
     await randomDelay();
 
+    // Step 4: Process Payments
     console.log("\n💳 AUTO-BOT-ACTIVITY: Step 4 - Processing payments...");
     try {
       const { data: paymentSetting } = await supabaseClient
@@ -280,9 +328,10 @@ serve(async (req) => {
       results.errors.push(`Payments: ${err.message}`);
     }
 
+    // Update last run timestamp
     await supabaseClient
       .from("platform_settings")
-      .update({ setting_value: new Date().toISOString() })
+      .update({ setting_value: now.toISOString() })
       .eq("setting_key", "bot_last_activity_run");
 
     console.log("\n📊 AUTO-BOT-ACTIVITY: Cycle complete");
@@ -298,7 +347,7 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         results,
-        timestamp: new Date().toISOString()
+        timestamp: now.toISOString()
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

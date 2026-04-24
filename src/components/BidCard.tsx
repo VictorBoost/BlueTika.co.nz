@@ -30,9 +30,10 @@ interface BidCardProps {
   onAccept?: (bidId: string) => void;
   onViewProvider?: (providerId: string) => void;
   accepting?: boolean;
+  currentUserId?: string;
 }
 
-export function BidCard({ bid, isProjectOwner, onAccept, onViewProvider, accepting }: BidCardProps) {
+export function BidCard({ bid, isProjectOwner, onAccept, onViewProvider, accepting, currentUserId }: BidCardProps) {
   const [badges, setBadges] = useState<BadgeType[]>([]);
   const [loadingBadges, setLoadingBadges] = useState(true);
 
@@ -73,6 +74,9 @@ export function BidCard({ bid, isProjectOwner, onAccept, onViewProvider, accepti
   };
 
   const memberSince = formatMemberSince();
+  
+  // Only show bid amount to project owner or the bidder themselves
+  const canSeeBidAmount = isProjectOwner || currentUserId === bid.provider_id;
 
   return (
     <Card>
@@ -121,22 +125,30 @@ export function BidCard({ bid, isProjectOwner, onAccept, onViewProvider, accepti
               )}
             </div>
 
-            <div className="flex items-center gap-3 mt-3">
-              <CardDescription className="text-sm">
-                <span className="flex items-center gap-1">
-                  <DollarSign className="h-4 w-4" />
-                  <span className="font-semibold text-foreground text-lg">
-                    NZD ${bid.amount.toLocaleString()}
+            {canSeeBidAmount ? (
+              <div className="flex items-center gap-3 mt-3">
+                <CardDescription className="text-sm">
+                  <span className="flex items-center gap-1">
+                    <DollarSign className="h-4 w-4" />
+                    <span className="font-semibold text-foreground text-lg">
+                      NZD ${bid.amount.toLocaleString()}
+                    </span>
                   </span>
-                </span>
-              </CardDescription>
-              {bid.estimated_timeline && (
-                <CardDescription className="text-sm flex items-center gap-1">
-                  <Clock className="h-4 w-4" />
-                  <span>{bid.estimated_timeline}</span>
                 </CardDescription>
-              )}
-            </div>
+                {bid.estimated_timeline && (
+                  <CardDescription className="text-sm flex items-center gap-1">
+                    <Clock className="h-4 w-4" />
+                    <span>{bid.estimated_timeline}</span>
+                  </CardDescription>
+                )}
+              </div>
+            ) : (
+              <div className="mt-3">
+                <Badge variant="outline" className="bg-muted/50">
+                  Bid amount hidden until accepted
+                </Badge>
+              </div>
+            )}
           </div>
           <Badge variant="outline" className={statusColors[bid.status]}>
             {bid.status}
