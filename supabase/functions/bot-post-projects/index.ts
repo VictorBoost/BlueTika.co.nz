@@ -18,14 +18,20 @@ serve(async (req) => {
     console.log("🔧 BOT-POST-PROJECTS: Creating Supabase client");
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
     );
     console.log("✅ BOT-POST-PROJECTS: Supabase client created");
 
     console.log("🔍 BOT-POST-PROJECTS: Fetching active client bots");
     const { data: clientBots, error: botsError } = await supabaseClient
       .from("bot_accounts")
-      .select("profile_id, profiles!inner(full_name, city_region)")
+      .select("profile_id, profiles!inner(full_name, city_region, is_client)")
       .eq("bot_type", "client")
       .eq("is_active", true);
 
@@ -42,6 +48,18 @@ serve(async (req) => {
         JSON.stringify({ success: true, message: "No active client bots found", created: 0 }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Verify bots have is_client = true
+    const botsWithoutClientFlag = clientBots.filter(b => !(b.profiles as any)?.is_client);
+    if (botsWithoutClientFlag.length > 0) {
+      console.warn(`⚠️ BOT-POST-PROJECTS: ${botsWithoutClientFlag.length} bots don't have is_client=true, fixing...`);
+      for (const bot of botsWithoutClientFlag) {
+        await supabaseClient
+          .from("profiles")
+          .update({ is_client: true })
+          .eq("id", bot.profile_id);
+      }
     }
 
     console.log("🔍 BOT-POST-PROJECTS: Fetching categories");

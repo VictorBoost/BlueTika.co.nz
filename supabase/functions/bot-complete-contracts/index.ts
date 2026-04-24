@@ -79,15 +79,27 @@ serve(async (req) => {
             is_confirmed: true
           });
 
-        // Step 3: Mark work done - this triggers the 24-hour dispute window
+        // Step 3: Mark work done - this triggers the escrow holding period
         const workDoneAt = new Date().toISOString();
-        const clientDisputeDeadline = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+        
+        // Client has 48 hours from work_done_at to approve (aligned with platform settings)
+        const { data: settings } = await supabaseClient
+          .from("platform_settings")
+          .select("setting_value")
+          .eq("setting_key", "auto_release_window_seconds")
+          .maybeSingle();
+        
+        const windowSeconds = parseInt(settings?.setting_value || "172800"); // Default 48 hours
+        const clientApprovalDeadline = new Date(Date.now() + windowSeconds * 1000).toISOString();
 
         await supabaseClient
           .from("contracts")
           .update({
             work_done_at: workDoneAt,
-            client_dispute_deadline: clientDisputeDeadline
+            client_approval_deadline: clientApprovalDeadline,
+            auto_release_eligible_at: clientApprovalDeadline,
+            payment_status: "held",
+            status: "awaiting_fund_release"
           })
           .eq("id", contract.id);
 
@@ -166,7 +178,7 @@ serve(async (req) => {
             details: { 
               contract_id: contract.id, 
               work_done_at: workDoneAt,
-              client_dispute_deadline: clientDisputeDeadline
+              client_dispute_deadline: clientApprovalDeadline
             }
           });
 
