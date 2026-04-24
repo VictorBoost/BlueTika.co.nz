@@ -148,6 +148,15 @@ serve(async (req) => {
             .eq("id", contract.id);
         }
 
+        // Step 6: Update contract status to awaiting_fund_release (matches real user flow)
+        // This status is what the /muna/fund-releases panel filters for
+        await supabaseClient
+          .from("contracts")
+          .update({
+            status: "awaiting_fund_release"
+          })
+          .eq("id", contract.id);
+
         // Log bot activity
         await supabaseClient
           .from("bot_activity_logs")

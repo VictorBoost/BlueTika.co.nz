@@ -29,6 +29,7 @@
    └─> Sets ready_for_release_at: NOW
 
 6. 24-HOUR DISPUTE WINDOW (enforced)
+   └─> Contract status: "awaiting_fund_release"
    └─> Contract is NOT visible in /muna/fund-releases yet
    └─> Client could still dispute (but bots don't)
 
@@ -109,6 +110,11 @@ if (clientBot) {
 await supabaseClient.from("contracts").update({
   provider_dispute_deadline: deadline.toISOString(),  // 5 working days
   ready_for_release_at: now.toISOString()  // ✅ Eligible after 24h from this timestamp
+}).eq("id", contract.id);
+
+// Update status to awaiting_fund_release (matches real user flow)
+await supabaseClient.from("contracts").update({
+  status: "awaiting_fund_release"
 }).eq("id", contract.id);
 ```
 
