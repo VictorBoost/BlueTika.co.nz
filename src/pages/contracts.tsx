@@ -17,6 +17,7 @@ import { ProgressSteps } from "@/components/ProgressSteps";
 import { EvidencePhotoUpload } from "@/components/EvidencePhotoUpload";
 import { ReviewSubmissionModal } from "@/components/ReviewSubmissionModal";
 import { RoutineContractPrompt } from "@/components/RoutineContractPrompt";
+import { ClientApprovalCard } from "@/components/ClientApprovalCard";
 import { toast } from "@/hooks/use-toast";
 import { SafetyBanner } from "@/components/SafetyBanner";
 
@@ -368,6 +369,18 @@ export default function ContractsPage() {
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-4">
+                        {/* Client Approval Card - only for clients with held payments */}
+                        {isClient && contract.payment_status === "held" && (
+                          <ClientApprovalCard
+                            contractId={contract.id}
+                            clientApprovalDeadline={contract.client_approval_deadline}
+                            paymentStatus={contract.payment_status}
+                            providerId={contract.provider_id}
+                            projectTitle={contract.project?.title || "Project"}
+                            onApprovalComplete={() => loadContracts(user!.id)}
+                          />
+                        )}
+
                         {isPendingCancellation && (
                           <Alert variant="destructive">
                             <XCircle className="h-4 w-4" />
