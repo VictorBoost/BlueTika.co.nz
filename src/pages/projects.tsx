@@ -71,18 +71,21 @@ export default function Projects() {
     setLoading(true);
     const { data, error } = await projectService.getAllProjects();
     
+    console.log("Projects loaded:", { count: data?.length, error });
+    
     if (!error && data) {
-      // Filter to only show active projects (open, in_progress)
-      // Exclude: draft, expired, archived, completed, cancelled
-      const activeProjects = data.filter((p: any) => 
-        p.status === "open" || p.status === "in_progress"
+      // Show all projects EXCEPT draft, cancelled, archived
+      // Include: open, in_progress, assigned, completed, expired
+      const visibleProjects = data.filter((p: any) => 
+        p.status !== "draft" && p.status !== "cancelled" && p.status !== "archived"
       );
 
-      const projectsWithBidCount = activeProjects.map((project: any) => ({
+      const projectsWithBidCount = visibleProjects.map((project: any) => ({
         ...project,
-        bid_count: project.bids ? project.bids.length : 0
+        bid_count: Array.isArray(project.bids) ? project.bids.length : 0
       }));
       
+      console.log("Visible projects:", visibleProjects.length);
       setProjects(projectsWithBidCount);
     }
     setLoading(false);

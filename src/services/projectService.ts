@@ -54,7 +54,10 @@ export const projectService = {
   async getAllProjects(status?: string): Promise<{ data: Project[] | null; error: any }> {
     let query = supabase
       .from("projects")
-      .select("*")
+      .select(`
+        *,
+        bids(id)
+      `)
       .order("created_at", { ascending: false });
       
     if (status) {
@@ -62,6 +65,8 @@ export const projectService = {
     }
     
     const { data, error } = await query;
+    console.log("getAllProjects:", { count: data?.length, error });
+    if (error) console.error("Projects fetch error:", error);
     return { data, error };
   },
 
