@@ -177,22 +177,29 @@ serve(async (req) => {
             continue;
           }
 
-          const budgetMin = project.budget[0];
-          const budgetMax = project.budget[1];
-          const budget = Math.floor(Math.random() * (budgetMax - budgetMin) + budgetMin);
-
-          console.log(`  💰 BOT-POST-PROJECTS: Budget: NZD $${budget}, Category: ${category.name}, Urgency: ${project.urgency}`);
-
-          const { data: newProject, error: projectError } = await supabaseClient
+          // Generate project details
+          const title = projectTemplates[Math.floor(Math.random() * projectTemplates.length)];
+          const categoryId = categories[Math.floor(Math.random() * categories.length)].id;
+          
+          // Calculate realistic budget (40-60% lower than original high estimates)
+          const baseBudget = Math.floor(Math.random() * 1500) + 500; // Base: $500-$2000
+          const reductionFactor = 0.4 + Math.random() * 0.2; // 40-60% reduction
+          const budget = Math.floor(baseBudget * (1 - reductionFactor)); // Final realistic budget
+          
+          const description = `Looking for a professional to help with ${title.toLowerCase()}. Quality work required. Please provide your best quote.`;
+          
+          // Insert project
+          const { data: project, error: projectError } = await supabaseAdmin
             .from("projects")
             .insert({
               title,
               description,
-              category_id: category.id,
               budget,
-              urgency: project.urgency,
-              client_id: bot.profile_id,
-              status: "open"
+              category_id: categoryId,
+              location: locations[Math.floor(Math.random() * locations.length)],
+              user_id: botId,
+              status: "open",
+              is_bot: true
             })
             .select()
             .single();
