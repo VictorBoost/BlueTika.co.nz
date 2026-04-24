@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -689,6 +689,66 @@ export type Database = {
           {
             foreignKeyName: "bypass_attempts_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cancellation_requests: {
+        Row: {
+          auto_approval_deadline: string
+          contract_id: string
+          created_at: string | null
+          id: string
+          reason: string
+          requested_at: string | null
+          requester_id: string
+          requester_role: string
+          responded_at: string | null
+          response_note: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          auto_approval_deadline: string
+          contract_id: string
+          created_at?: string | null
+          id?: string
+          reason: string
+          requested_at?: string | null
+          requester_id: string
+          requester_role: string
+          responded_at?: string | null
+          response_note?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          auto_approval_deadline?: string
+          contract_id?: string
+          created_at?: string | null
+          id?: string
+          reason?: string
+          requested_at?: string | null
+          requester_id?: string
+          requester_role?: string
+          responded_at?: string | null
+          response_note?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cancellation_requests_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cancellation_requests_requester_id_fkey"
+            columns: ["requester_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -2293,6 +2353,7 @@ export type Database = {
           date_from: string | null
           date_preference: string | null
           date_to: string | null
+          deadline: string | null
           description: string
           expires_at: string | null
           id: string
@@ -2323,6 +2384,7 @@ export type Database = {
           date_from?: string | null
           date_preference?: string | null
           date_to?: string | null
+          deadline?: string | null
           description: string
           expires_at?: string | null
           id?: string
@@ -2353,6 +2415,7 @@ export type Database = {
           date_from?: string | null
           date_preference?: string | null
           date_to?: string | null
+          deadline?: string | null
           description?: string
           expires_at?: string | null
           id?: string

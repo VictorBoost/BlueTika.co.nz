@@ -157,7 +157,7 @@ serve(async (req) => {
     console.log(`🎯 BOT-POST-PROJECTS: Starting to create projects for ${clientBots.length} bots`);
 
     for (const bot of clientBots) {
-      const numProjects = Math.floor(Math.random() * 4) + 5;
+      const numProjects = Math.floor(Math.random() * 2) + 1;
       console.log(`\n👤 BOT-POST-PROJECTS: Processing bot ${bot.profile_id} - will create ${numProjects} projects`);
       
       for (let i = 0; i < numProjects; i++) {
@@ -177,29 +177,24 @@ serve(async (req) => {
             continue;
           }
 
-          // Generate project details
-          const title = projectTemplates[Math.floor(Math.random() * projectTemplates.length)];
-          const categoryId = categories[Math.floor(Math.random() * categories.length)].id;
-          
-          // Calculate realistic budget (40-60% lower than original high estimates)
-          const baseBudget = Math.floor(Math.random() * 1500) + 500; // Base: $500-$2000
+          // Calculate realistic budget (40-60% lower than template range)
+          const baseHigh = project.budget[1];
+          const baseLow = project.budget[0];
+          const baseBudget = Math.floor(Math.random() * (baseHigh - baseLow)) + baseLow;
           const reductionFactor = 0.4 + Math.random() * 0.2; // 40-60% reduction
-          const budget = Math.floor(baseBudget * (1 - reductionFactor)); // Final realistic budget
+          const budget = Math.floor(baseBudget * (1 - reductionFactor));
           
-          const description = `Looking for a professional to help with ${title.toLowerCase()}. Quality work required. Please provide your best quote.`;
-          
-          // Insert project
-          const { data: project, error: projectError } = await supabaseAdmin
+          console.log(`  💰 BOT-POST-PROJECTS: Budget: NZD $${budget} (reduced from $${baseBudget})`);
+
+          const { data: newProject, error: projectError } = await supabaseClient
             .from("projects")
             .insert({
               title,
               description,
               budget,
-              category_id: categoryId,
-              location: locations[Math.floor(Math.random() * locations.length)],
-              user_id: botId,
-              status: "open",
-              is_bot: true
+              category_id: category.id,
+              client_id: bot.profile_id,
+              status: "open"
             })
             .select()
             .single();

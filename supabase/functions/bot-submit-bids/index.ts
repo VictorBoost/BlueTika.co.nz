@@ -104,9 +104,9 @@ serve(async (req) => {
             continue;
           }
 
+          // Calculate competitive bid (20% lower than project budget for interactive pricing)
           const baseAmount = project.budget || 200;
-          const variation = Math.random() * 0.3 - 0.15;
-          const bidAmount = Math.max(50, Math.round(baseAmount * (1 + variation)));
+          const bidAmount = Math.floor(baseAmount * 0.8); // 20% discount to be competitive
 
           const years = Math.floor(Math.random() * 10) + 3;
           const city = (bot.profiles as any)?.city_region || "Auckland";
@@ -114,7 +114,7 @@ serve(async (req) => {
             .replace("{years}", years.toString())
             .replace("{city}", city);
 
-          console.log(`  💰 BOT-SUBMIT-BIDS: Submitting bid of NZD $${bidAmount} on project "${project.title}"`);
+          console.log(`  💰 BOT-SUBMIT-BIDS: Submitting bid of NZD $${bidAmount} (20% off $${baseAmount}) on project "${project.title}"`);
 
           const { data: newBid, error: bidError } = await supabaseClient
             .from("bids")
