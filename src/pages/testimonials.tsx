@@ -5,9 +5,11 @@ import { Footer } from "@/components/Footer";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Star, MapPin, Briefcase, Shield, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import Head from "next/head";
+import Link from "next/link";
 
 interface Review {
   id: string;
@@ -291,18 +293,16 @@ export default function TestimonialsPage() {
               Join thousands of Kiwis who've found reliable local help through BlueTika
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
-              <a
-                href="/projects"
-                className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-accent text-accent-foreground hover:bg-accent/90 h-11 px-8"
-              >
-                Browse Projects
-              </a>
-              <a
-                href="/post-project"
-                className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background border border-input hover:bg-accent hover:text-accent-foreground h-11 px-8"
-              >
-                Post Your Project
-              </a>
+              <Link href="/projects">
+                <Button className="bg-accent text-accent-foreground hover:bg-accent/90 h-11 px-8">
+                  Browse Projects
+                </Button>
+              </Link>
+              <Link href="/post-project">
+                <Button variant="outline" className="h-11 px-8">
+                  Post Your Project
+                </Button>
+              </Link>
             </div>
           </div>
         </section>
