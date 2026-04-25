@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Bot, Users, Activity, Zap, AlertTriangle, CheckCircle, TrendingUp, DollarSign, Skull, Trash2 } from "lucide-react";
+import { Bot, Users, Activity, Zap, AlertTriangle, CheckCircle, TrendingUp, DollarSign, Skull, Trash2, RefreshCw, MessageSquare } from "lucide-react";
 import { botLabService } from "@/services/botLabService";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -28,11 +28,21 @@ export default function BotLab() {
   const [togglingAutomation, setTogglingAutomation] = useState(false);
   const [togglingPayments, setTogglingPayments] = useState(false);
   const [generatingActivity, setGeneratingActivity] = useState(false);
+  const [realtimeActivity, setRealtimeActivity] = useState<any>(null);
 
   useEffect(() => {
     checkOwnerAccess();
     loadStatus();
     loadStats();
+    loadRealtimeActivity();
+    
+    // Refresh stats every 10 seconds
+    const interval = setInterval(() => {
+      loadStats();
+      loadRealtimeActivity();
+    }, 10000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   const checkOwnerAccess = async () => {
@@ -60,8 +70,6 @@ export default function BotLab() {
         return;
       }
 
-      // Owner check - if user is admin, they can access Bot Lab
-      // Bot Lab is accessible to all admins, but especially the owner
       setIsOwner(data.isOwner || data.isAdmin);
     } catch (error) {
       console.error("Owner verification error:", error);
@@ -89,6 +97,62 @@ export default function BotLab() {
       console.error("Failed to load stats:", error);
     } finally {
       setLoadingStats(false);
+    }
+  };
+
+  const loadRealtimeActivity = async () => {
+    try {
+      // Get recent bot activity (last 5 minutes)
+      const { data: recentProjects } = await supabase
+        .from("projects")
+        .select("id, title, budget, created_at")
+        .in("client_id", 
+          supabase.from("bot_accounts").select("profile_id")
+        )
+        .gte("created_at", new Date(Date.now() - 5 * 60 * 1000).toISOString())
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      const { data: recentBids } = await supabase
+        .from("bids")
+        .select("id, amount, created_at, projects(title)")
+        .in("provider_id",
+          supabase.from("bot_accounts").select("profile_id")
+        )
+        .gte("created_at", new Date(Date.now() - 5 * 60 * 1000).toISOString())
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      const { data: recentContracts } = await supabase
+        .from("contracts")
+        .select("id, final_amount, status, created_at")
+        .in("client_id",
+          supabase.from("bot_accounts").select("profile_id")
+        )
+        .gte("created_at", new Date(Date.now() - 5 * 60 * 1000).toISOString())
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      const { data: recentMessages } = await supabase
+        .from("contract_messages")
+        .select("id, message, contains_contact_info, created_at")
+        .in("contract_id",
+          supabase.from("contracts").select("id").in("client_id",
+            supabase.from("bot_accounts").select("profile_id")
+          )
+        )
+        .gte("created_at", new Date(Date.now() - 5 * 60 * 1000).toISOString())
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      setRealtimeActivity({
+        projects: recentProjects || [],
+        bids: recentBids || [],
+        contracts: recentContracts || [],
+        messages: recentMessages || []
+      });
+    } catch (error) {
+      console.error("Failed to load realtime activity:", error);
     }
   };
 
@@ -159,12 +223,11 @@ export default function BotLab() {
           description: `Deleted ${result.deleted} bots and all their content. Automation disabled.`,
           variant: "destructive"
         });
+        await loadStatus();
+        await loadStats();
       } else {
         throw new Error(result.error || "Kill switch failed");
       }
-      
-      await loadStatus();
-      await loadStats();
     } catch (error: any) {
       toast({
         title: "Kill Switch Failed",
@@ -230,174 +293,26 @@ export default function BotLab() {
     }
   };
 
-  const handleTriggerProjects = async () => {
-    setTriggeringProjects(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("bot-post-projects");
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Projects Posted!",
-        description: `Bots created ${data?.created || 0} realistic projects on the marketplace!`,
-      });
-      
-      await loadStats();
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to trigger project posting",
-        variant: "destructive",
-      });
-    } finally {
-      setTriggeringProjects(false);
-    }
-  };
-
-  const handleTriggerBids = async () => {
-    setTriggeringBids(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("bot-submit-bids");
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Bids Submitted!",
-        description: `Bots submitted ${data?.created || 0} competitive bids!`,
-      });
-      
-      await loadStats();
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to trigger bid submission",
-        variant: "destructive",
-      });
-    } finally {
-      setTriggeringBids(false);
-    }
-  };
-
-  const handleTriggerPayments = async () => {
-    setTriggeringPayments(true);
-    try {
-      const { data: acceptData, error: acceptError } = await supabase.functions.invoke("bot-accept-bids");
-      if (acceptError) throw acceptError;
-
-      const { data: payData, error: payError } = await supabase.functions.invoke("bot-complete-contracts");
-      if (payError) throw payError;
-      
-      toast({
-        title: "Bot Transactions Complete!",
-        description: `Accepted ${acceptData?.accepted || 0} bids and processed ${payData?.paid || 0} test payments!`,
-      });
-      
-      await loadStats();
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to process transactions",
-        variant: "destructive",
-      });
-    } finally {
-      setTriggeringPayments(false);
-    }
-  };
-
   const handleGenerateActivity = async () => {
     setGeneratingActivity(true);
     
     try {
-      let totalProjects = 0;
-      let totalBids = 0;
-      let totalContracts = 0;
-      let totalPayments = 0;
-
       toast({
         title: "Generating Bot Activity",
-        description: "Step 1/4: Posting projects...",
+        description: "Running full lifecycle: projects → bids → messages → contracts → completion",
       });
 
-      // Step 1: Post projects
-      const { data: projectData, error: projectError } = await supabase.functions.invoke("bot-post-projects");
-      if (projectError) {
-        console.error("Project error:", projectError);
-        throw new Error(`Projects failed: ${projectError.message}`);
-      }
-      totalProjects = projectData?.created || 0;
-      console.log(`Projects created: ${totalProjects}`);
-
-      toast({
-        title: "Projects Created!",
-        description: `Step 2/4: Submitting bids on ${totalProjects} projects...`,
-      });
-
-      // Wait for projects to be indexed
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Step 2: Submit bids
-      const { data: bidData, error: bidError } = await supabase.functions.invoke("bot-submit-bids");
-      if (bidError) {
-        console.error("Bid error:", bidError);
-        throw new Error(`Bids failed: ${bidError.message}`);
-      }
-      totalBids = bidData?.created || 0;
-      console.log(`Bids submitted: ${totalBids}`);
-
-      toast({
-        title: "Bids Submitted!",
-        description: `Step 3/4: Creating contracts...`,
-      });
-
-      // Wait for bids to be processed
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Step 3: Accept bids and create contracts
-      const { data: contractData, error: contractError } = await supabase.functions.invoke("bot-accept-bids");
-      if (contractError) {
-        console.error("Contract error:", contractError);
-        throw new Error(`Contracts failed: ${contractError.message}`);
-      }
-      totalContracts = contractData?.accepted || 0;
-      console.log(`Contracts created: ${totalContracts}`);
-
-      // Step 4: Process payments (if enabled)
-      if (status?.paymentsEnabled) {
-        toast({
-          title: "Contracts Created!",
-          description: `Step 4/4: Processing test payments...`,
-        });
-
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        const { data: paymentData, error: paymentError } = await supabase.functions.invoke("bot-complete-contracts");
-        if (paymentError) {
-          console.error("Payment error:", paymentError);
-          // Don't throw - payments are optional
-          console.warn("Payments failed but continuing:", paymentError.message);
-        } else {
-          totalPayments = paymentData?.paid || 0;
-          console.log(`Payments processed: ${totalPayments}`);
-        }
-      }
-
-      // Success!
-      const summary = [
-        `${totalProjects} projects`,
-        `${totalBids} bids`,
-        `${totalContracts} contracts`
-      ];
+      const { data, error } = await supabase.functions.invoke("hourly-bot-cycle");
       
-      if (status?.paymentsEnabled && totalPayments > 0) {
-        summary.push(`${totalPayments} payments`);
-      }
+      if (error) throw error;
 
       toast({
         title: "✅ Bot Activity Generated!",
-        description: `Created ${summary.join(", ")}!`,
+        description: `Created ${data.results?.projects || 0} projects, ${data.results?.bids || 0} bids, ${data.results?.contracts || 0} contracts`,
       });
 
       await loadStats();
+      await loadRealtimeActivity();
     } catch (error: any) {
       console.error("Activity generation error:", error);
       toast({
@@ -446,88 +361,152 @@ export default function BotLab() {
                 <div>
                   <h1 className="text-3xl font-bold">Bot Lab</h1>
                   <p className="text-muted-foreground">
-                    Automated marketplace activity and testing
+                    24/7 Automated marketplace activity
                   </p>
                 </div>
               </div>
-              <Badge variant="destructive">OWNER ONLY</Badge>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    loadStats();
+                    loadRealtimeActivity();
+                  }}
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Refresh
+                </Button>
+                <Badge variant="destructive">OWNER ONLY</Badge>
+              </div>
             </div>
           </div>
+
+          {/* Real-time Activity Feed */}
+          <Card className="mb-6 border-accent">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="w-5 h-5 text-accent animate-pulse" />
+                Live Bot Activity (Last 5 Minutes)
+              </CardTitle>
+              <CardDescription>
+                Real-time feed of what bots are doing right now
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <h4 className="font-semibold mb-2 flex items-center gap-2">
+                    📝 Recent Projects ({realtimeActivity?.projects?.length || 0})
+                  </h4>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {realtimeActivity?.projects?.map((p: any) => (
+                      <div key={p.id} className="text-sm p-2 bg-muted rounded">
+                        <p className="font-medium truncate">{p.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Budget: NZD ${p.budget} • {new Date(p.created_at).toLocaleTimeString()}
+                        </p>
+                      </div>
+                    )) || <p className="text-sm text-muted-foreground">No recent projects</p>}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-2 flex items-center gap-2">
+                    💰 Recent Bids ({realtimeActivity?.bids?.length || 0})
+                  </h4>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {realtimeActivity?.bids?.map((b: any) => (
+                      <div key={b.id} className="text-sm p-2 bg-muted rounded">
+                        <p className="font-medium">Bid: NZD ${b.amount}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {b.projects?.title} • {new Date(b.created_at).toLocaleTimeString()}
+                        </p>
+                      </div>
+                    )) || <p className="text-sm text-muted-foreground">No recent bids</p>}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-2 flex items-center gap-2">
+                    📋 Recent Contracts ({realtimeActivity?.contracts?.length || 0})
+                  </h4>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {realtimeActivity?.contracts?.map((c: any) => (
+                      <div key={c.id} className="text-sm p-2 bg-muted rounded">
+                        <p className="font-medium">Contract: NZD ${c.final_amount}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Status: {c.status} • {new Date(c.created_at).toLocaleTimeString()}
+                        </p>
+                      </div>
+                    )) || <p className="text-sm text-muted-foreground">No recent contracts</p>}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-2 flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4" />
+                    Recent Messages ({realtimeActivity?.messages?.length || 0})
+                  </h4>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {realtimeActivity?.messages?.map((m: any) => (
+                      <div key={m.id} className="text-sm p-2 bg-muted rounded">
+                        <p className="truncate">{m.message}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {m.contains_contact_info && <span className="text-destructive">⚠️ Bypass attempt • </span>}
+                          {new Date(m.created_at).toLocaleTimeString()}
+                        </p>
+                      </div>
+                    )) || <p className="text-sm text-muted-foreground">No recent messages</p>}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           <Card className="mb-6 border-accent">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Zap className="w-5 h-5 text-accent" />
-                Quick Actions - Activate Marketplace Now
+                Quick Actions - Generate Activity Now
               </CardTitle>
               <CardDescription>
-                Manually trigger bot activity to make your marketplace busy and active immediately
+                Manually trigger bot activity to populate the marketplace immediately
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid md:grid-cols-4 gap-4">
-                <Button
-                  onClick={handleGenerateActivity}
-                  disabled={generatingActivity || !status?.isActive}
-                  variant="default"
-                  size="lg"
-                  className="w-full bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90"
-                >
-                  {generatingActivity ? (
-                    <>
-                      <Activity className="w-4 h-4 mr-2 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Zap className="w-4 h-4 mr-2" />
-                      🚀 Generate Bot Activity
-                    </>
-                  )}
-                </Button>
-
-                <Button
-                  onClick={handleTriggerProjects}
-                  disabled={triggeringProjects || !status?.isActive}
-                  variant="outline"
-                  size="lg"
-                  className="w-full"
-                >
-                  {triggeringProjects ? "Posting..." : "📝 Post Projects"}
-                </Button>
-                
-                <Button
-                  onClick={handleTriggerBids}
-                  disabled={triggeringBids || !status?.isActive}
-                  variant="outline"
-                  size="lg"
-                  className="w-full"
-                >
-                  {triggeringBids ? "Bidding..." : "💰 Submit Bids"}
-                </Button>
-                
-                <Button
-                  onClick={handleTriggerPayments}
-                  disabled={triggeringPayments || !status?.isActive || !status?.paymentsEnabled}
-                  variant="outline"
-                  size="lg"
-                  className="w-full"
-                >
-                  {triggeringPayments ? "Processing..." : "💳 Accept & Pay"}
-                </Button>
-              </div>
+              <Button
+                onClick={handleGenerateActivity}
+                disabled={generatingActivity || !status?.isActive}
+                variant="default"
+                size="lg"
+                className="w-full bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90"
+              >
+                {generatingActivity ? (
+                  <>
+                    <Activity className="w-4 h-4 mr-2 animate-spin" />
+                    Generating Full Lifecycle...
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-4 h-4 mr-2" />
+                    🚀 Generate Bot Activity (Full Cycle)
+                  </>
+                )}
+              </Button>
 
               <div className="mt-4 p-4 bg-muted rounded-lg">
                 <p className="text-sm font-semibold mb-2 flex items-center gap-2">
                   <Zap className="w-4 h-4 text-accent" />
-                  Automatic Bot Activity:
+                  What happens when you click:
                 </p>
                 <ul className="text-sm space-y-1 text-muted-foreground">
-                  <li>🤖 Bots automatically create projects every 3-6 hours (randomized)</li>
-                  <li>💼 Provider bots submit competitive bids on new projects</li>
-                  <li>✅ Client bots accept winning bids and create contracts</li>
-                  <li>💳 Sandbox Stripe payments processed (test mode only)</li>
-                  <li>⚡ Manual trigger: Use "Generate Bot Activity" button above</li>
+                  <li>✅ Bots post 3-5 realistic projects across all categories</li>
+                  <li>✅ Provider bots submit 5-10 competitive bids</li>
+                  <li>✅ Bots send messages (including bypass attempts to test Monalisa)</li>
+                  <li>✅ Client bots accept 1-3 bids and create contracts</li>
+                  <li>✅ Work gets completed with evidence photos</li>
+                  <li>💳 Test payments processed (sandbox mode only)</li>
                 </ul>
               </div>
               
@@ -535,15 +514,7 @@ export default function BotLab() {
                 <Alert className="mt-4 border-yellow-500 bg-yellow-500/10">
                   <AlertTriangle className="h-4 w-4 text-yellow-500" />
                   <AlertDescription className="text-yellow-600 dark:text-yellow-400">
-                    Enable bot automation above to activate automatic and manual bot activity
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {!status?.paymentsEnabled && status?.isActive && (
-                <Alert className="mt-4 border-blue-500 bg-blue-500/10">
-                  <AlertDescription className="text-blue-600 dark:text-blue-400">
-                    Bot payments are disabled. Enable to allow contract acceptance and test payments.
+                    Enable bot automation below to activate automatic and manual bot activity
                   </AlertDescription>
                 </Alert>
               )}
@@ -555,11 +526,11 @@ export default function BotLab() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>Bot Automation</CardTitle>
+                    <CardTitle>24/7 Bot Automation</CardTitle>
                     <CardDescription>
                       {status?.isActive 
-                        ? "Bots are actively creating marketplace activity"
-                        : "Automation is paused. Bots are inactive."}
+                        ? "✅ Bots are actively creating marketplace activity every hour"
+                        : "⏸️ Automation paused. Bots are inactive."}
                     </CardDescription>
                   </div>
                   <Switch
@@ -571,16 +542,9 @@ export default function BotLab() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2 text-sm">
-                  <p><strong>Schedule:</strong> {status?.schedule}</p>
-                  <p><strong>Daily Count:</strong> {status?.dailyBotCount}</p>
-                  <div className="mt-4">
-                    <p className="font-semibold mb-2">Actions:</p>
-                    <ul className="space-y-1">
-                      {status?.actions?.map((action: string, idx: number) => (
-                        <li key={idx}>{action}</li>
-                      ))}
-                    </ul>
-                  </div>
+                  <p><strong>Schedule:</strong> Hourly (24/7)</p>
+                  <p><strong>Bots Active:</strong> {stats?.activeBots || 0}</p>
+                  <p><strong>Status:</strong> {status?.isActive ? "🟢 Running" : "🔴 Stopped"}</p>
                 </div>
               </CardContent>
             </Card>
@@ -592,8 +556,8 @@ export default function BotLab() {
                     <CardTitle>Bot Payments (Test Mode)</CardTitle>
                     <CardDescription>
                       {status?.paymentsEnabled
-                        ? "Bots can accept bids and process test payments"
-                        : "Bot payments disabled. Contracts won't be completed."}
+                        ? "✅ Bots can accept bids and process test payments"
+                        : "⏸️ Bot payments disabled. Contracts won't be completed."}
                     </CardDescription>
                   </div>
                   <Switch
@@ -608,15 +572,6 @@ export default function BotLab() {
                   <p>✅ Using Stripe Test Mode</p>
                   <p>✅ Random test card numbers</p>
                   <p>✅ No real money involved</p>
-                  <p className="mt-4">
-                    <strong>Test Cards Used:</strong>
-                  </p>
-                  <ul className="space-y-1 text-xs text-muted-foreground">
-                    <li>4242424242424242 (Visa)</li>
-                    <li>5555555555554444 (Mastercard)</li>
-                    <li>378282246310005 (Amex)</li>
-                    <li>6011111111111117 (Discover)</li>
-                  </ul>
                 </div>
               </CardContent>
             </Card>
@@ -672,13 +627,13 @@ export default function BotLab() {
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium flex items-center gap-2">
                   <DollarSign className="w-4 h-4" />
-                  Contracts Paid
+                  Contracts Created
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stats?.contractsCreated || 0}</div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Test payments
+                  Test transactions
                 </p>
               </CardContent>
             </Card>
@@ -689,7 +644,7 @@ export default function BotLab() {
               <CardHeader>
                 <CardTitle>Generate New Bots</CardTitle>
                 <CardDescription>
-                  Create 50 new bot accounts (80% clients who post projects + 20% providers)
+                  Create 50 new bot accounts (80% clients + 20% providers)
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -708,7 +663,7 @@ export default function BotLab() {
               <CardHeader>
                 <CardTitle>Remove Bots</CardTitle>
                 <CardDescription>
-                  Delete 50 oldest bots and all their content (projects, bids, contracts)
+                  Delete 50 oldest bots and all their content
                 </CardDescription>
               </CardHeader>
               <CardContent>

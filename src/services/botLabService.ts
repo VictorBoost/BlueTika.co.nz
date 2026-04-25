@@ -239,77 +239,110 @@ export const botLabService = {
   },
 
   async killSwitch() {
-    // Get ALL bot profile IDs
-    const { data: bots, error: fetchError } = await supabase
-      .from("bot_accounts")
-      .select("profile_id")
-      .eq("is_active", true);
+    try {
+      // Disable automation first
+      await this.toggleAutomation(false);
+      await this.toggleBotPayments(false);
 
-    if (fetchError) {
-      return { 
-        success: false, 
-        deleted: 0, 
-        error: fetchError.message 
-      };
+      // Delete all bot-related content in correct order (respecting FK constraints)
+      // 1. Evidence photos
+      await supabase
+        .from("evidence_photos")
+        .delete()
+        .in("contract_id", 
+          supabase.from("contracts").select("id").in("client_id", 
+            supabase.from("bot_accounts").select("profile_id")
+          )
+        );
+
+      // 2. Contract messages
+      await supabase
+        .from("contract_messages")
+        .delete()
+        .in("contract_id",
+          supabase.from("contracts").select("id").in("client_id",
+            supabase.from("bot_accounts").select("profile_id")
+          )
+        );
+
+      // 3. Reviews
+      await supabase
+        .from("reviews")
+        .delete()
+        .in("contract_id",
+          supabase.from("contracts").select("id").in("client_id",
+            supabase.from("bot_accounts").select("profile_id")
+          )
+        );
+
+      // 4. Contracts
+      const { error: contractsError } = await supabase
+        .from("contracts")
+        .delete()
+        .in("client_id",
+          supabase.from("bot_accounts").select("profile_id")
+        );
+
+      if (contractsError) throw contractsError;
+
+      // 5. Bids
+      const { error: bidsError } = await supabase
+        .from("bids")
+        .delete()
+        .in("provider_id",
+          supabase.from("bot_accounts").select("profile_id")
+        );
+
+      if (bidsError) throw bidsError;
+
+      // 6. Projects
+      const { error: projectsError } = await supabase
+        .from("projects")
+        .delete()
+        .in("client_id",
+          supabase.from("bot_accounts").select("profile_id")
+        );
+
+      if (projectsError) throw projectsError;
+
+      // 7. Bot activity logs
+      const { error: logsError } = await supabase
+        .from("bot_activity_logs")
+        .delete()
+        .in("bot_id",
+          supabase.from("bot_accounts").select("profile_id")
+        );
+
+      if (logsError) throw logsError;
+
+      // 8. Get bot profile IDs before deleting bot_accounts
+      const { data: botProfiles } = await supabase
+        .from("bot_accounts")
+        .select("profile_id");
+
+      const profileIds = botProfiles?.map(b => b.profile_id) || [];
+
+      // 9. Delete bot_accounts
+      const { error: botAccountsError } = await supabase
+        .from("bot_accounts")
+        .delete()
+        .in("profile_id", profileIds);
+
+      if (botAccountsError) throw botAccountsError;
+
+      // 10. Delete profiles
+      const { error: profilesError } = await supabase
+        .from("profiles")
+        .delete()
+        .in("id", profileIds);
+
+      if (profilesError) throw profilesError;
+
+      return { success: true, deleted: profileIds.length };
+    } catch (error: any) {
+      console.error("Kill switch error:", error);
+      return { success: false, error: error.message, deleted: 0 };
     }
-
-    if (!bots || bots.length === 0) {
-      return { 
-        success: true, 
-        deleted: 0, 
-        message: "No active bots to delete" 
-      };
-    }
-
-    const profileIds = bots.map(b => b.profile_id);
-    const totalBots = profileIds.length;
-
-    // Disable automation first
-    await this.toggleAutomation(false);
-
-    // Delete all bot profiles at once via RPC
-    const { error: deleteError } = await supabase.rpc("delete_bot_profiles", {
-      profile_ids: profileIds
-    });
-
-    if (deleteError) {
-      // Fallback: delete profiles directly (cascades to all content)
-      let deleted = 0;
-      const errors = [];
-      
-      for (const profileId of profileIds) {
-        try {
-          // Delete profile (cascades to bot_accounts and all content)
-          const { error } = await supabase
-            .from("profiles")
-            .delete()
-            .eq("id", profileId);
-            
-          if (!error) {
-            deleted++;
-          } else {
-            errors.push(error.message);
-          }
-        } catch (e) {
-          errors.push(e instanceof Error ? e.message : "Unknown error");
-        }
-      }
-
-      return {
-        success: deleted > 0,
-        deleted,
-        total: totalBots,
-        automationDisabled: true,
-        errors: errors.length > 0 ? errors : undefined
-      };
-    }
-
-    return {
-      success: true,
-      deleted: totalBots,
-      automationDisabled: true,
-      message: `Successfully deleted ${totalBots} bots and all their content. Automation disabled.`
-    };
   },
 
   async getBotStats() {
