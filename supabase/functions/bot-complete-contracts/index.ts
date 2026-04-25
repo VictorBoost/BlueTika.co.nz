@@ -18,7 +18,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // Find accepted contracts without evidence photos
+    // Find active contracts without evidence photos (changed from 'accepted' to 'active')
     const { data: contracts } = await supabaseClient
       .from("contracts")
       .select(`
@@ -26,10 +26,10 @@ serve(async (req) => {
         client_id,
         provider_id,
         project_id,
-        bids!inner(agreed_price),
+        final_amount,
         projects(title)
       `)
-      .eq("status", "accepted")
+      .eq("status", "active")
       .is("work_done_at", null)
       .limit(10);
 
