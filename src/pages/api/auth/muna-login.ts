@@ -12,24 +12,39 @@ export default async function handler(
   if (!email || !password) return res.status(400).json({ error: "Credentials required" });
 
   try {
+    // Authenticate with Supabase
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     
-    if (error || !data.user) return res.status(401).json({ error: "Invalid admin credentials" });
+    if (error || !data.user) {
+      return res.status(401).json({ error: "Invalid admin credentials" });
+    }
 
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("is_admin, full_name")
-      .eq("id", data.user.id)
-      .single();
+    // Check if email matches admin pattern (@bluetika.co.nz)
+    const isAdmin = email.toLowerCase().endsWith("@bluetika.co.nz");
+    const isOwner = email.toLowerCase() === "bluetikanz@gmail.com" || email.toLowerCase() === "sam@bluetika.co.nz";
 
-    if (profileError || !(profile as any)?.is_admin) {
+    if (!isAdmin && !isOwner) {
+      await supabase.auth.signOut();
       return res.status(403).json({ error: "Access denied. Admin privileges required." });
     }
 
+    // Get profile name for logging
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("id", data.user.id)
+      .single();
+
+    // Send admin login alert
     await sesEmailService.sendEmail({
-      to: "admin@bluetika.co.nz",
+      to: "sam@bluetika.co.nz",
       subject: "BlueTika Admin Login Alert",
-      htmlBody: `<h2>Admin Login Detected</h2><p>User: ${(profile as any).full_name} (${email})</p>`
+      htmlBody: `
+        <h2>Admin Login Detected</h2>
+        <p><strong>User:</strong> ${profile?.full_name || "Unknown"} (${email})</p>
+        <p><strong>Time:</strong> ${new Date().toLocaleString("en-NZ", { timeZone: "Pacific/Auckland" })}</p>
+        <p><strong>IP:</strong> ${req.headers["x-forwarded-for"] || req.socket.remoteAddress || "Unknown"}</p>
+      `
     });
 
     res.setHeader(
@@ -37,7 +52,13 @@ export default async function handler(
       `muna-access-token=${data.session?.access_token}; HttpOnly; Secure; SameSite=Strict; Path=/muna; Max-Age=3600`
     );
 
-    res.status(200).json({ user: data.user, session: data.session, isAdmin: true });
+    res.status(200).json({ 
+      user: data.user, 
+      session: data.session, 
+      isAdmin: true,
+      isOwner,
+      role: isOwner ? "owner" : "admin"
+    });
   } catch (error: any) {
     res.status(500).json({ error: "Authentication failed." });
   }

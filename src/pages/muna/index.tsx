@@ -808,6 +808,9 @@ export default function ControlCentre() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <Button variant="outline" onClick={() => router.push("/muna/change-password")}>
+                      Change Password
+                    </Button>
                     <Button variant="outline" onClick={() => router.push("/muna/categories")}>
                       Categories
                     </Button>
@@ -863,10 +866,7 @@ export default function ControlCentre() {
                     >
                       Staff Management
                     </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => router.push("/muna/settings")}
-                    >
+                    <Button variant="outline" onClick={() => router.push("/muna/settings")}>
                       Settings
                     </Button>
                     <Button variant="outline" onClick={() => router.push("/muna/bot-lab")}>
