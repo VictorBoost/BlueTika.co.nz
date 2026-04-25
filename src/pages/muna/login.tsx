@@ -48,10 +48,8 @@ export default function MunaLogin() {
         description: "Welcome, Owner",
       });
 
-      // Small delay to ensure cookie is set
-      setTimeout(() => {
-        router.push("/muna");
-      }, 100);
+      // Redirect to control centre
+      window.location.href = "/muna";
     } catch (error) {
       console.error("Login error:", error);
       toast({
@@ -74,8 +72,8 @@ export default function MunaLogin() {
   return (
     <>
       <SEO 
-        title="Admin Login - BlueTika" 
-        description="Admin access to BlueTika control panel"
+        title="Owner Login - BlueTika" 
+        description="Owner access to BlueTika control panel"
       />
       
       <div className="min-h-screen bg-background flex items-center justify-center px-4">
@@ -102,7 +100,7 @@ export default function MunaLogin() {
                   value={formData.email}
                   onChange={handleChange}
                   required
-                  placeholder="admin@bluetika.co.nz"
+                  placeholder="owner@bluetika.co.nz"
                   autoComplete="email"
                 />
               </div>
