@@ -43,6 +43,9 @@ serve(async (req) => {
       contracts: 0,
       payments: 0,
       completed: 0,
+      fundReleases: 0,
+      ghostedProviders: 0,
+      awaitingAutoRelease: 0,
       errors: [] as string[]
     };
 
@@ -275,54 +278,114 @@ serve(async (req) => {
       results.errors.push(`Payments: ${err.message}`);
     }
 
-    // Step 5: Complete Work
-    console.log("\n✅ Step 5: Completing work...");
+    // Step 5: Provider Bots Submit Work (Upload Photos) - REALISTIC: Some clients will ghost
+    console.log("\n📸 Step 5: Provider bots uploading work evidence...");
     try {
       const { data: paidContracts } = await supabaseClient
         .from("contracts")
-        .select("id, provider_id")
+        .select("id, provider_id, client_id")
         .eq("status", "active")
         .eq("payment_status", "held")
         .is("work_done_at", null)
-        .limit(3);
+        .limit(5);
 
       if (paidContracts && paidContracts.length > 0) {
         for (const contract of paidContracts) {
-          // Upload evidence photos
-          await supabaseClient.from("evidence_photos").insert([
-            {
-              contract_id: contract.id,
-              photo_url: "https://images.unsplash.com/photo-1581578731548-c64695cc6952",
-              uploaded_by: contract.provider_id,
-              description: "Work completed - before"
-            },
-            {
-              contract_id: contract.id,
-              photo_url: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a",
-              uploaded_by: contract.provider_id,
-              description: "Work completed - after"
+          // Verify this is a provider bot
+          const { data: isProviderBot } = await supabaseClient
+            .from("bot_accounts")
+            .select("id")
+            .eq("profile_id", contract.provider_id)
+            .maybeSingle();
+
+          if (isProviderBot) {
+            // Upload evidence photos
+            await supabaseClient.from("evidence_photos").insert([
+              {
+                contract_id: contract.id,
+                photo_url: "https://images.unsplash.com/photo-1581578731548-c64695cc6952",
+                uploaded_by: contract.provider_id,
+                description: "Work completed - before"
+              },
+              {
+                contract_id: contract.id,
+                photo_url: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a",
+                uploaded_by: contract.provider_id,
+                description: "Work completed - after"
+              }
+            ]);
+
+            const { error } = await supabaseClient
+              .from("contracts")
+              .update({
+                work_done_at: new Date().toISOString(),
+                after_photos_submitted_at: new Date().toISOString(),
+                status: "awaiting_fund_release",
+                ready_for_release_at: new Date().toISOString()
+              } as any)
+              .eq("id", contract.id);
+
+            if (!error) {
+              results.completed++;
+              // Mark this as a "ghosted" scenario - client won't release funds
+              results.ghostedProviders++;
+              console.log(`   📸 Provider uploaded photos for contract ${contract.id} (client will ghost - testing auto-release)`);
             }
-          ]);
-
-          const { error } = await supabaseClient
-            .from("contracts")
-            .update({
-              work_done_at: new Date().toISOString(),
-              after_photos_submitted_at: new Date().toISOString(),
-              status: "awaiting_fund_release",
-              ready_for_release_at: new Date().toISOString()
-            } as any)
-            .eq("id", contract.id);
-
-          if (!error) {
-            results.completed++;
           }
         }
       }
-      console.log(`✅ Completed ${results.completed} contracts`);
+      console.log(`✅ Providers uploaded ${results.completed} work completions (clients ghosting)`);
     } catch (err: any) {
-      console.error("❌ Work completion failed:", err);
-      results.errors.push(`Work: ${err.message}`);
+      console.error("❌ Provider work submission failed:", err);
+      results.errors.push(`Provider work: ${err.message}`);
+    }
+
+    // Step 6: REALISTIC - Some Client Bots Manually Release Funds (30% chance)
+    console.log("\n💰 Step 6: Client bots manually releasing funds (30% chance)...");
+    try {
+      const { data: awaitingRelease } = await supabaseClient
+        .from("contracts")
+        .select("id, client_id, provider_id, final_amount, platform_fee")
+        .eq("status", "awaiting_fund_release")
+        .eq("payment_status", "held")
+        .limit(10);
+
+      if (awaitingRelease && awaitingRelease.length > 0) {
+        for (const contract of awaitingRelease) {
+          // Verify this is a client bot
+          const { data: isClientBot } = await supabaseClient
+            .from("bot_accounts")
+            .select("id")
+            .eq("profile_id", contract.client_id)
+            .maybeSingle();
+
+          if (isClientBot) {
+            // 30% chance client bot releases funds immediately
+            if (Math.random() < 0.3) {
+              const { error } = await supabaseClient
+                .from("contracts")
+                .update({
+                  payment_status: "released",
+                  status: "completed",
+                  funds_released_at: new Date().toISOString()
+                } as any)
+                .eq("id", contract.id);
+
+              if (!error) {
+                results.fundReleases++;
+                console.log(`   ✅ Client bot released funds for contract ${contract.id}`);
+              }
+            } else {
+              results.awaitingAutoRelease++;
+              console.log(`   ⏳ Client bot ghosting contract ${contract.id} - will auto-release in 48h`);
+            }
+          }
+        }
+      }
+      console.log(`✅ Manual fund releases: ${results.fundReleases}, Waiting for auto-release: ${results.awaitingAutoRelease}`);
+    } catch (err: any) {
+      console.error("❌ Fund release failed:", err);
+      results.errors.push(`Fund release: ${err.message}`);
     }
 
     // Update last run timestamp
@@ -336,7 +399,10 @@ serve(async (req) => {
     console.log(`   Bids: ${results.bids}`);
     console.log(`   Contracts: ${results.contracts}`);
     console.log(`   Payments: ${results.payments}`);
-    console.log(`   Completed: ${results.completed}`);
+    console.log(`   Work Completed: ${results.completed}`);
+    console.log(`   Manual Fund Releases: ${results.fundReleases}`);
+    console.log(`   Ghosted (awaiting auto-release): ${results.ghostedProviders}`);
+    console.log(`   Contracts waiting 48h: ${results.awaitingAutoRelease}`);
     if (results.errors.length > 0) {
       console.log(`   Errors: ${results.errors.length}`);
       results.errors.forEach(e => console.log(`      - ${e}`));
