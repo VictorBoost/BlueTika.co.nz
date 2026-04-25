@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  console.log("⏰ HOURLY-BOT-CYCLE: Starting 24/7 automation cycle");
+  console.log("⏰ HOURLY-BOT-CYCLE: Starting continuous 24/7 bot automation");
   
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -41,28 +41,27 @@ serve(async (req) => {
       bids: 0,
       messages: 0,
       contracts: 0,
+      payments: 0,
       completed: 0,
       errors: [] as string[]
     };
 
-    // Step 1: Post Projects (3-5 random projects)
+    // Step 1: Post Projects (1-5 per active bot)
     console.log("\n📝 Step 1: Posting projects...");
     try {
-      const projectCount = Math.floor(Math.random() * 3) + 3; // 3-5 projects
-      
       const { data: clientBots } = await supabaseClient
         .from("bot_accounts")
         .select("profile_id, profiles!inner(full_name, city_region)")
         .eq("bot_type", "client")
         .eq("is_active", true)
-        .limit(projectCount * 2);
+        .limit(10);
 
       const { data: categories } = await supabaseClient
         .from("categories")
-        .select("id, name, subcategories(id, name)")
+        .select("id, name")
         .eq("is_active", true);
 
-      if (clientBots && categories) {
+      if (clientBots && categories && clientBots.length > 0) {
         const templates = [
           { title: "Need plumber for leaking tap", basePrice: 150 },
           { title: "Garden maintenance needed", basePrice: 200 },
@@ -70,39 +69,40 @@ serve(async (req) => {
           { title: "House cleaning service", basePrice: 120 },
           { title: "Painting bedroom walls", basePrice: 400 },
           { title: "Lawn mowing service", basePrice: 80 },
-          { title: "Handyman for odd jobs", basePrice: 180 }
+          { title: "Handyman for odd jobs", basePrice: 180 },
+          { title: "Deck staining", basePrice: 350 },
+          { title: "Gutter cleaning", basePrice: 140 },
+          { title: "Window washing", basePrice: 90 }
         ];
 
         const locations = ["Auckland", "Wellington", "Christchurch", "Hamilton", "Tauranga", "Dunedin"];
 
-        for (let i = 0; i < Math.min(projectCount, clientBots.length); i++) {
-          const bot = clientBots[i];
-          const template = templates[Math.floor(Math.random() * templates.length)];
-          const category = categories[Math.floor(Math.random() * categories.length)];
+        // Each bot posts 1-5 projects
+        for (const bot of clientBots) {
+          const projectCount = Math.floor(Math.random() * 5) + 1; // 1-5
           
-          const budget = Math.floor(template.basePrice * (0.6 + Math.random() * 0.4));
+          for (let i = 0; i < projectCount; i++) {
+            const template = templates[Math.floor(Math.random() * templates.length)];
+            const category = categories[Math.floor(Math.random() * categories.length)];
+            const budget = Math.floor(template.basePrice * (0.6 + Math.random() * 0.4));
 
-          const { error } = await supabaseClient
-            .from("projects")
-            .insert({
-              title: template.title,
-              description: "Looking for someone reliable. Can provide details if needed. Thanks!",
-              category_id: category.id,
-              budget,
-              client_id: bot.profile_id,
-              location: bot.profiles?.city_region || locations[Math.floor(Math.random() * locations.length)],
-              status: "open"
-            });
+            const { error } = await supabaseClient
+              .from("projects")
+              .insert({
+                title: template.title,
+                description: "Looking for someone reliable. Can provide details if needed. Thanks!",
+                category_id: category.id,
+                budget,
+                client_id: bot.profile_id,
+                location: bot.profiles?.city_region || locations[Math.floor(Math.random() * locations.length)],
+                status: "open"
+              });
 
-          if (!error) {
-            results.projects++;
-            await supabaseClient.from("bot_activity_logs").insert({
-              bot_id: bot.profile_id,
-              action_type: "post_project",
-              details: { title: template.title }
-            });
-          } else {
-            results.errors.push(`Project: ${error.message}`);
+            if (!error) {
+              results.projects++;
+            } else {
+              results.errors.push(`Project: ${error.message}`);
+            }
           }
         }
       }
@@ -112,59 +112,56 @@ serve(async (req) => {
       results.errors.push(`Projects: ${err.message}`);
     }
 
-    // Step 2: Submit Bids (5-10 bids)
+    // Step 2: Submit Bids (1-3 per active bot)
     console.log("\n💰 Step 2: Submitting bids...");
     try {
-      const bidCount = Math.floor(Math.random() * 6) + 5; // 5-10 bids
-
       const { data: openProjects } = await supabaseClient
         .from("projects")
         .select("id, title, budget")
         .eq("status", "open")
-        .limit(20);
+        .limit(50);
 
       const { data: providerBots } = await supabaseClient
         .from("bot_accounts")
         .select("profile_id")
         .eq("bot_type", "provider")
         .eq("is_active", true)
-        .limit(15);
+        .limit(20);
 
-      if (openProjects && providerBots) {
-        for (let i = 0; i < Math.min(bidCount, openProjects.length); i++) {
-          const project = openProjects[i];
-          const provider = providerBots[Math.floor(Math.random() * providerBots.length)];
+      if (openProjects && providerBots && openProjects.length > 0 && providerBots.length > 0) {
+        // Each provider bot submits 1-3 bids
+        for (const provider of providerBots) {
+          const bidCount = Math.floor(Math.random() * 3) + 1; // 1-3
+          
+          for (let i = 0; i < bidCount && i < openProjects.length; i++) {
+            const project = openProjects[Math.floor(Math.random() * openProjects.length)];
 
-          const { data: existing } = await supabaseClient
-            .from("bids")
-            .select("id")
-            .eq("project_id", project.id)
-            .eq("provider_id", provider.profile_id)
-            .maybeSingle();
-
-          if (!existing) {
-            const baseAmount = project.budget || 200;
-            const bidAmount = Math.max(50, Math.round(baseAmount * (0.85 + Math.random() * 0.1)));
-
-            const { error } = await supabaseClient
+            const { data: existing } = await supabaseClient
               .from("bids")
-              .insert({
-                project_id: project.id,
-                provider_id: provider.profile_id,
-                amount: bidAmount,
-                message: "Hi! I can help with this. Available to start soon.",
-                status: "pending"
-              });
+              .select("id")
+              .eq("project_id", project.id)
+              .eq("provider_id", provider.profile_id)
+              .maybeSingle();
 
-            if (!error) {
-              results.bids++;
-              await supabaseClient.from("bot_activity_logs").insert({
-                bot_id: provider.profile_id,
-                action_type: "submit_bid",
-                details: { project_id: project.id, amount: bidAmount }
-              });
-            } else {
-              results.errors.push(`Bid: ${error.message}`);
+            if (!existing) {
+              const baseAmount = project.budget || 200;
+              const bidAmount = Math.max(50, Math.round(baseAmount * (0.85 + Math.random() * 0.1)));
+
+              const { error } = await supabaseClient
+                .from("bids")
+                .insert({
+                  project_id: project.id,
+                  provider_id: provider.profile_id,
+                  amount: bidAmount,
+                  message: "Hi! I can help with this. Available to start soon.",
+                  status: "pending"
+                });
+
+              if (!error) {
+                results.bids++;
+              } else {
+                results.errors.push(`Bid: ${error.message}`);
+              }
             }
           }
         }
@@ -175,57 +172,9 @@ serve(async (req) => {
       results.errors.push(`Bids: ${err.message}`);
     }
 
-    // Step 3: Send Messages (some with bypass attempts)
-    console.log("\n💬 Step 3: Sending messages...");
+    // Step 3: Accept Bids (1-2 per client bot)
+    console.log("\n📋 Step 3: Accepting bids...");
     try {
-      const { data: activeContracts } = await supabaseClient
-        .from("contracts")
-        .select("id, client_id, provider_id")
-        .eq("status", "active")
-        .limit(10);
-
-      if (activeContracts) {
-        const messages = [
-          "When can you start?",
-          "Do you need any materials?",
-          "What time works best for you?",
-          "My email is john@example.com if you need to reach me", // bypass attempt
-          "Call me on 021-555-1234", // bypass attempt
-          "Let's discuss on WhatsApp +64 21 555 6789", // bypass attempt
-        ];
-
-        const selectedContracts = activeContracts.slice(0, Math.min(5, activeContracts.length));
-
-        for (const contract of selectedContracts) {
-          const message = messages[Math.floor(Math.random() * messages.length)];
-          const isClient = Math.random() > 0.5;
-
-          const { error } = await supabaseClient
-            .from("contract_messages")
-            .insert({
-              contract_id: contract.id,
-              sender_id: isClient ? contract.client_id : contract.provider_id,
-              receiver_id: isClient ? contract.provider_id : contract.client_id,
-              message,
-              contains_contact_info: message.includes("email") || message.includes("Call") || message.includes("WhatsApp")
-            });
-
-          if (!error) {
-            results.messages++;
-          }
-        }
-      }
-      console.log(`✅ Sent ${results.messages} messages`);
-    } catch (err: any) {
-      console.error("❌ Message sending failed:", err);
-      results.errors.push(`Messages: ${err.message}`);
-    }
-
-    // Step 4: Accept Bids (1-3 contracts)
-    console.log("\n📋 Step 4: Accepting bids...");
-    try {
-      const acceptCount = Math.floor(Math.random() * 3) + 1; // 1-3
-
       const { data: projectsWithBids } = await supabaseClient
         .from("projects")
         .select(`
@@ -235,9 +184,9 @@ serve(async (req) => {
         `)
         .eq("status", "open")
         .eq("bids.status", "pending")
-        .limit(acceptCount);
+        .limit(10);
 
-      if (projectsWithBids) {
+      if (projectsWithBids && projectsWithBids.length > 0) {
         for (const project of projectsWithBids) {
           const { data: clientBot } = await supabaseClient
             .from("bot_accounts")
@@ -257,7 +206,7 @@ serve(async (req) => {
                 await supabaseClient.from("bids").update({ status: "declined" }).in("id", otherBids.map(b => b.id));
               }
 
-              const { error } = await supabaseClient
+              const { data: newContract, error } = await supabaseClient
                 .from("contracts")
                 .insert({
                   project_id: project.id,
@@ -267,20 +216,15 @@ serve(async (req) => {
                   final_amount: winningBid.amount,
                   status: "active",
                   payment_status: "pending"
-                });
+                })
+                .select("id")
+                .single();
 
-              if (!error) {
+              if (!error && newContract) {
                 await supabaseClient.from("projects").update({ status: "assigned" }).eq("id", project.id);
-                
-                await supabaseClient.from("bot_activity_logs").insert({
-                  bot_id: project.client_id,
-                  action_type: "accept_bid",
-                  details: { project_id: project.id, bid_id: winningBid.id }
-                });
-                
                 results.contracts++;
               } else {
-                results.errors.push(`Contract: ${error.message}`);
+                results.errors.push(`Contract: ${error?.message}`);
               }
             }
           }
@@ -292,18 +236,58 @@ serve(async (req) => {
       results.errors.push(`Contracts: ${err.message}`);
     }
 
-    // Step 5: Complete Work (1-2 completions)
+    // Step 4: Process Payments
+    console.log("\n💳 Step 4: Processing payments...");
+    try {
+      const { data: unpaidContracts } = await supabaseClient
+        .from("contracts")
+        .select("id, final_amount")
+        .eq("payment_status", "pending")
+        .eq("status", "active")
+        .limit(5);
+
+      if (unpaidContracts && unpaidContracts.length > 0) {
+        for (const contract of unpaidContracts) {
+          try {
+            const response = await fetch(`${Deno.env.get("SUPABASE_URL")?.replace('/rest/v1', '')}/functions/v1/bot-make-payment`, {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({ contractId: contract.id })
+            });
+
+            if (response.ok) {
+              results.payments++;
+            } else {
+              const error = await response.text();
+              results.errors.push(`Payment ${contract.id}: ${error}`);
+            }
+          } catch (err: any) {
+            results.errors.push(`Payment ${contract.id}: ${err.message}`);
+          }
+        }
+      }
+      console.log(`✅ Processed ${results.payments} payments`);
+    } catch (err: any) {
+      console.error("❌ Payment processing failed:", err);
+      results.errors.push(`Payments: ${err.message}`);
+    }
+
+    // Step 5: Complete Work
     console.log("\n✅ Step 5: Completing work...");
     try {
-      const { data: activeContracts } = await supabaseClient
+      const { data: paidContracts } = await supabaseClient
         .from("contracts")
-        .select("id, final_amount, provider_id")
+        .select("id, provider_id")
         .eq("status", "active")
+        .eq("payment_status", "held")
         .is("work_done_at", null)
-        .limit(2);
+        .limit(3);
 
-      if (activeContracts) {
-        for (const contract of activeContracts) {
+      if (paidContracts && paidContracts.length > 0) {
+        for (const contract of paidContracts) {
           // Upload evidence photos
           await supabaseClient.from("evidence_photos").insert([
             {
@@ -320,25 +304,18 @@ serve(async (req) => {
             }
           ]);
 
-          // Mark work done
           const { error } = await supabaseClient
             .from("contracts")
             .update({
-              work_done_at: new Date(Date.now() - Math.random() * 3600000).toISOString(),
+              work_done_at: new Date().toISOString(),
+              after_photos_submitted_at: new Date().toISOString(),
               status: "awaiting_fund_release",
-              ready_for_release_at: new Date(Date.now() - Math.random() * 1800000).toISOString()
-            })
+              ready_for_release_at: new Date().toISOString()
+            } as any)
             .eq("id", contract.id);
 
           if (!error) {
-            await supabaseClient.from("bot_activity_logs").insert({
-              bot_id: contract.provider_id,
-              action_type: "complete_work",
-              details: { contract_id: contract.id }
-            });
             results.completed++;
-          } else {
-            results.errors.push(`Work completion: ${error.message}`);
           }
         }
       }
@@ -357,11 +334,12 @@ serve(async (req) => {
     console.log("\n📊 HOURLY-BOT-CYCLE COMPLETE");
     console.log(`   Projects: ${results.projects}`);
     console.log(`   Bids: ${results.bids}`);
-    console.log(`   Messages: ${results.messages}`);
     console.log(`   Contracts: ${results.contracts}`);
+    console.log(`   Payments: ${results.payments}`);
     console.log(`   Completed: ${results.completed}`);
     if (results.errors.length > 0) {
       console.log(`   Errors: ${results.errors.length}`);
+      results.errors.forEach(e => console.log(`      - ${e}`));
     }
 
     return new Response(
