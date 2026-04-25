@@ -5,14 +5,14 @@ import { sesEmailService } from "@/services/sesEmailService";
 type Project = Tables<"projects">;
 
 export const projectService = {
-  async createProject(projectData: any) {
+  async createProject(projectData: any): Promise<{ data: Project | null; error: any }> {
     const { data, error } = await supabase
       .from("projects")
       .insert([projectData])
       .select()
       .single();
 
-    if (!error) {
+    if (data && !error) {
       // Ping sitemap to notify search engines of new project
       try {
         fetch("/api/ping-sitemap", { method: "POST" }).catch(e => console.log("Sitemap ping failed:", e));
