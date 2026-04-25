@@ -64,7 +64,7 @@ export default async function handler(
     // Set secure HTTP-only cookie
     res.setHeader(
       "Set-Cookie",
-      `muna-access-token=${data.session.access_token}; HttpOnly; Secure; SameSite=Strict; Path=/muna; Max-Age=3600`
+      `sb-access-token=${data.session.access_token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=3600`
     );
 
     return res.status(200).json({ 
