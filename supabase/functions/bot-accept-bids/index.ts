@@ -115,7 +115,8 @@ serve(async (req) => {
             client_id: project.client_id,
             provider_id: winningBid.provider_id,
             bid_id: winningBid.id,
-            status: "accepted",
+            final_amount: winningBid.amount,
+            status: "active",
             payment_status: "pending"
           })
           .select()

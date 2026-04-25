@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -600,7 +600,7 @@ export type Database = {
             foreignKeyName: "bot_activity_logs_bot_id_fkey"
             columns: ["bot_id"]
             isOneToOne: false
-            referencedRelation: "bot_accounts"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
