@@ -23,6 +23,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { getEvidenceStatusSummary, type EvidenceStatusSummary } from "@/services/evidencePhotoService";
 import { SafetyBanner } from "@/components/SafetyBanner";
 import { contentSafetyService } from "@/services/contentSafetyService";
+import { 
+  generateProjectSchema, 
+  generateReviewSchema, 
+  generateOrganizationSchema, 
+  generateBreadcrumbSchema 
+} from "@/lib/schemaGenerator";
+import Head from "next/head";
 
 type Project = Tables<"projects">;
 type Bid = Tables<"bids">;
@@ -481,8 +488,38 @@ export default function ProjectDetail() {
   const hasMedia = photos.length > 0 || project.video_url;
   const tierInfo = getTierInfo();
 
+  // Generate schema.org data
+  const projectSchema = generateProjectSchema(project, `https://bluetika.co.nz/project/${project.id}`);
+  const reviewSchema = project.contract?.reviews ? generateReviewSchema(project.contract.reviews) : null;
+  const organizationSchema = generateOrganizationSchema();
+  const breadcrumbSchema = generateBreadcrumbSchema([
+    { name: "Home", url: "https://bluetika.co.nz" },
+    { name: "Projects", url: "https://bluetika.co.nz/projects" },
+    { name: project.title, url: `https://bluetika.co.nz/project/${project.id}` }
+  ]);
+
   return (
     <>
+      <Head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(projectSchema) }}
+        />
+        {reviewSchema && (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(reviewSchema) }}
+          />
+        )}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+        />
+      </Head>
       <SEO 
         title={project.meta_title || `${project.title} - BlueTika`}
         description={project.meta_description || project.description}

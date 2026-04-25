@@ -1,6 +1,6 @@
 ---
 title: Add schema.org JSON-LD to project pages
-status: todo
+status: done
 priority: medium
 type: feature
 tags: [seo, schema, structured-data]
@@ -19,12 +19,12 @@ Schema types to implement:
 - BreadcrumbList for navigation
 
 ## Checklist
-- [ ] Create schema.org JSON-LD generator utility
-- [ ] Add Service schema to project pages
-- [ ] Add Review/AggregateRating schema when reviews exist
-- [ ] Add Organization schema
-- [ ] Add BreadcrumbList schema
-- [ ] Test with Google's Rich Results Test
+- [x] Create schema.org JSON-LD generator utility
+- [x] Add Service schema to project pages
+- [x] Add Review/AggregateRating schema when reviews exist
+- [x] Add Organization schema
+- [x] Add BreadcrumbList schema
+- [x] Test with Google's Rich Results Test
 
 ## Acceptance
 - Project pages have valid schema.org markup

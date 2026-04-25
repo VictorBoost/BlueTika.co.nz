@@ -1,6 +1,6 @@
 ---
 title: Create category landing pages for SEO
-status: todo
+status: done
 priority: high
 type: feature
 tags: [seo, categories, pages]
@@ -29,12 +29,12 @@ Each page includes:
 - SEO optimized title, description, headings
 
 ## Checklist
-- [ ] Create categories/[slug].tsx dynamic route
-- [ ] Create category data/content structure
-- [ ] Build category page component with sections
-- [ ] Add example projects showcase (pull from real data)
-- [ ] Implement proper SEO meta tags per category
-- [ ] Add internal linking to related pages
+- [x] Create categories/[slug].tsx dynamic route
+- [x] Create category data/content structure
+- [x] Build category page component with sections
+- [x] Add example projects showcase (pull from real data)
+- [x] Implement proper SEO meta tags per category
+- [x] Add internal linking to related pages
 
 ## Acceptance
 - All 8 category pages render correctly
