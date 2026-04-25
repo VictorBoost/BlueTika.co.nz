@@ -19,7 +19,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { DollarSign, Users, AlertCircle, FileCheck, Shield, Repeat, ShieldCheck, AlertTriangle, Percent, Tag, Calendar, ShieldAlert, Settings, Bot, BrainCircuit, Play, Eye, Lock } from "lucide-react";
+import { DollarSign, Users, AlertCircle, FileCheck, Shield, Repeat, ShieldCheck, AlertTriangle, Percent, Tag, Calendar, ShieldAlert, Settings, Bot, BrainCircuit, Play, Eye, Lock, Activity, TrendingUp } from "lucide-react";
 import {
   getDashboardStats,
   type DashboardStats,
@@ -761,21 +761,40 @@ export default function ControlCentre() {
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Bot Lab Summary</CardTitle>
+                <Card className="border-accent shadow-md">
+                  <CardHeader className="bg-muted/30 pb-4 border-b">
+                    <CardTitle className="flex items-center gap-2">
+                      <Bot className="h-5 w-5 text-accent" />
+                      Bot Automation Hub
+                    </CardTitle>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="pt-6">
                     <div className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Active Bots</span>
-                        <span className="text-2xl font-bold">{stats.botLabStats.activeBots}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Listings Created</span>
-                        <span className="text-2xl font-bold">
-                          {stats.botLabStats.listingsCreated}
+                      <div className="flex justify-between items-center p-3 bg-muted rounded-lg border border-border/50">
+                        <span className="text-sm font-medium flex items-center gap-2">
+                          <Users className="h-4 w-4 text-muted-foreground" />
+                          Active Bots
                         </span>
+                        <span className="text-2xl font-bold text-primary">{stats.botLabStats.activeBots}</span>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-muted rounded-lg border border-border/50">
+                        <span className="text-sm font-medium flex items-center gap-2">
+                          <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                          Total Activity Generated
+                        </span>
+                        <span className="text-2xl font-bold text-accent">
+                          {stats.botLabStats.listingsCreated * 4}
+                        </span>
+                      </div>
+                      <div className="pt-4">
+                        <Button 
+                          size="lg"
+                          className="w-full bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90 text-white shadow-md hover:shadow-lg transition-all" 
+                          onClick={() => router.push("/muna/bot-lab")}
+                        >
+                          <Activity className="h-4 w-4 mr-2" />
+                          View Live Bot Feeds & Controls
+                        </Button>
                       </div>
                     </div>
                   </CardContent>

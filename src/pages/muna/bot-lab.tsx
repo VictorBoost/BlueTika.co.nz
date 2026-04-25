@@ -102,13 +102,23 @@ export default function BotLab() {
 
   const loadRealtimeActivity = async () => {
     try {
+      // First get bot profile IDs
+      const { data: botProfiles } = await supabase
+        .from("bot_accounts")
+        .select("profile_id");
+        
+      const profileIds = botProfiles?.map(b => b.profile_id) || [];
+      
+      if (profileIds.length === 0) {
+        setRealtimeActivity({ projects: [], bids: [], contracts: [], messages: [] });
+        return;
+      }
+
       // Get recent bot activity (last 5 minutes)
       const { data: recentProjects } = await supabase
         .from("projects")
         .select("id, title, budget, created_at")
-        .in("client_id", 
-          supabase.from("bot_accounts").select("profile_id")
-        )
+        .in("client_id", profileIds)
         .gte("created_at", new Date(Date.now() - 5 * 60 * 1000).toISOString())
         .order("created_at", { ascending: false })
         .limit(5);
@@ -116,9 +126,7 @@ export default function BotLab() {
       const { data: recentBids } = await supabase
         .from("bids")
         .select("id, amount, created_at, projects(title)")
-        .in("provider_id",
-          supabase.from("bot_accounts").select("profile_id")
-        )
+        .in("provider_id", profileIds)
         .gte("created_at", new Date(Date.now() - 5 * 60 * 1000).toISOString())
         .order("created_at", { ascending: false })
         .limit(5);
@@ -126,24 +134,20 @@ export default function BotLab() {
       const { data: recentContracts } = await supabase
         .from("contracts")
         .select("id, final_amount, status, created_at")
-        .in("client_id",
-          supabase.from("bot_accounts").select("profile_id")
-        )
+        .in("client_id", profileIds)
         .gte("created_at", new Date(Date.now() - 5 * 60 * 1000).toISOString())
         .order("created_at", { ascending: false })
         .limit(5);
+        
+      const contractIds = recentContracts?.map(c => c.id) || [];
 
-      const { data: recentMessages } = await supabase
+      const { data: recentMessages } = contractIds.length > 0 ? await supabase
         .from("contract_messages")
         .select("id, message, contains_contact_info, created_at")
-        .in("contract_id",
-          supabase.from("contracts").select("id").in("client_id",
-            supabase.from("bot_accounts").select("profile_id")
-          )
-        )
+        .in("contract_id", contractIds)
         .gte("created_at", new Date(Date.now() - 5 * 60 * 1000).toISOString())
         .order("created_at", { ascending: false })
-        .limit(5);
+        .limit(5) : { data: [] };
 
       setRealtimeActivity({
         projects: recentProjects || [],
@@ -383,8 +387,8 @@ export default function BotLab() {
           </div>
 
           {/* Real-time Activity Feed */}
-          <Card className="mb-6 border-accent">
-            <CardHeader>
+          <Card className="mb-6 border-accent shadow-md">
+            <CardHeader className="bg-muted/30 pb-4 border-b">
               <CardTitle className="flex items-center gap-2">
                 <Activity className="w-5 h-5 text-accent animate-pulse" />
                 Live Bot Activity (Last 5 Minutes)
@@ -393,71 +397,98 @@ export default function BotLab() {
                 Real-time feed of what bots are doing right now
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <h4 className="font-semibold mb-2 flex items-center gap-2">
-                    📝 Recent Projects ({realtimeActivity?.projects?.length || 0})
+            <CardContent className="pt-6">
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="bg-card border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                  <h4 className="font-semibold mb-3 flex items-center gap-2 pb-2 border-b">
+                    📝 Posted Projects
+                    <Badge variant="secondary" className="ml-auto">{realtimeActivity?.projects?.length || 0}</Badge>
                   </h4>
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                  <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
                     {realtimeActivity?.projects?.map((p: any) => (
-                      <div key={p.id} className="text-sm p-2 bg-muted rounded">
-                        <p className="font-medium truncate">{p.title}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Budget: NZD ${p.budget} • {new Date(p.created_at).toLocaleTimeString()}
-                        </p>
+                      <div key={p.id} className="text-sm p-3 bg-muted/50 rounded border border-border/50">
+                        <p className="font-medium line-clamp-2" title={p.title}>{p.title}</p>
+                        <div className="flex justify-between items-center mt-3">
+                          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                            NZD ${p.budget}
+                          </Badge>
+                          <span className="text-[10px] text-muted-foreground font-mono">
+                            {new Date(p.created_at).toLocaleTimeString()}
+                          </span>
+                        </div>
                       </div>
-                    )) || <p className="text-sm text-muted-foreground">No recent projects</p>}
+                    )) || <p className="text-sm text-muted-foreground italic text-center py-4">Waiting for projects...</p>}
                   </div>
                 </div>
 
-                <div>
-                  <h4 className="font-semibold mb-2 flex items-center gap-2">
-                    💰 Recent Bids ({realtimeActivity?.bids?.length || 0})
+                <div className="bg-card border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                  <h4 className="font-semibold mb-3 flex items-center gap-2 pb-2 border-b">
+                    💰 Submitted Bids
+                    <Badge variant="secondary" className="ml-auto">{realtimeActivity?.bids?.length || 0}</Badge>
                   </h4>
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                  <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
                     {realtimeActivity?.bids?.map((b: any) => (
-                      <div key={b.id} className="text-sm p-2 bg-muted rounded">
-                        <p className="font-medium">Bid: NZD ${b.amount}</p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {b.projects?.title} • {new Date(b.created_at).toLocaleTimeString()}
-                        </p>
+                      <div key={b.id} className="text-sm p-3 bg-muted/50 rounded border border-border/50">
+                        <p className="text-xs text-muted-foreground line-clamp-2 mb-2">On: {b.projects?.title}</p>
+                        <div className="flex justify-between items-center">
+                          <Badge variant="outline" className="bg-accent/10 text-accent border-accent/20 font-bold">
+                            Bid: NZD ${b.amount}
+                          </Badge>
+                          <span className="text-[10px] text-muted-foreground font-mono">
+                            {new Date(b.created_at).toLocaleTimeString()}
+                          </span>
+                        </div>
                       </div>
-                    )) || <p className="text-sm text-muted-foreground">No recent bids</p>}
+                    )) || <p className="text-sm text-muted-foreground italic text-center py-4">Waiting for bids...</p>}
                   </div>
                 </div>
 
-                <div>
-                  <h4 className="font-semibold mb-2 flex items-center gap-2">
-                    📋 Recent Contracts ({realtimeActivity?.contracts?.length || 0})
+                <div className="bg-card border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                  <h4 className="font-semibold mb-3 flex items-center gap-2 pb-2 border-b">
+                    🤝 Active Contracts
+                    <Badge variant="secondary" className="ml-auto">{realtimeActivity?.contracts?.length || 0}</Badge>
                   </h4>
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                  <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
                     {realtimeActivity?.contracts?.map((c: any) => (
-                      <div key={c.id} className="text-sm p-2 bg-muted rounded">
-                        <p className="font-medium">Contract: NZD ${c.final_amount}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Status: {c.status} • {new Date(c.created_at).toLocaleTimeString()}
+                      <div key={c.id} className="text-sm p-3 bg-muted/50 rounded border border-border/50">
+                        <div className="flex justify-between items-center mb-2">
+                          <Badge className="bg-green-500/20 text-green-600 border-green-500/30 hover:bg-green-500/30">
+                            NZD ${c.final_amount}
+                          </Badge>
+                          <span className="text-[10px] text-muted-foreground font-mono">
+                            {new Date(c.created_at).toLocaleTimeString()}
+                          </span>
+                        </div>
+                        <p className="text-xs font-medium uppercase text-muted-foreground tracking-wider mt-2">
+                          Status: <span className="text-foreground">{c.status.replace(/_/g, ' ')}</span>
                         </p>
                       </div>
-                    )) || <p className="text-sm text-muted-foreground">No recent contracts</p>}
+                    )) || <p className="text-sm text-muted-foreground italic text-center py-4">Waiting for contracts...</p>}
                   </div>
                 </div>
 
-                <div>
-                  <h4 className="font-semibold mb-2 flex items-center gap-2">
+                <div className="bg-card border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                  <h4 className="font-semibold mb-3 flex items-center gap-2 pb-2 border-b">
                     <MessageSquare className="w-4 h-4" />
-                    Recent Messages ({realtimeActivity?.messages?.length || 0})
+                    Messages
+                    <Badge variant="secondary" className="ml-auto">{realtimeActivity?.messages?.length || 0}</Badge>
                   </h4>
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                  <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
                     {realtimeActivity?.messages?.map((m: any) => (
-                      <div key={m.id} className="text-sm p-2 bg-muted rounded">
-                        <p className="truncate">{m.message}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {m.contains_contact_info && <span className="text-destructive">⚠️ Bypass attempt • </span>}
-                          {new Date(m.created_at).toLocaleTimeString()}
-                        </p>
+                      <div key={m.id} className="text-sm p-3 bg-muted/50 rounded border border-border/50">
+                        <p className="text-sm italic line-clamp-3 text-foreground" title={m.message}>"{m.message}"</p>
+                        <div className="flex justify-between items-center mt-3">
+                          {m.contains_contact_info ? (
+                            <Badge variant="destructive" className="text-[10px] uppercase font-bold animate-pulse">Bypass Attempt!</Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px] text-muted-foreground">Standard Msg</Badge>
+                          )}
+                          <span className="text-[10px] text-muted-foreground font-mono">
+                            {new Date(m.created_at).toLocaleTimeString()}
+                          </span>
+                        </div>
                       </div>
-                    )) || <p className="text-sm text-muted-foreground">No recent messages</p>}
+                    )) || <p className="text-sm text-muted-foreground italic text-center py-4">Waiting for messages...</p>}
                   </div>
                 </div>
               </div>

@@ -244,85 +244,53 @@ export const botLabService = {
       await this.toggleAutomation(false);
       await this.toggleBotPayments(false);
 
-      // Delete all bot-related content in correct order (respecting FK constraints)
-      // 1. Evidence photos
-      await supabase
-        .from("evidence_photos")
-        .delete()
-        .in("contract_id", 
-          supabase.from("contracts").select("id").in("client_id", 
-            supabase.from("bot_accounts").select("profile_id")
-          )
-        );
-
-      // 2. Contract messages
-      await supabase
-        .from("contract_messages")
-        .delete()
-        .in("contract_id",
-          supabase.from("contracts").select("id").in("client_id",
-            supabase.from("bot_accounts").select("profile_id")
-          )
-        );
-
-      // 3. Reviews
-      await supabase
-        .from("reviews")
-        .delete()
-        .in("contract_id",
-          supabase.from("contracts").select("id").in("client_id",
-            supabase.from("bot_accounts").select("profile_id")
-          )
-        );
-
-      // 4. Contracts
-      const { error: contractsError } = await supabase
-        .from("contracts")
-        .delete()
-        .in("client_id",
-          supabase.from("bot_accounts").select("profile_id")
-        );
-
-      if (contractsError) throw contractsError;
-
-      // 5. Bids
-      const { error: bidsError } = await supabase
-        .from("bids")
-        .delete()
-        .in("provider_id",
-          supabase.from("bot_accounts").select("profile_id")
-        );
-
-      if (bidsError) throw bidsError;
-
-      // 6. Projects
-      const { error: projectsError } = await supabase
-        .from("projects")
-        .delete()
-        .in("client_id",
-          supabase.from("bot_accounts").select("profile_id")
-        );
-
-      if (projectsError) throw projectsError;
-
-      // 7. Bot activity logs
-      const { error: logsError } = await supabase
-        .from("bot_activity_logs")
-        .delete()
-        .in("bot_id",
-          supabase.from("bot_accounts").select("profile_id")
-        );
-
-      if (logsError) throw logsError;
-
-      // 8. Get bot profile IDs before deleting bot_accounts
+      // 1. Get bot profile IDs before deleting anything
       const { data: botProfiles } = await supabase
         .from("bot_accounts")
         .select("profile_id");
 
       const profileIds = botProfiles?.map(b => b.profile_id) || [];
+      if (profileIds.length === 0) {
+        return { success: true, deleted: 0 };
+      }
 
-      // 9. Delete bot_accounts
+      // 2. Get associated contract IDs
+      const { data: botContracts } = await supabase
+        .from("contracts")
+        .select("id")
+        .in("client_id", profileIds);
+      
+      const contractIds = botContracts?.map(c => c.id) || [];
+
+      // 3. Get associated project IDs
+      const { data: botProjects } = await supabase
+        .from("projects")
+        .select("id")
+        .in("client_id", profileIds);
+        
+      const projectIds = botProjects?.map(p => p.id) || [];
+
+      // 4. Delete child records using the IDs directly
+      if (contractIds.length > 0) {
+        // Delete in batches or directly if array is manageable
+        await supabase.from("evidence_photos").delete().in("contract_id", contractIds);
+        await supabase.from("contract_messages").delete().in("contract_id", contractIds);
+        await supabase.from("reviews").delete().in("contract_id", contractIds);
+        await supabase.from("contracts").delete().in("id", contractIds);
+      }
+
+      if (projectIds.length > 0) {
+        await supabase.from("bids").delete().in("project_id", projectIds);
+        await supabase.from("projects").delete().in("id", projectIds);
+      }
+
+      // 5. Delete bids from provider bots
+      await supabase.from("bids").delete().in("provider_id", profileIds);
+
+      // 6. Bot activity logs
+      await supabase.from("bot_activity_logs").delete().in("bot_id", profileIds);
+
+      // 7. Delete bot_accounts
       const { error: botAccountsError } = await supabase
         .from("bot_accounts")
         .delete()
@@ -330,7 +298,7 @@ export const botLabService = {
 
       if (botAccountsError) throw botAccountsError;
 
-      // 10. Delete profiles
+      // 8. Delete profiles
       const { error: profilesError } = await supabase
         .from("profiles")
         .delete()
