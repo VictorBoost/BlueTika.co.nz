@@ -94,6 +94,20 @@ export function Navigation() {
             
               Find Providers
             </Link>
+            <Link
+            href="/testimonials"
+            className="block text-foreground hover:text-primary transition-colors"
+            onClick={() => setMobileMenuOpen(false)}>
+            
+              Testimonials
+            </Link>
+            <Link
+            href="/about"
+            className="block text-foreground hover:text-primary transition-colors"
+            onClick={() => setMobileMenuOpen(false)}>
+            
+              About
+            </Link>
             
             {session ?
           <>

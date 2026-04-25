@@ -31,19 +31,20 @@ export default async function handler(
       console.error("Error fetching projects for sitemap:", error);
     }
 
-    // Static pages with priority
+    // Static pages with priority and changefreq
     const staticPages = [
-      { url: "", priority: "1.0", changefreq: "daily" }, // Home
+      { url: "", priority: "1.0", changefreq: "daily" }, // Homepage
       { url: "/about", priority: "0.8", changefreq: "monthly" },
-      { url: "/projects", priority: "1.0", changefreq: "hourly" },
-      { url: "/post-project", priority: "0.9", changefreq: "monthly" },
-      { url: "/directory", priority: "0.8", changefreq: "weekly" },
-      { url: "/contact", priority: "0.7", changefreq: "monthly" },
-      { url: "/faq", priority: "0.7", changefreq: "monthly" },
+      { url: "/projects", priority: "0.9", changefreq: "hourly" },
+      { url: "/directory", priority: "0.8", changefreq: "daily" },
+      { url: "/testimonials", priority: "0.8", changefreq: "daily" },
+      { url: "/contact", priority: "0.6", changefreq: "monthly" },
+      { url: "/faq", priority: "0.6", changefreq: "monthly" },
       { url: "/terms", priority: "0.5", changefreq: "yearly" },
       { url: "/privacy", priority: "0.5", changefreq: "yearly" },
-      { url: "/register", priority: "0.8", changefreq: "monthly" },
+      { url: "/register", priority: "0.7", changefreq: "monthly" },
       { url: "/login", priority: "0.6", changefreq: "monthly" },
+      { url: "/post-project", priority: "0.9", changefreq: "monthly" }
     ];
 
     // Category pages
