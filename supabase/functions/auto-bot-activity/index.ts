@@ -239,9 +239,10 @@ serve(async (req) => {
                 });
 
               if (!error) {
+                // Update project status to assigned
                 await supabaseClient
                   .from("projects")
-                  .update({ status: "in_progress" })
+                  .update({ status: "assigned" })
                   .eq("id", project.id);
 
                 results.contracts++;

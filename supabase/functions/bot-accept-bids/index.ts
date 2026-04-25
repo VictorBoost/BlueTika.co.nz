@@ -130,10 +130,10 @@ serve(async (req) => {
 
         console.log(`  ✅ BOT-ACCEPT-BIDS: Contract created successfully! ID: ${newContract.id}`);
 
-        console.log(`  🔄 BOT-ACCEPT-BIDS: Updating project status to 'in_progress'`);
+        console.log(`  🔄 BOT-ACCEPT-BIDS: Updating project status to 'assigned'`);
         await supabaseClient
           .from("projects")
-          .update({ status: "in_progress" })
+          .update({ status: "assigned" })
           .eq("id", project.id);
 
         await supabaseClient
