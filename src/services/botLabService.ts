@@ -272,22 +272,22 @@ export const botLabService = {
 
       // 4. Delete child records using the IDs directly (cast as any to bypass deep type issues)
       if (contractIds.length > 0) {
-        await (supabase.from("evidence_photos") as any).delete().in("contract_id", contractIds);
-        await (supabase.from("contract_messages") as any).delete().in("contract_id", contractIds);
-        await (supabase.from("reviews") as any).delete().in("contract_id", contractIds);
-        await (supabase.from("contracts") as any).delete().in("id", contractIds);
+        await (supabase as any).from("evidence_photos").delete().in("contract_id", contractIds);
+        await (supabase as any).from("contract_messages").delete().in("contract_id", contractIds);
+        await (supabase as any).from("reviews").delete().in("contract_id", contractIds);
+        await (supabase as any).from("contracts").delete().in("id", contractIds);
       }
 
       if (projectIds.length > 0) {
-        await (supabase.from("bids") as any).delete().in("project_id", projectIds);
-        await (supabase.from("projects") as any).delete().in("id", projectIds);
+        await (supabase as any).from("bids").delete().in("project_id", projectIds);
+        await (supabase as any).from("projects").delete().in("id", projectIds);
       }
 
       // 5. Delete bids from provider bots
-      await (supabase.from("bids") as any).delete().in("provider_id", profileIds);
+      await (supabase as any).from("bids").delete().in("provider_id", profileIds);
 
       // 6. Bot activity logs
-      await (supabase.from("bot_activity_logs") as any).delete().in("bot_id", profileIds);
+      await (supabase as any).from("bot_activity_logs").delete().in("bot_id", profileIds);
 
       // 7. Delete bot_accounts
       const { error: botAccountsError } = await supabase
