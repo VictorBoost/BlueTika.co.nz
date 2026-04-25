@@ -17,15 +17,17 @@ export default function CategoryPage() {
   const [exampleProjects, setExampleProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const categoryInfo = slug ? getCategoryData(slug as string) : null;
+  const categoryInfo = slug && typeof slug === 'string' ? getCategoryData(slug) : null;
 
   useEffect(() => {
-    if (slug) {
+    if (slug && typeof slug === 'string') {
       loadExampleProjects();
     }
   }, [slug]);
 
   const loadExampleProjects = async () => {
+    if (!slug || typeof slug !== 'string') return;
+    
     setLoading(true);
     
     // Get category ID from slug
