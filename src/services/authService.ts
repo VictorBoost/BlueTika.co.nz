@@ -52,18 +52,19 @@ export const authService = {
   },
 
   // Sign up with email and password
-  async signUp(email: string, password: string): Promise<{ user: AuthUser | null; error: AuthError | null }> {
+  async signUp(email: string, password: string, metadata?: any): Promise<{ user: AuthUser | null; session: Session | null; error: AuthError | null }> {
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
+          data: metadata,
           emailRedirectTo: `${getURL()}auth/confirm-email`
         }
       });
 
       if (error) {
-        return { user: null, error: { message: error.message, code: error.status?.toString() } };
+        return { user: null, session: null, error: { message: error.message, code: error.status?.toString() } };
       }
 
       const authUser = data.user ? {
@@ -73,17 +74,18 @@ export const authService = {
         created_at: data.user.created_at
       } : null;
 
-      return { user: authUser, error: null };
+      return { user: authUser, session: data.session, error: null };
     } catch (error) {
       return { 
         user: null, 
+        session: null,
         error: { message: "An unexpected error occurred during sign up" } 
       };
     }
   },
 
   // Sign in with email and password
-  async signIn(email: string, password: string): Promise<{ user: AuthUser | null; error: AuthError | null }> {
+  async signInWithPassword(email: string, password: string): Promise<{ user: AuthUser | null; error: AuthError | null }> {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -107,6 +109,24 @@ export const authService = {
         user: null, 
         error: { message: "An unexpected error occurred during sign in" } 
       };
+    }
+  },
+
+  // Sign in with Google
+  async signInWithGoogle(): Promise<{ error: AuthError | null }> {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${getURL()}api/auth/google-callback`
+        }
+      });
+      if (error) {
+        return { error: { message: error.message } };
+      }
+      return { error: null };
+    } catch (error) {
+      return { error: { message: "An unexpected error occurred during Google sign in" } };
     }
   },
 
