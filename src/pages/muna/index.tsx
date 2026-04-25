@@ -242,6 +242,8 @@ export default function ControlCentre() {
     setIsLoading(true);
     
     try {
+      console.log("Checking platform access...");
+      
       // Use server-side admin verification API
       const response = await fetch("/api/auth/verify-admin", {
         method: "GET",
@@ -250,12 +252,12 @@ export default function ControlCentre() {
 
       const data = await response.json();
       
-      console.log("Admin verification result:", data);
+      console.log("Admin verification result:", { status: response.status, data });
       
       if (response.status === 401) {
         // Not logged in - redirect to login
         console.log("Not authenticated - redirecting to login");
-        router.push("/login?redirect=/muna");
+        router.push("/muna/login");
         return;
       }
 
@@ -278,37 +280,6 @@ export default function ControlCentre() {
       setIsAuthenticated(true);
       setIsLoading(false);
       loadStats();
-      
-      // Send email alert to owner on successful admin login
-      if (data.email) {
-        const ipAddress = await fetch("https://api.ipify.org?format=json")
-          .then(r => r.json())
-          .then(d => d.ip)
-          .catch(() => "unknown");
-
-        // Log successful admin login
-        await supabase.from("admin_login_logs").insert({
-          email: data.email,
-          success: true,
-          ip_address: ipAddress,
-          user_agent: navigator.userAgent,
-        });
-
-        // Send email alert to owner
-        try {
-          await fetch("/api/send-admin-login-alert", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              adminEmail: data.email,
-              ipAddress,
-              timestamp: new Date().toISOString(),
-            }),
-          });
-        } catch (err) {
-          console.error("Failed to send login alert:", err);
-        }
-      }
       
       if (data.isOwner) {
         loadMonalisaStatus();
