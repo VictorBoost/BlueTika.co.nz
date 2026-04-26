@@ -34,6 +34,8 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -51,14 +53,83 @@ export default function RegisterPage() {
     setError("");
   };
 
+  const validatePhoneNumber = (phone: string): boolean => {
+    // NZ phone format: 021/022/027 followed by 6-8 digits, or 03/04/06/07/09 followed by 7 digits
+    const mobilePattern = /^(02[1247]|021)\s?\d{3}\s?\d{3,4}$/;
+    const landlinePattern = /^(0[3-9])\s?\d{3}\s?\d{4}$/;
+    const cleanPhone = phone.replace(/\s+/g, '');
+    return mobilePattern.test(cleanPhone) || landlinePattern.test(cleanPhone);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccess("");
     setLoading(true);
 
+    // Validation
+    if (!formData.firstName.trim()) {
+      setError("Please enter your first name");
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.lastName.trim()) {
+      setError("Please enter your last name");
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.email.trim()) {
+      setError("Please enter your email address");
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.email.includes("@") || !formData.email.includes(".")) {
+      setError("Please enter a valid email address");
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.phoneNumber.trim()) {
+      setError("Please enter your NZ phone number");
+      setLoading(false);
+      return;
+    }
+
+    if (!validatePhoneNumber(formData.phoneNumber)) {
+      setError("Please enter a valid NZ phone number (e.g., 021 123 4567 or 03 123 4567)");
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.cityRegion) {
+      setError("Please select your city/region");
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.password) {
+      setError("Please enter a password");
+      setLoading(false);
+      return;
+    }
+
+    if (formData.password.length < 8) {
+      setError("Password must be at least 8 characters long");
+      setLoading(false);
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.isClient && !formData.isProvider) {
+      setError("Please select at least one account type (Client or Service Provider)");
       setLoading(false);
       return;
     }
@@ -83,27 +154,24 @@ export default function RegisterPage() {
         return;
       }
 
-      // Check if email verification is required
-      if (!user && !session) {
-        setSuccess("Registration successful! Please check your email to verify your account before logging in.");
-        setLoading(false);
-        // Clear form
-        setFormData({
-          firstName: "",
-          lastName: "",
-          email: "",
-          phoneNumber: "",
-          cityRegion: "",
-          password: "",
-          confirmPassword: "",
-          isClient: false,
-          isProvider: false,
+      // Send welcome email via Amazon SES
+      try {
+        await fetch("/api/send-welcome-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: formData.email,
+            name: `${formData.firstName} ${formData.lastName}`
+          })
         });
-        return;
+      } catch (emailError) {
+        console.warn("Welcome email failed to send:", emailError);
       }
 
-      setSuccess("Registration successful!");
-      router.push("/projects");
+      setSuccess("Registration successful! Redirecting...");
+      setTimeout(() => {
+        router.push("/projects");
+      }, 1500);
     } catch (err: any) {
       setError(err.message || "An error occurred during registration");
     } finally {
@@ -278,26 +346,54 @@ export default function RegisterPage() {
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="password">Password</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={formData.password}
-                      onChange={(e) => handleChange("password", e.target.value)}
-                      required
-                      minLength={8}
-                    />
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        value={formData.password}
+                        onChange={(e) => handleChange("password", e.target.value)}
+                        required
+                        minLength={8}
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showPassword ? (
+                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                        ) : (
+                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        )}
+                      </button>
+                    </div>
                     <p className="text-xs text-muted-foreground">Minimum 8 characters</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="confirmPassword">Confirm Password</Label>
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      value={formData.confirmPassword}
-                      onChange={(e) => handleChange("confirmPassword", e.target.value)}
-                      required
-                      minLength={8}
-                    />
+                    <div className="relative">
+                      <Input
+                        id="confirmPassword"
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={formData.confirmPassword}
+                        onChange={(e) => handleChange("confirmPassword", e.target.value)}
+                        required
+                        minLength={8}
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showConfirmPassword ? (
+                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                        ) : (
+                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
 
