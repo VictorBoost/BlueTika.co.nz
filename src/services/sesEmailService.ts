@@ -45,39 +45,56 @@ const baseHtml = (title: string, content: string, baseUrl: string = "https://blu
 
 export async function sendEmail(params: SendEmailParams): Promise<boolean> {
   if (!SES_API_ENDPOINT) {
-    console.warn("⚠️ SES_API_ENDPOINT not configured, skipping email send");
-    console.warn("   Set NEXT_PUBLIC_SES_ENDPOINT in .env.local to enable emails");
+    console.error("❌ CRITICAL: SES_API_ENDPOINT not configured!");
+    console.error("   Current value:", SES_API_ENDPOINT);
+    console.error("   Expected: A valid API Gateway URL");
+    console.error("   Check .env.local for NEXT_PUBLIC_SES_ENDPOINT");
     return false;
   }
   
-  console.log("📧 Sending email via SES:");
+  console.log("📧 Attempting to send email via Amazon SES:");
   console.log("   To:", params.to);
   console.log("   Subject:", params.subject);
+  console.log("   From:", FROM_EMAIL);
   console.log("   Endpoint:", SES_API_ENDPOINT);
   
   try {
+    const payload = {
+      from: FROM_EMAIL,
+      to: params.to,
+      subject: params.subject,
+      htmlBody: params.htmlBody,
+      textBody: params.textBody || stripHtml(params.htmlBody)
+    };
+    
+    console.log("   Payload size:", JSON.stringify(payload).length, "bytes");
+    
     const response = await fetch(SES_API_ENDPOINT, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        from: FROM_EMAIL,
-        to: params.to,
-        subject: params.subject,
-        htmlBody: params.htmlBody,
-        textBody: params.textBody || stripHtml(params.htmlBody)
-      })
+      body: JSON.stringify(payload)
     });
+    
+    console.log("   Response status:", response.status);
+    console.log("   Response headers:", Object.fromEntries(response.headers.entries()));
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("❌ SES email failed:", response.status, errorText);
+      console.error("❌ SES API returned error:");
+      console.error("   Status:", response.status);
+      console.error("   Body:", errorText);
       return false;
     }
     
-    console.log("✅ Email sent successfully");
+    const responseData = await response.text();
+    console.log("✅ Email sent successfully!");
+    console.log("   SES Response:", responseData);
     return true;
-  } catch (error) {
-    console.error("❌ Error sending SES email:", error);
+  } catch (error: any) {
+    console.error("❌ Exception while sending SES email:");
+    console.error("   Error type:", error.constructor.name);
+    console.error("   Error message:", error.message);
+    console.error("   Full error:", error);
     return false;
   }
 }
