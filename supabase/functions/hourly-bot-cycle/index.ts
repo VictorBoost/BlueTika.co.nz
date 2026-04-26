@@ -388,6 +388,71 @@ serve(async (req) => {
       results.errors.push(`Fund release: ${err.message}`);
     }
 
+    // Step 7: Submit Reviews & Ratings (REALISTIC - Only for completed contracts with released funds)
+    console.log("\n⭐ Step 7: Submitting reviews and ratings...");
+    try {
+      const { data: completedContracts } = await supabaseClient
+        .from("contracts")
+        .select("id, client_id, provider_id")
+        .eq("status", "completed")
+        .eq("payment_status", "released")
+        .is("reviewed_at", null)
+        .limit(10);
+
+      if (completedContracts && completedContracts.length > 0) {
+        const reviewTemplates = [
+          { text: "Great work! Very professional and on time.", rating: 5 },
+          { text: "Excellent service, highly recommend!", rating: 5 },
+          { text: "Good job, happy with the results.", rating: 4 },
+          { text: "Professional and reliable. Would hire again.", rating: 5 },
+          { text: "Decent work, met expectations.", rating: 4 },
+          { text: "Very satisfied with the quality.", rating: 5 },
+          { text: "Good service, reasonable price.", rating: 4 },
+          { text: "Quick and efficient. Thanks!", rating: 5 },
+          { text: "Quality workmanship, on budget.", rating: 5 },
+          { text: "Reliable and friendly service.", rating: 4 }
+        ];
+
+        for (const contract of completedContracts) {
+          // Verify this is a client bot
+          const { data: isClientBot } = await supabaseClient
+            .from("bot_accounts")
+            .select("id")
+            .eq("profile_id", contract.client_id)
+            .maybeSingle();
+
+          if (isClientBot) {
+            const review = reviewTemplates[Math.floor(Math.random() * reviewTemplates.length)];
+            
+            const { error: reviewError } = await supabaseClient
+              .from("reviews")
+              .insert({
+                contract_id: contract.id,
+                reviewer_id: contract.client_id,
+                reviewee_id: contract.provider_id,
+                rating: review.rating,
+                comment: review.text,
+                review_type: "client_to_provider"
+              });
+
+            if (!reviewError) {
+              await supabaseClient
+                .from("contracts")
+                .update({ reviewed_at: new Date().toISOString() } as any)
+                .eq("id", contract.id);
+              
+              results.completed++;
+              console.log(`   ⭐ Review submitted for contract ${contract.id} (${review.rating} stars)`);
+            }
+          }
+        }
+      }
+      console.log(`✅ Submitted ${results.completed} reviews`);
+    } catch (err: any) {
+      console.error("❌ Review submission failed:", err);
+      results.errors.push(`Reviews: ${err.message}`);
+    }
+
     // Update last run timestamp
     await supabaseClient
       .from("platform_settings")

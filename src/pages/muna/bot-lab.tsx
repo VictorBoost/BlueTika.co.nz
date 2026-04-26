@@ -16,6 +16,7 @@ export default function BotLab() {
   const [stats, setStats] = useState<any>(null);
   const [testingPayment, setTestingPayment] = useState(false);
   const [paymentResult, setPaymentResult] = useState<string>("");
+  const [generatingBots, setGeneratingBots] = useState(false);
 
   useEffect(() => {
     checkAccess();
@@ -86,6 +87,20 @@ export default function BotLab() {
     await loadData();
   }
 
+  async function generateBots() {
+    if (!confirm("Generate 50 new bots (40 clients, 10 providers)?")) return;
+    
+    setGeneratingBots(true);
+    try {
+      const result = await botLabService.generateBots(50);
+      alert(`✅ Generated ${result.success} bots\n❌ Failed: ${result.failed}\n${result.errors.length > 0 ? "\nErrors:\n" + result.errors.join("\n") : ""}`);
+    } catch (error) {
+      alert(`❌ Error: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+    setGeneratingBots(false);
+    await loadData();
+  }
+
   async function killSwitch() {
     if (!confirm("⚠️ WARNING: This will DELETE ALL BOTS and their data. Are you absolutely sure?")) return;
     if (!confirm("FINAL WARNING: This action CANNOT be undone. Continue?")) return;
@@ -111,6 +126,13 @@ export default function BotLab() {
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">🤖 Bot Automation Lab</h1>
           <div className="flex gap-2">
+            <Button
+              onClick={generateBots}
+              variant="outline"
+              disabled={generatingBots}
+            >
+              {generatingBots ? "Generating..." : "Generate 50 Bots"}
+            </Button>
             <Button
               onClick={toggleAutomation}
               variant={automation?.isActive ? "destructive" : "default"}
