@@ -82,6 +82,8 @@ serve(async (req) => {
     console.log("   Creating Stripe payment intent...");
 
     // Create payment intent
+    console.log(`   Using Stripe key: ${stripeKey.substring(0, 7)}...`);
+    
     const piResponse = await fetch("https://api.stripe.com/v1/payment_intents", {
       method: "POST",
       headers: {
@@ -102,13 +104,20 @@ serve(async (req) => {
     });
 
     if (!piResponse.ok) {
-      const error = await piResponse.text();
-      console.error("❌ Stripe PI creation failed:", error);
-      throw new Error(`Stripe PI creation failed: ${error}`);
+      const errorText = await piResponse.text();
+      console.error("❌ Stripe PI creation failed:", errorText);
+      
+      // Parse Stripe error
+      try {
+        const errorJson = JSON.parse(errorText);
+        throw new Error(`Stripe error: ${errorJson.error?.message || errorText}`);
+      } catch {
+        throw new Error(`Stripe PI failed: ${errorText}`);
+      }
     }
 
     const paymentIntent = await piResponse.json();
-    console.log(`   ✓ Payment Intent created: ${paymentIntent.id}`);
+    console.log(`   ✓ Payment Intent created: ${paymentIntent.id} (status: ${paymentIntent.status})`);
 
     // Create payment method with test card
     console.log("   Creating test payment method...");

@@ -278,20 +278,32 @@ serve(async (req) => {
       results.errors.push(`Payments: ${err.message}`);
     }
 
-    // Step 5: Provider Bots Submit Work (Upload Photos) - REALISTIC: Some clients will ghost
-    console.log("\n📸 Step 5: Provider bots uploading work evidence...");
+    // Step 5: Provider Bots Submit Work & Reviews
+    console.log("\n📸 Step 5: Provider bots uploading work evidence and submitting reviews...");
     try {
       const { data: paidContracts } = await supabaseClient
         .from("contracts")
-        .select("id, provider_id, client_id")
+        .select("id, provider_id, client_id, final_amount")
         .eq("status", "active")
         .eq("payment_status", "held")
         .is("work_done_at", null)
         .limit(5);
 
       if (paidContracts && paidContracts.length > 0) {
+        const reviewTemplates = [
+          { text: "Great client! Clear communication and prompt payment.", rating: 5 },
+          { text: "Excellent to work with. Would work for them again.", rating: 5 },
+          { text: "Good client, paid on time.", rating: 4 },
+          { text: "Professional and respectful. Recommended.", rating: 5 },
+          { text: "Fair client, smooth process.", rating: 4 },
+          { text: "Very satisfied working on this project.", rating: 5 },
+          { text: "Good experience, clear expectations.", rating: 4 },
+          { text: "Quick payment, good communication. Thanks!", rating: 5 },
+          { text: "Professional client, would work with again.", rating: 5 },
+          { text: "Reliable and fair. Great client.", rating: 4 }
+        ];
+
         for (const contract of paidContracts) {
-          // Verify this is a provider bot
           const { data: isProviderBot } = await supabaseClient
             .from("bot_accounts")
             .select("id")
@@ -315,7 +327,18 @@ serve(async (req) => {
               }
             ]);
 
-            const { error } = await supabaseClient
+            // Provider submits review of client immediately
+            const review = reviewTemplates[Math.floor(Math.random() * reviewTemplates.length)];
+            await supabaseClient.from("reviews").insert({
+              contract_id: contract.id,
+              reviewer_id: contract.provider_id,
+              reviewee_id: contract.client_id,
+              rating: review.rating,
+              comment: review.text,
+              review_type: "provider_to_client"
+            });
+
+            await supabaseClient
               .from("contracts")
               .update({
                 work_done_at: new Date().toISOString(),
@@ -325,22 +348,19 @@ serve(async (req) => {
               } as any)
               .eq("id", contract.id);
 
-            if (!error) {
-              results.completed++;
-              // Mark this as a "ghosted" scenario - client won't release funds
-              results.ghostedProviders++;
-              console.log(`   📸 Provider uploaded photos for contract ${contract.id} (client will ghost - testing auto-release)`);
-            }
+            results.completed++;
+            results.ghostedProviders++;
+            console.log(`   📸✅ Provider uploaded photos + review (${review.rating}★) for contract ${contract.id}`);
           }
         }
       }
-      console.log(`✅ Providers uploaded ${results.completed} work completions (clients ghosting)`);
+      console.log(`✅ Completed ${results.completed} work submissions with reviews`);
     } catch (err: any) {
       console.error("❌ Provider work submission failed:", err);
       results.errors.push(`Provider work: ${err.message}`);
     }
 
-    // Step 6: REALISTIC - Some Client Bots Manually Release Funds (30% chance)
+    // Step 6: REALISTIC - Some Client Bots Manually Release Funds (30% chance) + Submit Reviews
     console.log("\n💰 Step 6: Client bots manually releasing funds (30% chance)...");
     try {
       const { data: awaitingRelease } = await supabaseClient
@@ -351,56 +371,7 @@ serve(async (req) => {
         .limit(10);
 
       if (awaitingRelease && awaitingRelease.length > 0) {
-        for (const contract of awaitingRelease) {
-          // Verify this is a client bot
-          const { data: isClientBot } = await supabaseClient
-            .from("bot_accounts")
-            .select("id")
-            .eq("profile_id", contract.client_id)
-            .maybeSingle();
-
-          if (isClientBot) {
-            // 30% chance client bot releases funds immediately
-            if (Math.random() < 0.3) {
-              const { error } = await supabaseClient
-                .from("contracts")
-                .update({
-                  payment_status: "released",
-                  status: "completed",
-                  funds_released_at: new Date().toISOString()
-                } as any)
-                .eq("id", contract.id);
-
-              if (!error) {
-                results.fundReleases++;
-                console.log(`   ✅ Client bot released funds for contract ${contract.id}`);
-              }
-            } else {
-              results.awaitingAutoRelease++;
-              console.log(`   ⏳ Client bot ghosting contract ${contract.id} - will auto-release in 48h`);
-            }
-          }
-        }
-      }
-      console.log(`✅ Manual fund releases: ${results.fundReleases}, Waiting for auto-release: ${results.awaitingAutoRelease}`);
-    } catch (err: any) {
-      console.error("❌ Fund release failed:", err);
-      results.errors.push(`Fund release: ${err.message}`);
-    }
-
-    // Step 7: Submit Reviews & Ratings (REALISTIC - Only for completed contracts with released funds)
-    console.log("\n⭐ Step 7: Submitting reviews and ratings...");
-    try {
-      const { data: completedContracts } = await supabaseClient
-        .from("contracts")
-        .select("id, client_id, provider_id")
-        .eq("status", "completed")
-        .eq("payment_status", "released")
-        .is("reviewed_at", null)
-        .limit(10);
-
-      if (completedContracts && completedContracts.length > 0) {
-        const reviewTemplates = [
+        const clientReviewTemplates = [
           { text: "Great work! Very professional and on time.", rating: 5 },
           { text: "Excellent service, highly recommend!", rating: 5 },
           { text: "Good job, happy with the results.", rating: 4 },
@@ -413,8 +384,7 @@ serve(async (req) => {
           { text: "Reliable and friendly service.", rating: 4 }
         ];
 
-        for (const contract of completedContracts) {
-          // Verify this is a client bot
+        for (const contract of awaitingRelease) {
           const { data: isClientBot } = await supabaseClient
             .from("bot_accounts")
             .select("id")
@@ -422,11 +392,10 @@ serve(async (req) => {
             .maybeSingle();
 
           if (isClientBot) {
-            const review = reviewTemplates[Math.floor(Math.random() * reviewTemplates.length)];
-            
-            const { error: reviewError } = await supabaseClient
-              .from("reviews")
-              .insert({
+            if (Math.random() < 0.3) {
+              // Client reviews provider
+              const review = clientReviewTemplates[Math.floor(Math.random() * clientReviewTemplates.length)];
+              await supabaseClient.from("reviews").insert({
                 contract_id: contract.id,
                 reviewer_id: contract.client_id,
                 reviewee_id: contract.provider_id,
@@ -435,22 +404,29 @@ serve(async (req) => {
                 review_type: "client_to_provider"
               });
 
-            if (!reviewError) {
               await supabaseClient
                 .from("contracts")
-                .update({ reviewed_at: new Date().toISOString() } as any)
+                .update({
+                  payment_status: "released",
+                  status: "completed",
+                  funds_released_at: new Date().toISOString(),
+                  reviewed_at: new Date().toISOString()
+                } as any)
                 .eq("id", contract.id);
-              
-              results.completed++;
-              console.log(`   ⭐ Review submitted for contract ${contract.id} (${review.rating} stars)`);
+
+              results.fundReleases++;
+              console.log(`   ✅ Client released funds + review (${review.rating}★) for contract ${contract.id}`);
+            } else {
+              results.awaitingAutoRelease++;
+              console.log(`   ⏳ Client ghosting contract ${contract.id} - will auto-release in 48h`);
             }
           }
         }
       }
-      console.log(`✅ Submitted ${results.completed} reviews`);
+      console.log(`✅ Manual fund releases: ${results.fundReleases}, Waiting for auto-release: ${results.awaitingAutoRelease}`);
     } catch (err: any) {
-      console.error("❌ Review submission failed:", err);
-      results.errors.push(`Reviews: ${err.message}`);
+      console.error("❌ Fund release failed:", err);
+      results.errors.push(`Fund release: ${err.message}`);
     }
 
     // Update last run timestamp
