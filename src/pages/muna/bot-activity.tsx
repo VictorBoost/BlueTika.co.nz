@@ -33,6 +33,14 @@ interface ActivityStats {
   complete_work: number;
   submit_review: number;
   make_payment: number;
+  // Entity counts
+  provider_bots: number;
+  client_bots: number;
+  total_projects: number;
+  total_bids: number;
+  total_contracts: number;
+  paid_contracts: number;
+  total_reviews: number;
 }
 
 export default function BotActivityPage() {
@@ -50,6 +58,13 @@ export default function BotActivityPage() {
     complete_work: 0,
     submit_review: 0,
     make_payment: 0,
+    provider_bots: 0,
+    client_bots: 0,
+    total_projects: 0,
+    total_bids: 0,
+    total_contracts: 0,
+    paid_contracts: 0,
+    total_reviews: 0,
   });
 
   useEffect(() => {
@@ -113,12 +128,16 @@ export default function BotActivityPage() {
 
       setActivities(formattedData);
 
-      // Calculate stats
+      // Calculate stats using the service
+      const { botLabService } = await import("@/services/botLabService");
+      const botStats = await botLabService.getBotStats();
+
+      // Action type stats
       const { data: allLogs } = await supabase
         .from("bot_activity_logs")
         .select("action_type");
 
-      if (allLogs) {
+      if (allLogs && botStats) {
         const newStats = {
           total: allLogs.length,
           post_project: allLogs.filter(l => l.action_type === "post_project").length,
@@ -127,6 +146,13 @@ export default function BotActivityPage() {
           complete_work: allLogs.filter(l => l.action_type === "complete_work").length,
           submit_review: allLogs.filter(l => l.action_type === "submit_review").length,
           make_payment: allLogs.filter(l => l.action_type === "make_payment").length,
+          provider_bots: botStats.providerBots,
+          client_bots: botStats.clientBots,
+          total_projects: botStats.totalProjects,
+          total_bids: botStats.totalBids,
+          total_contracts: botStats.totalContracts,
+          paid_contracts: botStats.paidContracts,
+          total_reviews: botStats.totalReviews,
         };
         setStats(newStats);
       }
@@ -250,64 +276,60 @@ export default function BotActivityPage() {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
+          {/* Entity Stats Cards */}
+          <h2 className="text-xl font-semibold mb-4">Bot Ecosystem Stats</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-8">
             <Card>
               <CardHeader className="pb-2">
-                <CardDescription>Total Activities</CardDescription>
-                <CardTitle className="text-2xl">{stats.total}</CardTitle>
+                <CardDescription>Total Bots</CardDescription>
+                <CardTitle className="text-2xl">{stats.provider_bots + stats.client_bots}</CardTitle>
               </CardHeader>
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardDescription className="flex items-center gap-1">
-                  <FileText className="h-3 w-3" /> Projects
-                </CardDescription>
-                <CardTitle className="text-2xl">{stats.post_project}</CardTitle>
+                <CardDescription>Providers</CardDescription>
+                <CardTitle className="text-2xl text-teal-500">{stats.provider_bots}</CardTitle>
               </CardHeader>
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardDescription className="flex items-center gap-1">
-                  <Activity className="h-3 w-3" /> Bids
-                </CardDescription>
-                <CardTitle className="text-2xl">{stats.submit_bid}</CardTitle>
+                <CardDescription>Clients</CardDescription>
+                <CardTitle className="text-2xl text-blue-500">{stats.client_bots}</CardTitle>
               </CardHeader>
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardDescription className="flex items-center gap-1">
-                  <CheckCircle2 className="h-3 w-3" /> Accepted
-                </CardDescription>
-                <CardTitle className="text-2xl">{stats.accept_bid}</CardTitle>
+                <CardDescription>Projects</CardDescription>
+                <CardTitle className="text-2xl text-purple-500">{stats.total_projects}</CardTitle>
               </CardHeader>
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardDescription className="flex items-center gap-1">
-                  <DollarSign className="h-3 w-3" /> Payments
-                </CardDescription>
-                <CardTitle className="text-2xl">{stats.make_payment}</CardTitle>
+                <CardDescription>Total Bids</CardDescription>
+                <CardTitle className="text-2xl text-orange-500">{stats.total_bids}</CardTitle>
               </CardHeader>
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardDescription className="flex items-center gap-1">
-                  <CheckCircle2 className="h-3 w-3" /> Completed
-                </CardDescription>
-                <CardTitle className="text-2xl">{stats.complete_work}</CardTitle>
+                <CardDescription>Contracts</CardDescription>
+                <CardTitle className="text-2xl text-yellow-500">{stats.total_contracts}</CardTitle>
               </CardHeader>
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardDescription className="flex items-center gap-1">
-                  <Star className="h-3 w-3" /> Reviews
-                </CardDescription>
-                <CardTitle className="text-2xl">{stats.submit_review}</CardTitle>
+                <CardDescription>Paid</CardDescription>
+                <CardTitle className="text-2xl text-green-500">{stats.paid_contracts}</CardTitle>
+              </CardHeader>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardDescription>Reviews</CardDescription>
+                <CardTitle className="text-2xl text-pink-500">{stats.total_reviews}</CardTitle>
               </CardHeader>
             </Card>
           </div>
 
+          <h2 className="text-xl font-semibold mb-4">Activity Logs</h2>
           {/* Filter */}
           <Card className="mb-6">
             <CardContent className="pt-6">

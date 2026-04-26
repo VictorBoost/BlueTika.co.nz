@@ -291,8 +291,8 @@ export const botLabService = {
 
       // Delete in proper order to avoid FK violations
       // 1. Reviews (references contracts + profiles)
-      await supabase.from("reviews").delete().in("reviewer_id", profileIds);
-      await supabase.from("reviews").delete().in("reviewee_id", profileIds);
+      await (supabase as any).from("reviews").delete().in("reviewer_id", profileIds);
+      await (supabase as any).from("reviews").delete().in("reviewee_id", profileIds);
 
       // 2. Evidence photos (references contracts)
       const { data: contracts } = await supabase
@@ -302,31 +302,31 @@ export const botLabService = {
       
       if (contracts && contracts.length > 0) {
         const contractIds = contracts.map(c => c.id);
-        await supabase.from("evidence_photos").delete().in("contract_id", contractIds);
-        await supabase.from("contract_messages").delete().in("contract_id", contractIds);
+        await (supabase as any).from("evidence_photos").delete().in("contract_id", contractIds);
+        await (supabase as any).from("contract_messages").delete().in("contract_id", contractIds);
       }
 
       // 3. Contracts
-      await supabase.from("contracts").delete().in("client_id", profileIds);
-      await supabase.from("contracts").delete().in("provider_id", profileIds);
+      await (supabase as any).from("contracts").delete().in("client_id", profileIds);
+      await (supabase as any).from("contracts").delete().in("provider_id", profileIds);
 
       // 4. Bids (references projects + profiles)
-      await supabase.from("bids").delete().in("provider_id", profileIds);
+      await (supabase as any).from("bids").delete().in("provider_id", profileIds);
 
       // 5. Projects
-      await supabase.from("projects").delete().in("client_id", profileIds);
+      await (supabase as any).from("projects").delete().in("client_id", profileIds);
 
       // 6. Bot activity logs
-      await supabase.from("bot_activity_logs").delete().in("bot_id", profileIds);
+      await (supabase as any).from("bot_activity_logs").delete().in("bot_id", profileIds);
 
       // 7. Bot bypass attempts
-      await supabase.from("bot_bypass_attempts").delete().in("bot_profile_id", profileIds);
+      await (supabase as any).from("bot_bypass_attempts").delete().in("bot_profile_id", profileIds);
 
       // 8. Bot accounts
-      await supabase.from("bot_accounts").delete().in("profile_id", profileIds);
+      await (supabase as any).from("bot_accounts").delete().in("profile_id", profileIds);
 
       // 9. Profiles (last)
-      await supabase.from("profiles").delete().in("id", profileIds);
+      await (supabase as any).from("profiles").delete().in("id", profileIds);
 
       return { success: true, deleted: profileIds.length };
     } catch (error: any) {
@@ -363,34 +363,34 @@ export const botLabService = {
       .eq("is_active", true);
 
     // Get entity counts (only bot-created)
-    const { count: totalProjects } = await supabase
+    const { count: totalProjects } = await (supabase as any)
       .from("projects")
       .select("*", { count: "exact", head: true })
       .in("client_id", botProfileIds);
 
-    const { count: totalBids } = await supabase
+    const { count: totalBids } = await (supabase as any)
       .from("bids")
       .select("*", { count: "exact", head: true })
       .in("provider_id", botProfileIds);
 
-    const { count: totalContracts } = await supabase
+    const { count: totalContracts } = await (supabase as any)
       .from("contracts")
       .select("*", { count: "exact", head: true })
       .in("client_id", botProfileIds);
 
-    const { count: paidContracts } = await supabase
+    const { count: paidContracts } = await (supabase as any)
       .from("contracts")
       .select("*", { count: "exact", head: true })
       .in("payment_status", ["held", "released"])
       .in("client_id", botProfileIds);
 
-    const { count: completedContracts } = await supabase
+    const { count: completedContracts } = await (supabase as any)
       .from("contracts")
       .select("*", { count: "exact", head: true })
       .eq("status", "completed")
       .in("client_id", botProfileIds);
 
-    const { count: totalReviews } = await supabase
+    const { count: totalReviews } = await (supabase as any)
       .from("reviews")
       .select("*", { count: "exact", head: true })
       .in("reviewer_id", botProfileIds);
