@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabase } from "@/lib/supabase";
+import { sesEmailService } from "@/services/sesEmailService";
 
 /**
  * API endpoint to test complete bot cycle with real emails
@@ -77,15 +78,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.log("✅ Created provider profile");
     }
 
+    // Randomize category for testing
+    const categories = [
+      { cat: "Plumbing", sub: "Repairs & Maintenance", title: "Test Project - Fix Leaking Pipe" },
+      { cat: "Electrical", sub: "Wiring", title: "Test Project - Install New Outlets" },
+      { cat: "Cleaning", sub: "Deep Clean", title: "Test Project - End of Tenancy Cleaning" },
+      { cat: "Gardening", sub: "Lawn Care", title: "Test Project - Garden Clearance" },
+      { cat: "Moving", sub: "Furniture Moving", title: "Test Project - Move Heavy Sofa" }
+    ];
+    const randomProject = categories[Math.floor(Math.random() * categories.length)];
+
     // Step 2: Create a project
     const { data: project, error: projectError } = await supabase
       .from("projects")
       .insert({
         client_id: clientProfile.id,
-        title: "Test Project - Plumbing Repair",
-        description: "Need urgent plumbing repair in kitchen. Leaking pipe under sink.",
-        category: "Plumbing",
-        subcategory: "Repairs & Maintenance",
+        title: randomProject.title,
+        description: "This is an automated test project with a randomized category.",
+        category: randomProject.cat,
+        subcategory: randomProject.sub,
         budget_min: 150,
         budget_max: 300,
         city_region: "Auckland",
@@ -95,16 +106,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .single();
 
     if (projectError) throw projectError;
-    console.log(`✅ Created project: ${project.id}`);
+    console.log(`✅ Created project: ${project.id} (${randomProject.cat})`);
 
     // Step 3: Provider submits bid
+    const bidAmount = Math.floor(Math.random() * 100) + 150; // Random amount between 150-250
     const { data: bid, error: bidError } = await supabase
       .from("bids")
       .insert({
         project_id: project.id,
         provider_id: providerProfile.id,
-        amount: 220,
-        message: "I can fix this plumbing issue today. Experienced plumber with 10+ years. Will bring all necessary parts.",
+        amount: bidAmount,
+        message: "I can help with this project today. Experienced and ready to go.",
         estimated_duration: "2-3 hours",
         status: "pending"
       })
@@ -112,7 +124,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .single();
 
     if (bidError) throw bidError;
-    console.log(`✅ Provider submitted bid: ${bid.id}`);
+    console.log(`✅ Provider submitted bid: ${bid.id} ($${bidAmount})`);
 
     // Step 4: Client accepts bid (creates contract)
     const platformFee = Math.round(bid.amount * 0.10 * 100) / 100;
@@ -143,7 +155,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Step 5: Trigger bot payment
     console.log("💳 Triggering bot payment...");
-    const paymentResponse = await fetch(`${req.headers.origin}/api/bot-payment`, {
+    const baseUrl = req.headers.origin || "http://localhost:3000";
+    const paymentResponse = await fetch(`${baseUrl}/api/bot-payment`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ contractId: contract.id })
@@ -158,13 +171,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         contract_id: contract.id,
         photo_url: "https://images.unsplash.com/photo-1581578731548-c64695cc6952",
         uploaded_by: providerProfile.id,
-        description: "Before: Leaking pipe"
+        description: "Before"
       },
       {
         contract_id: contract.id,
         photo_url: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a",
         uploaded_by: providerProfile.id,
-        description: "After: Pipe fixed and tested"
+        description: "After"
       }
     ]);
 
@@ -194,7 +207,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       await sesEmailService.sendEmail({
         to: clientEmail,
         subject: "BlueTika: Provider Reviewed You! ⭐",
-        htmlBody: `<h2>Review Received</h2><p>Your provider rated you 5 stars and said: "${providerReview.comment}"</p>`
+        htmlBody: `<h2>Review Received</h2><p>Your provider rated you 5 stars and said: "Great client! Clear communication and prompt payment."</p>`
       });
       console.log("   ✅ Client review notification email sent");
     } catch (emailErr) {
@@ -213,7 +226,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       reviewer_id: clientProfile.id,
       reviewee_id: providerProfile.id,
       rating: 5,
-      comment: "Excellent work! Fixed the leak perfectly. Highly recommend!",
+      comment: "Excellent work! Highly recommend!",
       review_type: "client_to_provider"
     });
     console.log("✅ Client released funds and reviewed provider (5 stars)");
@@ -223,9 +236,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Send fund release emails
     console.log("   📧 Sending fund release notifications...");
     try {
+      const finalAmount = contract.final_amount || bid.amount;
+
       await sesEmailService.sendFundReleaseNotification(
         providerEmail,
-        `${provider.first_name} ${provider.last_name}`,
+        providerProfile.full_name || "Provider",
         "provider",
         project.title,
         finalAmount,
@@ -237,7 +252,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       await sesEmailService.sendFundReleaseNotification(
         clientEmail,
-        `${client.first_name} ${client.last_name}`,
+        clientProfile.full_name || "Client",
         "client",
         project.title,
         finalAmount,
@@ -252,11 +267,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(200).json({
       success: true,
-      message: "Full cycle completed successfully!",
+      message: "Full cycle completed successfully with emails and random categories!",
       data: {
         client: { id: clientProfile.id, email: clientEmail },
         provider: { id: providerProfile.id, email: providerEmail },
-        project: { id: project.id, title: project.title },
+        project: { id: project.id, title: project.title, category: randomProject.cat },
         bid: { id: bid.id, amount: bid.amount },
         contract: { id: contract.id, status: "completed" },
         payment: paymentResult,
