@@ -71,13 +71,6 @@ export const authService = {
       },
     });
 
-    // Auto-confirm user by updating their email_confirmed_at
-    if (data.user && !error) {
-      await supabase.auth.updateUser({
-        email_confirmed_at: new Date().toISOString()
-      });
-    }
-
     return { user: data.user, session: data.session, error };
   },
 
