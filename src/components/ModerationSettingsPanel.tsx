@@ -138,9 +138,12 @@ export function ModerationSettingsPanel() {
 
   async function handleToggle(contentType: ContentType, newValue: boolean) {
     try {
+      console.log(`🔄 Toggling ${contentType} to ${newValue ? "auto-approve" : "manual review"}`);
+      
       const result = await updateModerationSetting(contentType, newValue);
 
       if (!result.success) {
+        console.error("❌ Toggle failed:", result.error);
         toast({
           title: "Cannot Change Setting",
           description: result.error,
@@ -149,6 +152,8 @@ export function ModerationSettingsPanel() {
         return;
       }
 
+      console.log("✅ Toggle successful");
+      
       setSettings((prev) => {
         if (!prev) return prev;
         return { ...prev, [contentType]: newValue };
@@ -160,9 +165,9 @@ export function ModerationSettingsPanel() {
       });
 
       // Reload pending counts
-      loadSettings();
+      await loadSettings();
     } catch (error) {
-      console.error("Failed to update setting:", error);
+      console.error("❌ Failed to update setting:", error);
       toast({
         title: "Error",
         description: "Failed to update moderation setting",

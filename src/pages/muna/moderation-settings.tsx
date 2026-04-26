@@ -18,6 +18,8 @@ export default function ModerationSettingsPage() {
 
   async function checkAdminAccess() {
     try {
+      console.log("🔐 Verifying admin access...");
+      
       const response = await fetch("/api/auth/verify-admin", {
         method: "GET",
         credentials: "include",
@@ -25,19 +27,24 @@ export default function ModerationSettingsPage() {
 
       const data = await response.json();
       
+      console.log("Admin verification response:", { status: response.status, isAdmin: data.isAdmin });
+      
       if (response.status === 401) {
+        console.log("❌ Unauthorized - redirecting to login");
         router.push("/muna/login");
         return;
       }
 
       if (response.status === 403 || !data.isAdmin) {
+        console.log("❌ Not admin - redirecting to muna");
         router.push("/muna");
         return;
       }
 
+      console.log("✅ Admin access verified");
       setIsAdmin(true);
     } catch (error) {
-      console.error("Admin verification error:", error);
+      console.error("❌ Admin verification error:", error);
       router.push("/muna");
     } finally {
       setLoading(false);
