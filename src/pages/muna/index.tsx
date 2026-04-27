@@ -117,6 +117,27 @@ const sections = [
     href: "/muna/bot-lab",
     color: "bg-teal-500/10 hover:bg-teal-500/20 border-teal-500",
   },
+  {
+    title: "Bot Configuration",
+    description: "Configure bot automation settings and intervals",
+    icon: <Settings className="w-8 h-8 text-accent" />,
+    href: "/muna/bot-config",
+    color: "bg-yellow-500/10 hover:bg-yellow-500/20 border-yellow-500",
+  },
+  {
+    title: "Contracts Monitor",
+    description: "Real-time contract lifecycle monitoring dashboard",
+    icon: <Activity className="w-8 h-8 text-accent" />,
+    href: "/muna/contracts-monitor",
+    color: "bg-blue-600/10 hover:bg-blue-600/20 border-blue-600",
+  },
+  {
+    title: "User Management",
+    description: "View and manage platform users",
+    icon: <Users className="w-8 h-8 text-accent" />,
+    href: "/muna/user-management",
+    color: "bg-indigo-600/10 hover:bg-indigo-600/20 border-indigo-600",
+  },
 ];
 
 export default function ControlCentre() {
@@ -777,159 +798,22 @@ export default function ControlCentre() {
               <div>
                 <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
                   <Activity className="h-5 w-5 text-primary" />
-                  Monitoring & Logs
+                  Quick Access
                 </h2>
-                <div className="grid gap-4">
-                  <Link href="/muna/bot-lab">
-                    <Card className="cursor-pointer hover:border-primary transition-colors">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="m19 9-5 5-4-4-3 3"/></svg>
-                          Bot Lab
-                        </CardTitle>
-                        <CardDescription>Generate & manage bot accounts, configure automation settings</CardDescription>
-                      </CardHeader>
-                    </Card>
-                  </Link>
-
-                  <Link href="/muna/bot-activity">
-                    <Card className="cursor-pointer hover:border-primary transition-colors">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
-                            Bot Live Feed
-                        </CardTitle>
-                        <CardDescription>Real-time bot activity logs and statistics</CardDescription>
-                      </CardHeader>
-                    </Card>
-                  </Link>
-
-                  <Link href="/muna/monalisa-logs">
-                    <Card className="hover:border-primary/50 transition-colors cursor-pointer">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <FileText className="h-5 w-5" />
-                          MonaLisa Activity Logs
-                        </CardTitle>
-                        <CardDescription>
-                          AI moderation decisions and content safety actions
-                        </CardDescription>
-                      </CardHeader>
-                    </Card>
-                  </Link>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {sections.map((section, index) => (
+                    <Link key={index} href={section.href}>
+                      <Card className={`cursor-pointer border-2 transition-all hover:shadow-lg ${section.color}`}>
+                        <CardHeader>
+                          <div className="mb-2">{section.icon}</div>
+                          <CardTitle className="text-lg">{section.title}</CardTitle>
+                          <CardDescription>{section.description}</CardDescription>
+                        </CardHeader>
+                      </Card>
+                    </Link>
+                  ))}
                 </div>
               </div>
-
-              {/* Management Links */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Management Tools</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    <Button variant="outline" onClick={() => router.push("/muna/change-password")}>
-                      Change Password
-                    </Button>
-                    <Button variant="outline" onClick={() => router.push("/muna/categories")}>
-                      Categories
-                    </Button>
-                    <Button variant="outline" onClick={() => router.push("/muna/verify-providers")}>
-                      Verify Providers
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => router.push("/muna/verify-domestic-helpers")}
-                    >
-                      Verify Helpers
-                    </Button>
-                    <Button variant="outline" onClick={() => router.push("/muna/fund-releases")}>
-                      Fund Releases
-                    </Button>
-                    <Button variant="outline" onClick={() => router.push("/muna/disputes")}>
-                      Disputes
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => router.push("/muna/commission-settings")}
-                    >
-                      Commission
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => router.push("/muna/routine-contracts")}
-                    >
-                      Routine Contracts
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => router.push("/muna/escrow-management")}
-                      className="border-success"
-                    >
-                      Escrow Management
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => router.push("/muna/trust-and-safety")}
-                    >
-                      Trust & Safety
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => router.push("/muna/moderation-settings")}
-                    >
-                      Moderation
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => router.push("/muna/staff-management")}
-                    >
-                      Staff Management
-                    </Button>
-                    <Button variant="outline" onClick={() => router.push("/muna/settings")}>
-                      Settings
-                    </Button>
-                    <Button variant="outline" onClick={() => router.push("/muna/bot-lab")}>
-                      Bot Lab
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => router.push("/muna/directory-listings")}
-                    >
-                      Directory Listings
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => router.push("/muna/directory-categories")}
-                    >
-                      Directory Categories
-                    </Button>
-                    {adminInfo?.isOwner && (
-                      <>
-                        <Button
-                          variant="outline"
-                          onClick={() => router.push("/muna/monalisa")}
-                          className="border-accent"
-                        >
-                          MonaLisa Control
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => router.push("/muna/monalisa-logs")}
-                          className="border-accent"
-                        >
-                          MonaLisa Logs
-                        </Button>
-                      </>
-                    )}
-                    <Button
-                      variant="outline"
-                      onClick={() => router.push("/muna/user-management")}
-                    >
-                      User Management
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
             </>
           ) : null}
         </div>

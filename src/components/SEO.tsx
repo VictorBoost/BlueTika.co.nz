@@ -1,4 +1,5 @@
 import Head from 'next/head';
+import { useRouter } from 'next/router';
 
 interface SEOProps {
   title?: string;
@@ -19,6 +20,9 @@ export function SEOElements({
       <title>{title}</title>
       <meta name="description" content={description} />
       <link rel="icon" href="/favicon.ico" />
+
+      {/* Canonical URL */}
+      <link rel="canonical" href={url || "https://bluetika.co.nz"} />
 
       {/* Open Graph */}
       <meta property="og:title" content={title} />
@@ -44,17 +48,23 @@ export function SEO({
   image = "/og-image.png",
   url,
 }: SEOProps) {
+  const router = useRouter();
+  const canonicalUrl = url || `https://bluetika.co.nz${router.asPath}`;
+
   return (
     <Head>
       <title>{title}</title>
       <meta name="description" content={description} />
       <link rel="icon" href="/favicon.ico" />
 
+      {/* Canonical URL - self-referencing to prevent duplicate content */}
+      <link rel="canonical" href={canonicalUrl} />
+
       {/* Open Graph */}
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
       {image && <meta property="og:image" content={image} />}
-      {url && <meta property="og:url" content={url} />}
+      <meta property="og:url" content={canonicalUrl} />
       <meta property="og:type" content="website" />
 
       {/* Twitter */}
