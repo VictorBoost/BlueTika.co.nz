@@ -16,6 +16,7 @@ export default function Contact() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    phone: "",
     subject: "",
     message: ""
   });
@@ -225,6 +226,18 @@ export default function Contact() {
                       onChange={handleChange}
                       required
                       placeholder="your.email@example.com"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="phone">Phone Number (Optional)</Label>
+                    <Input
+                      id="phone"
+                      name="phone"
+                      type="tel"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      placeholder="Your contact number"
                     />
                   </div>
 

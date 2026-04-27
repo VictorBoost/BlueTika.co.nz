@@ -660,6 +660,89 @@ export type Database = {
           },
         ]
       }
+      bot_configuration: {
+        Row: {
+          accepts_per_cycle: number | null
+          activity_end_hour: number | null
+          activity_start_hour: number | null
+          auto_accept_bids: boolean | null
+          auto_complete_work: boolean | null
+          auto_post_projects: boolean | null
+          auto_process_payments: boolean | null
+          auto_submit_bids: boolean | null
+          auto_submit_reviews: boolean | null
+          bid_acceptance_interval: number | null
+          bid_submission_interval: number | null
+          bids_per_cycle: number | null
+          daily_bot_generation: number | null
+          id: string
+          max_total_bots: number | null
+          payment_processing_interval: number | null
+          payments_per_cycle: number | null
+          project_posting_interval: number | null
+          projects_per_cycle: number | null
+          updated_at: string | null
+          updated_by: string | null
+          work_completion_interval: number | null
+        }
+        Insert: {
+          accepts_per_cycle?: number | null
+          activity_end_hour?: number | null
+          activity_start_hour?: number | null
+          auto_accept_bids?: boolean | null
+          auto_complete_work?: boolean | null
+          auto_post_projects?: boolean | null
+          auto_process_payments?: boolean | null
+          auto_submit_bids?: boolean | null
+          auto_submit_reviews?: boolean | null
+          bid_acceptance_interval?: number | null
+          bid_submission_interval?: number | null
+          bids_per_cycle?: number | null
+          daily_bot_generation?: number | null
+          id?: string
+          max_total_bots?: number | null
+          payment_processing_interval?: number | null
+          payments_per_cycle?: number | null
+          project_posting_interval?: number | null
+          projects_per_cycle?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+          work_completion_interval?: number | null
+        }
+        Update: {
+          accepts_per_cycle?: number | null
+          activity_end_hour?: number | null
+          activity_start_hour?: number | null
+          auto_accept_bids?: boolean | null
+          auto_complete_work?: boolean | null
+          auto_post_projects?: boolean | null
+          auto_process_payments?: boolean | null
+          auto_submit_bids?: boolean | null
+          auto_submit_reviews?: boolean | null
+          bid_acceptance_interval?: number | null
+          bid_submission_interval?: number | null
+          bids_per_cycle?: number | null
+          daily_bot_generation?: number | null
+          id?: string
+          max_total_bots?: number | null
+          payment_processing_interval?: number | null
+          payments_per_cycle?: number | null
+          project_posting_interval?: number | null
+          projects_per_cycle?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+          work_completion_interval?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bot_configuration_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bypass_attempts: {
         Row: {
           content_attempted: string
