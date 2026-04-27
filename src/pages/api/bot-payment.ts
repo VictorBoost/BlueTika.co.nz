@@ -25,21 +25,26 @@ export default async function handler(
   }
 
   try {
-    // Get contract details
+    console.log("🔍 Looking up contract:", contractId);
+    
+    // Get contract details with simple query first
     const { data: contract, error: contractError } = await supabase
       .from("contracts")
-      .select(`
-        *,
-        project:projects(title),
-        client:profiles!contracts_client_id_fkey(email, full_name),
-        provider:profiles!contracts_provider_id_fkey(email, full_name, stripe_account_id)
-      `)
+      .select("*")
       .eq("id", contractId)
       .single();
 
-    if (contractError || !contract) {
+    if (contractError) {
+      console.error("❌ Contract lookup error:", contractError);
+      return res.status(404).json({ error: "Contract not found", details: contractError.message });
+    }
+
+    if (!contract) {
+      console.error("❌ Contract not found in database");
       return res.status(404).json({ error: "Contract not found" });
     }
+
+    console.log("✅ Contract found:", contract.id, "Amount:", contract.final_amount);
 
     // Verify this is a bot contract
     const { data: isBotClient } = await supabase
