@@ -21,7 +21,6 @@ interface ProviderProfileModalProps {
     reviews?: Review[];
     provider_categories?: Array<{ categories: { name: string } }>;
     trade_certificates?: Array<{ certificate_type: string; document_url: string }>;
-    verification_tier?: string | null;
   } | null;
 }
 
@@ -73,7 +72,7 @@ export function ProviderProfileModal({ open, onOpenChange, provider }: ProviderP
                 <DialogTitle className="text-2xl flex flex-wrap items-center gap-3">
                   <span>{provider.full_name || "Service Provider"}</span>
                   <ProviderBadge 
-                    verificationTier={provider.verification_tier}
+                    verificationTier={provider.current_tier}
                     verificationStatus={provider.verification_status}
                     commissionTier={provider.commission_tier}
                   />
@@ -115,7 +114,7 @@ export function ProviderProfileModal({ open, onOpenChange, provider }: ProviderP
               {!loadingBadges && badges.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {badges.map((badge) => (
-                    <ProviderBadge key={badge.id} badge={badge} />
+                    <ProviderBadge key={badge.id} achievementBadge={badge} />
                   ))}
                 </div>
               )}

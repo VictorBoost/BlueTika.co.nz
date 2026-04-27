@@ -111,7 +111,7 @@ export function BidCard({ bid, isProjectOwner, onAccept, onViewProvider, accepti
             {!loadingBadges && badges.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-2">
                 {badges.map((badge) => (
-                  <ProviderBadge key={badge.id} badge={badge} />
+                  <ProviderBadge key={badge.id} achievementBadge={badge} />
                 ))}
               </div>
             )}
