@@ -3,7 +3,7 @@
  * Sends transactional emails via Amazon SES
  */
 
-const SES_API_ENDPOINT = process.env.NEXT_PUBLIC_SES_ENDPOINT || "";
+const SES_API_ENDPOINT = process.env.NEXT_PUBLIC_SES_ENDPOINT;
 const FROM_EMAIL = "support@bluetika.co.nz";
 
 export interface SendEmailParams {

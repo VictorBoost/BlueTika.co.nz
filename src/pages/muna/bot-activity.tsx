@@ -132,7 +132,7 @@ export default function BotActivityPage() {
       // Get direct bot stats from database
       const { data: botProfiles } = await supabase
         .from("profiles")
-        .select("is_client, is_provider")
+        .select("id, is_client, is_provider")
         .eq("is_bot", true);
 
       const { data: botProjects } = await supabase
