@@ -49,93 +49,22 @@ export default function Contact() {
         }
       }
 
-      // Build email HTML
-      const screenshotHtml = screenshotUrls.length > 0 
-        ? `<div style="margin-top: 20px;"><strong>Screenshots:</strong><br/>${screenshotUrls.map(url => `<img src="${url}" style="max-width: 600px; margin: 10px 0;" />`).join('')}</div>`
-        : '';
-
-      const emailHtml = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: #1B4FD8; color: white; padding: 20px; text-align: center; }
-            .content { background: #f9f9f9; padding: 30px; }
-            .field { margin-bottom: 15px; }
-            .label { font-weight: bold; color: #1B4FD8; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>Contact Form Submission</h1>
-              <p style="margin: 5px 0; background: #FEF3C7; color: #333; padding: 5px 10px; border-radius: 3px; display: inline-block;">From: bluetika.co.nz</p>
-            </div>
-            <div class="content">
-              <div class="field">
-                <div class="label">Name:</div>
-                <div>${formData.name}</div>
-              </div>
-              <div class="field">
-                <div class="label">Email:</div>
-                <div>${formData.email}</div>
-              </div>
-              <div class="field">
-                <div class="label">Subject:</div>
-                <div>${formData.subject}</div>
-              </div>
-              <div class="field">
-                <div class="label">Message:</div>
-                <div>${formData.message.replace(/\n/g, '<br/>')}</div>
-              </div>
-              ${screenshotHtml}
-            </div>
-          </div>
-        </body>
-        </html>
-      `;
-
-      // Send email via SES
-      const response = await fetch(process.env.NEXT_PUBLIC_SES_ENDPOINT || "", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          from: "support@bluetika.co.nz",
-          to: "support@bluetika.co.nz",
-          subject: `[Contact Form - bluetika.co.nz] ${formData.subject}`,
-          htmlBody: emailHtml,
-          textBody: `Name: ${formData.name}\nEmail: ${formData.email}\nSubject: ${formData.subject}\nMessage: ${formData.message}\n\nFrom: bluetika.co.nz`
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to send email");
-      }
-
-      // Send email to admin using SES
-      const adminEmail = "support@bluetika.co.nz";
-      const userEmail = formData.email;
-      const userMessage = formData.message;
-      const userName = formData.name;
-      const userPhone = formData.phone || "Not provided";
-      const userSubject = formData.subject;
-      
       // Detect which domain the form was submitted from
       const currentDomain = typeof window !== 'undefined' ? window.location.hostname : 'bluetika.co.nz';
       const submissionSource = currentDomain.includes('.co.nz') ? 'bluetika.co.nz' : currentDomain;
 
+      // Send email to admin using contact API
       await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: userName,
-          email: userEmail,
-          phone: userPhone,
-          subject: userSubject,
-          message: userMessage,
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone || "Not provided",
+          subject: formData.subject,
+          message: formData.message,
           domain: submissionSource,
+          screenshots: screenshotUrls,
         }),
       });
 
