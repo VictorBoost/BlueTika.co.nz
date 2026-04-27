@@ -76,21 +76,36 @@ const generateBio = (isProvider: boolean, city: string): string => {
 
 export const botLabService = {
   async checkOwnerAccess(): Promise<boolean> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      console.log("No user authenticated");
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.log("botLabService - No user authenticated");
+        return false;
+      }
+
+      const { data: profile, error } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("id", user.id)
+        .single();
+
+      if (error) {
+        console.error("botLabService - Profile fetch error:", error);
+        return false;
+      }
+
+      const hasAccess = profile?.email === "bluetikanz@gmail.com";
+      console.log("botLabService - Owner access check:", { 
+        userId: user.id,
+        email: profile?.email, 
+        hasAccess 
+      });
+      
+      return hasAccess;
+    } catch (error) {
+      console.error("botLabService - checkOwnerAccess error:", error);
       return false;
     }
-
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("email")
-      .eq("id", user.id)
-      .single();
-
-    const hasAccess = profile?.email === "bluetikanz@gmail.com";
-    console.log("Owner access check:", { email: profile?.email, hasAccess });
-    return hasAccess;
   },
 
   async getAutomationStatus() {

@@ -24,15 +24,36 @@ export default function BotLab() {
 
   async function checkAccess() {
     try {
-      const hasAccess = await botLabService.checkOwnerAccess();
-      if (!hasAccess) {
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log("Bot Lab - User:", user?.id);
+      
+      if (!user) {
+        console.log("Bot Lab - No user, redirecting to /muna");
         router.push("/muna");
         return;
       }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("id", user.id)
+        .single();
+      
+      console.log("Bot Lab - Profile email:", profile?.email);
+      
+      const hasAccess = profile?.email === "bluetikanz@gmail.com";
+      console.log("Bot Lab - Has access:", hasAccess);
+      
+      if (!hasAccess) {
+        console.log("Bot Lab - Access denied, redirecting to /muna");
+        router.push("/muna");
+        return;
+      }
+      
       setIsAuthorized(true);
       loadData();
     } catch (error) {
-      console.error("Access check failed:", error);
+      console.error("Bot Lab - Access check failed:", error);
       router.push("/muna");
     }
   }

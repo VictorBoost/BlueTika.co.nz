@@ -51,10 +51,44 @@ export default function BotConfigPage() {
         .from("bot_configuration")
         .select("*")
         .eq("id", "00000000-0000-0000-0000-000000000001")
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
-      setConfig(data);
+      
+      if (!data) {
+        // Create default config if it doesn't exist
+        const { data: newConfig, error: createError } = await supabase
+          .from("bot_configuration")
+          .insert({
+            id: "00000000-0000-0000-0000-000000000001",
+            project_posting_interval: 30,
+            bid_submission_interval: 15,
+            bid_acceptance_interval: 20,
+            payment_processing_interval: 10,
+            work_completion_interval: 45,
+            projects_per_cycle: 5,
+            bids_per_cycle: 10,
+            accepts_per_cycle: 3,
+            payments_per_cycle: 5,
+            daily_bot_generation: 50,
+            max_total_bots: 2000,
+            activity_start_hour: 0,
+            activity_end_hour: 23,
+            auto_post_projects: true,
+            auto_submit_bids: true,
+            auto_accept_bids: true,
+            auto_process_payments: true,
+            auto_complete_work: true,
+            auto_submit_reviews: true,
+          })
+          .select()
+          .single();
+        
+        if (createError) throw createError;
+        setConfig(newConfig);
+      } else {
+        setConfig(data);
+      }
     } catch (error: any) {
       toast({
         title: "Error",
