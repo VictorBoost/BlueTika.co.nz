@@ -23,13 +23,18 @@ export default function BotLab() {
   }, []);
 
   async function checkAccess() {
-    const hasAccess = await botLabService.checkOwnerAccess();
-    if (!hasAccess) {
-      router.push("/");
-      return;
+    try {
+      const hasAccess = await botLabService.checkOwnerAccess();
+      if (!hasAccess) {
+        router.push("/muna");
+        return;
+      }
+      setIsAuthorized(true);
+      loadData();
+    } catch (error) {
+      console.error("Access check failed:", error);
+      router.push("/muna");
     }
-    setIsAuthorized(true);
-    loadData();
   }
 
   async function loadData() {

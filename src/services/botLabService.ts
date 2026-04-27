@@ -77,7 +77,10 @@ const generateBio = (isProvider: boolean, city: string): string => {
 export const botLabService = {
   async checkOwnerAccess(): Promise<boolean> {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return false;
+    if (!user) {
+      console.log("No user authenticated");
+      return false;
+    }
 
     const { data: profile } = await supabase
       .from("profiles")
@@ -85,7 +88,9 @@ export const botLabService = {
       .eq("id", user.id)
       .single();
 
-    return profile?.email === "bluetikanz@gmail.com";
+    const hasAccess = profile?.email === "bluetikanz@gmail.com";
+    console.log("Owner access check:", { email: profile?.email, hasAccess });
+    return hasAccess;
   },
 
   async getAutomationStatus() {
