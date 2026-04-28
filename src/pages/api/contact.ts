@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { sesEmailService } from "@/services/sesEmailService";
+import { createClient } from "@supabase/supabase-js";
 
 export default async function handler(
   req: NextApiRequest,
@@ -23,7 +24,14 @@ export default async function handler(
       return res.status(400).json({ error: "Missing required fields" });
     }
 
+    // Initialize Supabase client for logging
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
     // Verify Turnstile token
+    let turnstileVerified = false;
     if (turnstileToken) {
       console.log("   🔒 Verifying Turnstile token...");
       const verifyResponse = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
@@ -36,13 +44,35 @@ export default async function handler(
       });
 
       const verifyData = await verifyResponse.json();
-      console.log("   Turnstile verification result:", verifyData.success ? "✅ Valid" : "❌ Invalid");
+      turnstileVerified = verifyData.success;
+      console.log("   Turnstile verification result:", turnstileVerified ? "✅ Valid" : "❌ Invalid");
 
-      if (!verifyData.success) {
+      if (!turnstileVerified) {
         return res.status(400).json({ error: "CAPTCHA verification failed" });
       }
     } else {
       console.log("   ⚠️ No Turnstile token provided (skipping verification)");
+    }
+
+    // Log submission to database
+    const { error: dbError } = await supabase
+      .from("contact_submissions")
+      .insert({
+        name,
+        email,
+        phone: phone || null,
+        subject: subject || "General Inquiry",
+        message,
+        domain: domain || "unknown",
+        screenshots,
+        turnstile_verified: turnstileVerified,
+      });
+
+    if (dbError) {
+      console.error("   ⚠️ Failed to log submission to database:", dbError);
+      // Don't fail the request, just log the error
+    } else {
+      console.log("   ✅ Submission logged to database");
     }
 
     // Build email body with rich formatting

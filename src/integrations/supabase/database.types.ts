@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-empty-object-type */
+ 
 export type Json =
   | string
   | number
@@ -1023,6 +1023,45 @@ export type Database = {
           created_at?: string | null
           id?: string
           message?: string
+        }
+        Relationships: []
+      }
+      contact_submissions: {
+        Row: {
+          created_at: string | null
+          domain: string
+          email: string
+          id: string
+          message: string
+          name: string
+          phone: string | null
+          screenshots: string[] | null
+          subject: string
+          turnstile_verified: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          domain: string
+          email: string
+          id?: string
+          message: string
+          name: string
+          phone?: string | null
+          screenshots?: string[] | null
+          subject: string
+          turnstile_verified?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          domain?: string
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          phone?: string | null
+          screenshots?: string[] | null
+          subject?: string
+          turnstile_verified?: boolean | null
         }
         Relationships: []
       }

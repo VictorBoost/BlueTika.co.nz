@@ -31,6 +31,9 @@ export default function Contact() {
     script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
     script.async = true;
     script.defer = true;
+    script.onload = () => {
+      console.log("✅ Turnstile script loaded");
+    };
     document.head.appendChild(script);
 
     // Set up callback function
@@ -40,13 +43,18 @@ export default function Contact() {
     };
 
     return () => {
-      document.head.removeChild(script);
+      if (document.head.contains(script)) {
+        document.head.removeChild(script);
+      }
       delete (window as any).onTurnstileSuccess;
     };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    console.log("📝 Form submission started");
+    console.log("   Turnstile token:", turnstileToken ? "Present" : "Missing");
     
     if (!turnstileToken) {
       toast({
@@ -64,6 +72,7 @@ export default function Contact() {
       const screenshotUrls: string[] = [];
       
       if (screenshots.length > 0) {
+        console.log("   📸 Uploading screenshots...");
         const { supabase } = await import("@/integrations/supabase/client");
         
         for (const file of screenshots) {
@@ -77,14 +86,19 @@ export default function Contact() {
               .from("evidence-photos")
               .getPublicUrl(fileName);
             screenshotUrls.push(urlData.publicUrl);
+          } else {
+            console.error("   ❌ Screenshot upload failed:", error);
           }
         }
+        console.log(`   ✅ Uploaded ${screenshotUrls.length} screenshots`);
       }
 
       // Detect which domain the form was submitted from
       const currentDomain = typeof window !== 'undefined' ? window.location.hostname : 'bluetika.co.nz';
       const submissionSource = currentDomain.includes('.co.nz') ? 'bluetika.co.nz' : currentDomain;
 
+      console.log("   📧 Sending contact form data...");
+      
       // Send email to admin using contact API
       const response = await fetch("/api/contact", {
         method: "POST",
@@ -102,8 +116,11 @@ export default function Contact() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to send message");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to send message");
       }
+
+      console.log("   ✅ Contact form submitted successfully");
 
       toast({
         title: "Message sent!",
@@ -118,11 +135,11 @@ export default function Contact() {
       if (typeof window !== 'undefined' && (window as any).turnstile) {
         (window as any).turnstile.reset();
       }
-    } catch (error) {
-      console.error("Contact form error:", error);
+    } catch (error: any) {
+      console.error("❌ Contact form error:", error);
       toast({
         title: "Error",
-        description: "Failed to send message. Please try again.",
+        description: error.message || "Failed to send message. Please try again.",
         variant: "destructive",
       });
     } finally {
