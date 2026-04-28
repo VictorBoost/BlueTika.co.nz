@@ -1,66 +1,63 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabase } from "@/integrations/supabase/client";
 import { sendRegistrationEmail } from "@/lib/email-sender";
-import { emailLogService } from "@/services/emailLogService";
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
-  
-  const { email, password, fullName, userType } = req.body;
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
 
-  if (!email || !password || !fullName || !userType) {
+  const { email, password, full_name, phone_number, city_region, is_provider } = req.body;
+
+  if (!email || !password || !full_name || !phone_number || !city_region) {
     return res.status(400).json({ error: "All fields are required" });
   }
 
   try {
+    // Sign up user with Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        data: { full_name: fullName },
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "https://bluetika.co.nz"}/auth/verify`,
-      },
     });
 
-    if (authError) return res.status(400).json({ error: authError.message });
-    if (!authData.user) return res.status(400).json({ error: "Failed to create user account" });
+    if (authError) throw authError;
+    if (!authData.user) throw new Error("User creation failed");
 
-    await supabase.from("profiles").update({
-      full_name: fullName,
-      user_type: userType,
-    } as any).eq("id", authData.user.id);
+    // Update profile with additional information
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .update({
+        full_name,
+        phone_number,
+        city_region,
+        is_provider: is_provider || false,
+      })
+      .eq("id", authData.user.id);
 
+    if (profileError) throw profileError;
+
+    // Send welcome email
     try {
-      const emailResult = await sendRegistrationEmail(email, fullName, userType);
-      await emailLogService.logEmail(email, "welcome", "sent", { 
-        user_id: authData.user.id,
-        message_id: emailResult.messageId 
-      });
-    } catch (emailError: any) {
-      console.error("Failed to send registration email:", emailError);
-      await emailLogService.logEmail(email, "welcome", "failed", { 
-        user_id: authData.user.id, 
-        error: emailError.message 
-      });
-    }
-
-    if (authData.session) {
-      res.setHeader(
-        "Set-Cookie",
-        `sb-access-token=${authData.session.access_token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=3600`
+      await sendRegistrationEmail(
+        email,
+        full_name,
+        is_provider ? "provider" : "client"
       );
+      console.log("✅ Welcome email sent to:", email);
+    } catch (emailError: any) {
+      console.error("❌ Failed to send welcome email:", emailError.message);
+      // Don't fail registration if email fails
     }
 
-    res.status(201).json({
+    return res.status(200).json({
+      message: "Registration successful! Check your email for a welcome message.",
       user: authData.user,
-      session: authData.session,
-      message: "Registration successful!",
     });
   } catch (error: any) {
     console.error("Registration error:", error);
-    res.status(500).json({ error: "Registration failed." });
+    return res.status(500).json({ error: error.message });
   }
 }
