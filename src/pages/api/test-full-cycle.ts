@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { sendBidNotification, sendContractNotification, sendPaymentNotification } from "@/lib/email-sender";
 import { emailLogService } from "@/services/emailLogService";
 
