@@ -93,11 +93,18 @@ export async function capturePayment(
     }
 
     // Capture the payment (holds funds in Stripe balance)
-    const capturedIntent = await stripe.paymentIntents.capture(paymentIntentId);
+    // Expand charges to get charge ID in response
+    const capturedIntent = await stripe.paymentIntents.capture(paymentIntentId, {
+      expand: ["charges"],
+    });
+
+    // Extract charge ID from expanded charges
+    const charges = capturedIntent.charges as Stripe.ApiList<Stripe.Charge>;
+    const chargeId = charges.data[0]?.id;
 
     return {
       success: true,
-      chargeId: capturedIntent.charges.data[0]?.id,
+      chargeId,
     };
   } catch (error) {
     console.error("Stripe capturePayment error:", error);
@@ -119,7 +126,9 @@ export async function releasePayment(
 ): Promise<ReleaseResult> {
   try {
     // Verify payment intent is captured
-    const intent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    const intent = await stripe.paymentIntents.retrieve(paymentIntentId, {
+      expand: ["charges"],
+    });
 
     if (intent.status !== "succeeded") {
       return {
@@ -135,6 +144,17 @@ export async function releasePayment(
       };
     }
 
+    // Extract charge ID from expanded charges
+    const charges = intent.charges as Stripe.ApiList<Stripe.Charge>;
+    const chargeId = charges.data[0]?.id;
+
+    if (!chargeId) {
+      return {
+        success: false,
+        error: "No charge found for this payment intent",
+      };
+    }
+
     // Transfer funds to provider (minus BlueTika 2% platform fee)
     const transferAmountCents = Math.round(amountToProvider * 100);
 
@@ -142,7 +162,7 @@ export async function releasePayment(
       amount: transferAmountCents,
       currency: "nzd",
       destination: providerStripeAccountId,
-      source_transaction: intent.charges.data[0]?.id,
+      source_transaction: chargeId,
       metadata: {
         payment_intent_id: paymentIntentId,
         contract_id: intent.metadata.contract_id,
@@ -173,7 +193,9 @@ export async function refundPayment(
 ): Promise<RefundResult> {
   try {
     // Verify payment intent is captured
-    const intent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    const intent = await stripe.paymentIntents.retrieve(paymentIntentId, {
+      expand: ["charges"],
+    });
 
     if (intent.status !== "succeeded") {
       return {
@@ -182,7 +204,8 @@ export async function refundPayment(
       };
     }
 
-    const chargeId = intent.charges.data[0]?.id;
+    const charges = intent.charges as Stripe.ApiList<Stripe.Charge>;
+    const chargeId = charges.data[0]?.id;
 
     if (!chargeId) {
       return {
