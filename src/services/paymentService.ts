@@ -1,5 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { loadStripe } from "@stripe/stripe-js";
+import { sendPaymentNotification } from "@/lib/email-sender";
+import { emailLogService } from "@/services/emailLogService";
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ""
@@ -16,12 +18,11 @@ export const paymentService = {
     console.log("getPaymentProcessingPercentage:", { data, error });
     if (error) console.error("Failed to fetch payment processing percentage:", error);
 
-    // Default to 2.65 if not set
     return parseFloat(data?.setting_value || "2.65");
   },
 
   calculateFees(agreedPrice: number, processingPercentage: number) {
-    const platformFee = agreedPrice * 0.02; // 2%
+    const platformFee = agreedPrice * 0.02;
     const processingFee = (agreedPrice * processingPercentage) / 100 + 0.30;
     const total = agreedPrice + platformFee + processingFee;
 
@@ -69,7 +70,7 @@ export const paymentService = {
           contractId,
           platformFee: Math.round(platformFee * 100),
           paymentProcessingFee: Math.round(paymentProcessingFee * 100),
-          captureMethod, // Pass capture method to API
+          captureMethod,
         }),
       });
 
@@ -155,8 +156,7 @@ export const paymentService = {
   },
 
   async confirmPayment(contractId: string, paymentIntentId: string) {
-    // Set payment to "held" status with 48-hour approval window
-    const approvalDeadline = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48 hours
+    const approvalDeadline = new Date(Date.now() + 48 * 60 * 60 * 1000);
 
     const { data, error } = await supabase
       .from("contracts")
@@ -181,8 +181,7 @@ export const paymentService = {
     processingFee: number,
     totalAmount: number
   ) {
-    // Set payment to "held" with approval window
-    const approvalDeadline = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48 hours
+    const approvalDeadline = new Date(Date.now() + 48 * 60 * 60 * 1000);
 
     const { data, error } = await supabase
       .from("contracts")
@@ -205,10 +204,14 @@ export const paymentService = {
   },
 
   async capturePayment(contractId: string, method: "client_approval" | "auto_release" | "admin_release") {
-    // Get contract and payment intent
     const { data: contract, error: contractError } = await supabase
       .from("contracts")
-      .select("stripe_payment_intent_id")
+      .select(`
+        stripe_payment_intent_id,
+        final_amount,
+        client:profiles!contracts_client_id_fkey(email),
+        provider:profiles!contracts_provider_id_fkey(email)
+      `)
       .eq("id", contractId)
       .single();
 
@@ -217,7 +220,6 @@ export const paymentService = {
     }
 
     try {
-      // Call API to capture the payment
       const response = await fetch("/api/stripe/capture-payment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -229,7 +231,6 @@ export const paymentService = {
       const { success, error } = await response.json();
       if (error) throw new Error(error);
 
-      // Update contract to released status
       const { data, error: updateError } = await supabase
         .from("contracts")
         .update({
@@ -243,6 +244,36 @@ export const paymentService = {
 
       console.log("capturePayment:", { method, success, data, updateError });
       if (updateError) console.error("Contract release update error:", updateError);
+
+      if (contract.client && contract.provider) {
+        try {
+          await sendPaymentNotification(
+            (contract.client as any).email,
+            (contract.provider as any).email,
+            contract.final_amount
+          );
+          await emailLogService.logEmail(
+            (contract.client as any).email, 
+            "payment_released_client", 
+            "sent", 
+            { contract_id: contractId }
+          );
+          await emailLogService.logEmail(
+            (contract.provider as any).email, 
+            "payment_released_provider", 
+            "sent", 
+            { contract_id: contractId }
+          );
+        } catch (emailError: any) {
+          console.error("Failed to send payment notification:", emailError);
+          await emailLogService.logEmail(
+            (contract.client as any).email, 
+            "payment_released_client", 
+            "failed", 
+            { contract_id: contractId, error: emailError.message }
+          );
+        }
+      }
 
       return { data, error: updateError };
     } catch (err) {

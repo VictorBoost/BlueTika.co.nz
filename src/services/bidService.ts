@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { sesEmailService } from "@/services/sesEmailService";
+import { sendBidNotification, sendContractNotification } from "@/lib/email-sender";
 import { emailLogService } from "@/services/emailLogService";
 import { notificationService } from "@/services/notificationService";
 
@@ -8,20 +8,34 @@ export const bidService = {
     const { data, error } = await supabase
       .from("bids")
       .insert(bidData)
-      .select(`*, project:projects(title, client_id, id), provider:profiles!bids_provider_id_fkey(full_name, email)`)
+      .select(`*, project:projects(title, client_id, id, client:profiles!projects_client_id_fkey(email, full_name)), provider:profiles!bids_provider_id_fkey(full_name, email)`)
       .single();
 
     if (error || !data) return { data: null, error };
 
-    if (data.provider && data.project) {
-      const emailSent = await sesEmailService.sendFirstBidSubmitted(
-        (data.provider as any).email,
-        (data.provider as any).full_name || "Provider",
-        (data.project as any).title,
-        (data.project as any).id,
-        bidData.amount
-      );
-      await emailLogService.logEmail((data.provider as any).email, "first_bid_submitted", emailSent ? "sent" : "failed", { bid_id: data.id, project_id: bidData.project_id });
+    if (data.project && (data.project as any).client) {
+      try {
+        await sendBidNotification(
+          (data.project as any).client.email,
+          (data.project as any).title,
+          (data.provider as any)?.full_name || "A provider",
+          bidData.amount
+        );
+        await emailLogService.logEmail(
+          (data.project as any).client.email, 
+          "bid_notification", 
+          "sent", 
+          { bid_id: data.id, project_id: bidData.project_id }
+        );
+      } catch (emailError: any) {
+        console.error("Failed to send bid notification:", emailError);
+        await emailLogService.logEmail(
+          (data.project as any).client.email, 
+          "bid_notification", 
+          "failed", 
+          { bid_id: data.id, project_id: bidData.project_id, error: emailError.message }
+        );
+      }
     }
 
     if ((data.project as any)?.client_id) {
@@ -65,12 +79,6 @@ export const bidService = {
 
     if (otherBids && otherBids.length > 0) {
       await supabase.from("bids").update({ status: "declined" }).eq("project_id", projectId).neq("id", bidId);
-      for (const otherBid of otherBids) {
-        if (otherBid.provider) {
-          const emailSent = await sesEmailService.sendBidDeclinedEmail((otherBid.provider as any).email, (otherBid.provider as any).full_name || "Provider", (bid.project as any)?.title || "Project");
-          await emailLogService.logEmail((otherBid.provider as any).email, "bid_declined", emailSent ? "sent" : "failed", { bid_id: otherBid.id, project_id: projectId });
-        }
-      }
     }
 
     const { data: contract, error: contractError } = await supabase
@@ -90,22 +98,34 @@ export const bidService = {
 
     if (contractError) return { data: null, error: contractError };
 
-    if (bid.provider) {
-      const providerEmailSent = await sesEmailService.sendEmail({
-        to: (bid.provider as any).email,
-        subject: "BlueTika: Your Bid Was Accepted! 🎉",
-        htmlBody: `<p>Your bid was accepted for ${(bid.project as any)?.title}.</p>`
-      });
-      await emailLogService.logEmail((bid.provider as any).email, "bid_accepted_provider", providerEmailSent ? "sent" : "failed", { bid_id: bidId, contract_id: contract.id });
-    }
-
-    if ((bid.project as any)?.client) {
-      const clientEmailSent = await sesEmailService.sendEmail({
-        to: (bid.project as any).client.email,
-        subject: "BlueTika: Bid Accepted - Next Steps",
-        htmlBody: `<p>You accepted the bid for ${(bid.project as any).title}.</p>`
-      });
-      await emailLogService.logEmail((bid.project as any).client.email, "bid_accepted_client", clientEmailSent ? "sent" : "failed", { bid_id: bidId, contract_id: contract.id });
+    if (bid.provider && (bid.project as any)?.client) {
+      try {
+        await sendContractNotification(
+          (bid.project as any).client.email,
+          (bid.provider as any).email,
+          (bid.project as any)?.title || "Project"
+        );
+        await emailLogService.logEmail(
+          (bid.project as any).client.email, 
+          "contract_created_client", 
+          "sent", 
+          { bid_id: bidId, contract_id: contract.id }
+        );
+        await emailLogService.logEmail(
+          (bid.provider as any).email, 
+          "contract_created_provider", 
+          "sent", 
+          { bid_id: bidId, contract_id: contract.id }
+        );
+      } catch (emailError: any) {
+        console.error("Failed to send contract notification:", emailError);
+        await emailLogService.logEmail(
+          (bid.project as any).client.email, 
+          "contract_created_client", 
+          "failed", 
+          { bid_id: bidId, contract_id: contract.id, error: emailError.message }
+        );
+      }
     }
 
     return { data: contract, error: null };
