@@ -8,7 +8,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const { clientEmail, providerEmail } = req.body;
-
   if (!clientEmail || !providerEmail) {
     return res.status(400).json({ error: "Both emails required" });
   }
@@ -21,10 +20,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   );
 
   try {
-    // Step 1: Get or create profiles using Service Role (bypasses RLS)
+    // Step 1: Create or get client profile
     let clientProfile: any;
-    let providerProfile: any;
-
     const { data: existingClient } = await supabaseAdmin
       .from("profiles")
       .select("*")
@@ -33,9 +30,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (existingClient) {
       clientProfile = existingClient;
-      console.log("✅ Client profile exists");
+      console.log("✅ Client exists");
     } else {
-      // Create profile directly (assuming auth user exists or will be created later)
       const clientId = crypto.randomUUID();
       const { data: newClient, error } = await supabaseAdmin
         .from("profiles")
@@ -45,6 +41,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           full_name: "Test Client",
           phone_number: "021 123 4567",
           city_region: "Auckland",
+          is_client: true,
+          is_provider: false,
           account_status: "active"
         })
         .select()
@@ -52,15 +50,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       if (error) throw error;
       clientProfile = newClient;
-      console.log("✅ Client profile created");
+      console.log("✅ Client created");
       
       try {
         await sendRegistrationEmail(clientEmail, "Test Client", "client");
+        console.log("✅ Welcome email sent to client");
       } catch (e) {
-        console.log("Welcome email skipped");
+        console.log("⚠️ Welcome email skipped");
       }
     }
 
+    // Step 2: Create or get provider profile
+    let providerProfile: any;
     const { data: existingProvider } = await supabaseAdmin
       .from("profiles")
       .select("*")
@@ -69,7 +70,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (existingProvider) {
       providerProfile = existingProvider;
-      console.log("✅ Provider profile exists");
+      console.log("✅ Provider exists");
     } else {
       const providerId = crypto.randomUUID();
       const { data: newProvider, error } = await supabaseAdmin
@@ -80,6 +81,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           full_name: "Test Provider",
           phone_number: "027 987 6543",
           city_region: "Wellington",
+          is_client: false,
+          is_provider: true,
           verification_status: "verified",
           account_status: "active"
         })
@@ -88,16 +91,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       if (error) throw error;
       providerProfile = newProvider;
-      console.log("✅ Provider profile created");
+      console.log("✅ Provider created");
       
       try {
         await sendRegistrationEmail(providerEmail, "Test Provider", "provider");
+        console.log("✅ Welcome email sent to provider");
       } catch (e) {
-        console.log("Welcome email skipped");
+        console.log("⚠️ Welcome email skipped");
       }
     }
 
-    // Step 2: Create project
+    // Step 3: Create project
     const { data: project, error: projectError } = await supabaseAdmin
       .from("projects")
       .insert({
@@ -117,7 +121,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (projectError) throw projectError;
     console.log("✅ Project created");
 
-    // Step 3: Provider submits bid
+    // Step 4: Submit bid
     const bidAmount = 250;
     const { data: bid, error: bidError } = await supabaseAdmin
       .from("bids")
@@ -125,7 +129,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         project_id: project.id,
         provider_id: providerProfile.id,
         amount: bidAmount,
-        message: "I can help with this project today.",
+        message: "I can help with this project.",
         estimated_timeline: "2-3 hours",
         status: "pending"
       })
@@ -135,7 +139,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (bidError) throw bidError;
     console.log("✅ Bid submitted");
 
-    // Send bid notification
     try {
       await sendBidNotification(clientEmail, project.title, providerProfile.full_name || "Provider", bidAmount);
       console.log("✅ Bid email sent");
@@ -143,7 +146,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.log("⚠️ Bid email skipped");
     }
 
-    // Step 4: Accept bid (create contract)
+    // Step 5: Accept bid (create contract)
     const { data: contract, error: contractError } = await supabaseAdmin
       .from("contracts")
       .insert({
@@ -166,7 +169,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await supabaseAdmin.from("projects").update({ status: "in_progress" }).eq("id", project.id);
     console.log("✅ Contract created");
 
-    // Send contract notifications
     try {
       await sendContractNotification(clientEmail, providerEmail, project.title);
       console.log("✅ Contract emails sent");
@@ -174,7 +176,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.log("⚠️ Contract emails skipped");
     }
 
-    // Step 5: Complete work and release payment
+    // Step 6: Complete payment and work
     await supabaseAdmin.from("contracts").update({
       payment_status: "paid",
       work_done_at: new Date().toISOString(),
@@ -182,7 +184,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       funds_released_at: new Date().toISOString()
     }).eq("id", contract.id);
 
-    // Add reviews
     await supabaseAdmin.from("reviews").insert([
       {
         contract_id: contract.id,
@@ -206,7 +207,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     console.log("✅ Work completed");
 
-    // Send payment notifications
     try {
       await sendPaymentNotification(clientEmail, providerEmail, bidAmount);
       console.log("✅ Payment emails sent");
