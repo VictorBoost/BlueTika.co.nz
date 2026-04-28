@@ -32,14 +32,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const { data: newClient, error } = await supabase
         .from("profiles")
         .insert({
+          id: crypto.randomUUID(),
           email: clientEmail,
           full_name: "Test Client",
           phone_number: "021 123 4567",
           city_region: "Auckland",
-          is_client: true,
-          is_provider: false,
           account_status: "active"
-        })
+        } as any)
         .select()
         .single();
 
@@ -59,16 +58,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const { data: newProvider, error } = await supabase
         .from("profiles")
         .insert({
+          id: crypto.randomUUID(),
           email: providerEmail,
           full_name: "Test Provider",
           phone_number: "027 987 6543",
           city_region: "Wellington",
-          is_client: false,
-          is_provider: true,
           verification_status: "verified",
-          verification_tier: "Gold",
           account_status: "active"
-        })
+        } as any)
         .select()
         .single();
 
@@ -78,26 +75,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       providerProfile = existingProvider;
     }
 
-    const categories = [
-      { cat: "Plumbing", sub: "Repairs & Maintenance", title: "Fix Leaking Pipe" },
-      { cat: "Electrical", sub: "Wiring", title: "Install New Outlets" },
-      { cat: "Cleaning", sub: "Deep Clean", title: "End of Tenancy Cleaning" }
-    ];
-    const randomProject = categories[Math.floor(Math.random() * categories.length)];
+    const { data: categories } = await supabase
+      .from("categories")
+      .select("id, name")
+      .limit(1)
+      .single();
+
+    const categoryId = categories?.id || "00000000-0000-0000-0000-000000000001";
 
     const { data: project, error: projectError } = await supabase
       .from("projects")
       .insert({
         client_id: clientProfile.id,
-        title: randomProject.title,
+        title: "Test Project - Plumbing Repair",
         description: "Automated test project",
-        category: randomProject.cat,
-        subcategory: randomProject.sub,
-        budget_min: 150,
-        budget_max: 300,
+        category_id: categoryId,
+        budget: 250,
         city_region: "Auckland",
         status: "open"
-      })
+      } as any)
       .select()
       .single();
 
@@ -110,10 +106,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         project_id: project.id,
         provider_id: providerProfile.id,
         amount: bidAmount,
-        message: "I can help with this project today.",
-        estimated_duration: "2-3 hours",
+        estimated_timeline: "2-3 hours",
         status: "pending"
-      })
+      } as any)
       .select()
       .single();
 
@@ -142,14 +137,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         payment_processing_fee: paymentFee,
         status: "pending_payment",
         payment_status: "pending"
-      })
+      } as any)
       .select()
       .single();
 
     if (contractError) throw contractError;
 
-    await supabase.from("bids").update({ status: "accepted" }).eq("id", bid.id);
-    await supabase.from("projects").update({ status: "in_progress" }).eq("id", project.id);
+    await supabase.from("bids").update({ status: "accepted" } as any).eq("id", bid.id);
+    await supabase.from("projects").update({ status: "in_progress" } as any).eq("id", project.id);
 
     try {
       await sendContractNotification(clientEmail, providerEmail, project.title);
@@ -166,45 +161,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       body: JSON.stringify({ contractId: contract.id })
     });
 
-    await supabase.from("evidence_photos").insert([
-      {
-        contract_id: contract.id,
-        photo_url: "https://images.unsplash.com/photo-1581578731548-c64695cc6952",
-        uploaded_by: providerProfile.id,
-        description: "Before"
-      }
-    ]);
-
     await supabase.from("contracts").update({
       work_done_at: new Date().toISOString(),
-      after_photos_submitted_at: new Date().toISOString(),
       status: "awaiting_fund_release",
       ready_for_release_at: new Date().toISOString()
-    }).eq("id", contract.id);
+    } as any).eq("id", contract.id);
 
     await supabase.from("reviews").insert({
       contract_id: contract.id,
-      reviewer_id: providerProfile.id,
-      reviewee_id: clientProfile.id,
+      client_id: clientProfile.id,
+      provider_id: providerProfile.id,
       rating: 5,
       comment: "Great client!",
-      review_type: "provider_to_client"
-    });
+      reviewee_role: "client",
+      reviewer_role: "provider"
+    } as any);
 
     await supabase.from("contracts").update({
       payment_status: "released",
       status: "completed",
       funds_released_at: new Date().toISOString()
-    }).eq("id", contract.id);
+    } as any).eq("id", contract.id);
 
     await supabase.from("reviews").insert({
       contract_id: contract.id,
-      reviewer_id: clientProfile.id,
-      reviewee_id: providerProfile.id,
+      client_id: clientProfile.id,
+      provider_id: providerProfile.id,
       rating: 5,
       comment: "Excellent work!",
-      review_type: "client_to_provider"
-    });
+      reviewee_role: "provider",
+      reviewer_role: "client"
+    } as any);
 
     try {
       await sendPaymentNotification(clientEmail, providerEmail, contract.final_amount);
