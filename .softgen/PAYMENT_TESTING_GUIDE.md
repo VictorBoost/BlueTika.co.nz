@@ -1,398 +1,407 @@
-# Payment System Testing Guide
+# Complete Escrow Payment Testing Guide
 
-## 🔧 Setup Requirements
+## Quick Start (2 minutes)
 
-### 1. Environment Variables (.env.local)
-```env
-# Stripe Test Mode Keys
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_your_key_here
-STRIPE_SECRET_KEY=sk_test_your_key_here
-
-# AWS SES for Receipt Emails
-AWS_SES_REGION=ap-southeast-2
-AWS_SES_ACCESS_KEY_ID=your_access_key_here
-AWS_SES_SECRET_ACCESS_KEY=your_secret_access_key_here
+### 1. System Validation
+```bash
+curl http://localhost:3000/api/escrow/validate
 ```
 
-### 2. Get Stripe Test Keys
-1. Go to [Stripe Dashboard](https://dashboard.stripe.com/test/apikeys)
-2. Toggle to "Test Mode" (top right)
-3. Copy your publishable key (starts with `pk_test_`)
-4. Copy your secret key (starts with `sk_test_`)
+**Expected:** All checks should return `true`
 
-### 3. Configure AWS SES (Optional for testing)
-- Skip if you just want to test payment flow
-- Required for actual receipt emails
-- Set up in AWS Console > SES > Verified Identities
+### 2. Full Cycle Test
+```bash
+curl -X POST http://localhost:3000/api/test-full-cycle
+```
+
+**Expected:** Complete payment flow from create → capture → release
 
 ---
 
-## 🧪 Complete Payment Flow Test
+## Manual Testing Flow
 
-### Step 1: Create Test Accounts
+### Prerequisites
+- At least one contract in "accepted" status
+- Provider has completed Stripe Connect onboarding (`stripe_account_id` populated)
+- Stripe test keys configured in `.env.local`
 
-**Client Account:**
-```
-Email: client@test.com
-Password: Test123!
-```
+### Test Card Numbers (Stripe Test Mode)
+- **Success:** `4242 4242 4242 4242`
+- **Decline:** `4000 0000 0000 0002`
+- **3D Secure:** `4000 0025 0000 3155`
+- Expiry: Any future date
+- CVC: Any 3 digits
 
-**Service Provider Account:**
-```
-Email: provider@test.com
-Password: Test123!
-```
+---
 
-**Admin Account:**
-```
-Email: admin@bluetika.co.nz (or your admin email)
-```
+## Step-by-Step Manual Test
 
-### Step 2: Provider Setup
+### Step 1: Find Test Contract
 
-1. **Login as provider** (`provider@test.com`)
-2. Go to **Account** page (`/account`)
-3. Click **"Become a Service Provider"**
-4. Complete verification (skip ID upload in test mode)
-5. **Connect Stripe Account:**
-   - Click **"Connect Stripe Account"**
-   - Redirected to Stripe onboarding
-   - Use Stripe test data:
-     ```
-     Business name: Test Provider
-     Phone: (555) 123-4567
-     Any test data for forms
-     ```
-   - Complete setup
-   - Verify you're redirected back to `/account?stripe_setup=success`
-6. **Verify Stripe Status:**
-   - Should show "Active" badge
-   - Charges: ✓ Enabled
-   - Payouts: ✓ Enabled
-   - Details: ✓ Submitted
-
-### Step 3: Client Posts Project
-
-1. **Login as client** (`client@test.com`)
-2. Click **"Post a Project"**
-3. Fill in project details:
-   ```
-   Title: Test Garden Cleanup
-   Category: Gardening
-   Location: Auckland
-   Budget: $500
-   Description: Need garden cleaned before winter
-   Specific Date: [Choose tomorrow]
-   ```
-4. Submit project
-5. Verify project appears on `/projects`
-
-### Step 4: Provider Submits Bid
-
-1. **Login as provider** (`provider@test.com`)
-2. Go to **Browse Projects** (`/projects`)
-3. Find "Test Garden Cleanup"
-4. Click project to view details
-5. Submit bid:
-   ```
-   Bid Amount: $450
-   Message: I have 5 years experience in garden maintenance...
-   ```
-6. Verify bid appears on project page
-
-### Step 5: Client Accepts Bid
-
-1. **Login as client** (`client@test.com`)
-2. Go to project page
-3. Click **"Accept Bid"** on provider's bid
-4. Confirm in modal
-5. **Verify redirect to checkout page** (`/checkout/[contractId]`)
-
-### Step 6: Payment Checkout - CRITICAL TEST
-
-**Expected Page Elements:**
-
-1. **7-Step Progress Bar:**
-   - Posted ✓
-   - Bid Accepted ✓
-   - **Payment** ← (highlighted/active - step 3)
-   - Work (upcoming)
-   - Evidence (upcoming)
-   - Review (upcoming)
-   - Release (upcoming)
-
-2. **Fee Breakdown:**
-   ```
-   Agreed price:                        NZD $450.00
-   Platform fee (2%):                   NZD $9.00
-   Payment processing contribution ❓:  NZD $12.23
-   GST:                                 Not applicable (grey)
-   ───────────────────────────────────────────────
-   Total:                               NZD $471.23
-   ```
-
-3. **❓ Tooltip Test:**
-   - Hover over ❓ icon
-   - Should show: "BlueTika uses Stripe for secure payments. Domestic cards: 2.65% + $0.30. International cards: 3.7% + $0.30. This small contribution keeps your payment protected."
-
-4. **Escrow Notice:**
-   - Should display before payment form
-   - Blue shield icon
-   - Text: "Your payment will be held securely until the project is complete and both parties have reviewed each other."
-
-### Step 7: Complete Test Payment
-
-1. **Use Stripe Test Card:**
-   ```
-   Card Number: 4242 4242 4242 4242
-   Expiry: Any future date (e.g., 12/25)
-   CVC: Any 3 digits (e.g., 123)
-   ZIP: Any 5 digits (e.g., 12345)
-   ```
-
-2. **Click "Pay NZD $471.23"**
-
-3. **Verify Success Screen:**
-   - Green checkmark icon
-   - "Payment Successful!"
-   - "Receipts sent to both parties" (if SES configured)
-   - Escrow protection notice appears
-   - Auto-redirect to `/contracts` after 3 seconds
-
-### Step 8: Verify Payment Recorded
-
-**Client Side:**
-1. Go to **My Contracts** (`/contracts`)
-2. Find "Test Garden Cleanup"
-3. Verify:
-   - Status: "Active" or "Payment Confirmed"
-   - Payment badge: "Paid"
-   - Total amount: $471.23
-   - Platform fee: $9.00
-   - Processing fee: $12.23
-
-**Provider Side:**
-1. **Login as provider**
-2. Go to **My Contracts**
-3. Verify notification: "Payment received for Test Garden Cleanup"
-4. Contract shows payment received
-
-**Database Check:**
 ```sql
 SELECT 
-  id,
-  payment_status,
-  stripe_payment_intent_id,
-  final_amount,
-  platform_fee,
-  payment_processing_fee,
-  total_amount
-FROM contracts
-WHERE project_id = '[your_project_id]';
+  c.id,
+  c.final_amount,
+  c.status,
+  client.full_name as client,
+  provider.full_name as provider,
+  provider.stripe_account_id
+FROM contracts c
+JOIN profiles client ON c.client_id = client.id
+JOIN profiles provider ON c.provider_id = provider.id
+WHERE 
+  c.status = 'accepted'
+  AND provider.stripe_account_id IS NOT NULL
+LIMIT 1;
+```
+
+Copy the `c.id` (contract ID).
+
+### Step 2: Create Escrow Payment
+
+```bash
+curl -X POST http://localhost:3000/api/escrow/create \
+  -H "Content-Type: application/json" \
+  -d '{
+    "contractId": "PASTE_CONTRACT_ID_HERE"
+  }'
+```
+
+**Expected Response:**
+```json
+{
+  "success": true,
+  "clientSecret": "pi_xxx_secret_yyy",
+  "paymentIntentId": "pi_xxx",
+  "payment": {
+    "id": "uuid",
+    "status": "pending_payment",
+    "amount_nzd": 100.00,
+    "platform_fee": 2.00,
+    "payment_processing_fee": 2.95,
+    "total_amount": 104.95
+  }
+}
+```
+
+Copy `clientSecret` and `paymentIntentId`.
+
+**Verify in Database:**
+```sql
+SELECT * FROM payment_tracking WHERE contract_id = 'YOUR_CONTRACT_ID';
 ```
 
 Expected:
-```
-payment_status: confirmed
-stripe_payment_intent_id: pi_test_xxxxx
-final_amount: 450.00
-platform_fee: 9.00
-payment_processing_fee: 12.23
-total_amount: 471.23
-```
+- `status` = "pending_payment"
+- `stripe_payment_intent_id` = populated
+- `amount_nzd`, `platform_fee`, `payment_processing_fee` = correct values
 
-### Step 9: Email Receipts (If SES Configured)
+### Step 3: Client Payment (Frontend)
 
-**Client Receipt:**
-- Subject: "Payment Confirmation - BlueTika"
-- From: noreply@bluetika.co.nz
-- Contains:
-  - Transaction ID
-  - Payment date
-  - Breakdown (agreed price, fees, total)
-  - Project title
-  - Provider name
-  - Escrow notice
+In your browser console on the checkout page:
 
-**Provider Receipt:**
-- Subject: "Payment Received - BlueTika"
-- From: noreply@bluetika.co.nz
-- Contains:
-  - Transaction ID
-  - Payment date
-  - Breakdown showing commission deduction
-  - Estimated payout after release
+```javascript
+const stripe = await loadStripe('pk_test_YOUR_KEY');
+const result = await stripe.confirmCardPayment('CLIENT_SECRET_HERE', {
+  payment_method: {
+    card: cardElement, // Or manually: {number: '4242424242424242', exp_month: 12, exp_year: 2026, cvc: '123'}
+    billing_details: { name: 'Test Client' }
+  }
+});
 
-### Step 10: Work Phase
-
-1. **Provider completes work**
-2. **Upload evidence photos:**
-   - Go to contract in `/contracts`
-   - Upload "before" and "after" photos
-   - Mark work as complete
-
-3. **Client confirms:**
-   - Views evidence photos
-   - Submits photos if required
-   - Leaves review + star rating
-
-4. **Provider leaves review:**
-   - Reviews client
-   - Star rating
-
-### Step 11: Admin Fund Release
-
-1. **Login as admin** (admin@bluetika.co.nz)
-2. Go to **Admin Panel** → **Fund Releases** (`/muna/fund-releases`)
-3. Find "Test Garden Cleanup" contract
-4. Verify displays:
-   - Contract ID
-   - Client + Provider names
-   - Amount: $450.00
-   - Commission: [calculated based on tier]
-   - Provider will receive: [after commission]
-   - Waiting time: [X days]
-   - Status: "Pending Release"
-
-5. **Review contract:**
-   - Photos submitted: ✓
-   - Both reviews complete: ✓
-   - No active disputes: ✓
-
-6. **Click "Release Funds"**
-
-7. **Verify:**
-   - Status changes to "Released"
-   - Provider notification: "Payment Released - arrive in 2-3 business days"
-   - Fund release recorded in database
-   - Stripe processes payout to provider's account
-
----
-
-## 🎯 Expected Test Results
-
-### ✅ Success Checklist
-
-- [ ] Provider can connect Stripe account
-- [ ] Client redirected to checkout after accepting bid
-- [ ] 7-step progress bar shows step 3 active
-- [ ] Fee breakdown displays correctly
-- [ ] ❓ tooltip shows Stripe fee explanation
-- [ ] Escrow notice displayed
-- [ ] Test payment completes successfully
-- [ ] Success screen shows with redirect
-- [ ] Contract status updated to "payment_confirmed"
-- [ ] Payment details saved (fees, total, Stripe ID)
-- [ ] Both parties receive in-platform notifications
-- [ ] Email receipts sent (if SES configured)
-- [ ] Contract appears in both parties' contract lists
-- [ ] Admin can see contract in fund releases
-- [ ] Admin can release funds after work complete
-- [ ] Provider receives payout to Stripe account
-
----
-
-## 🚨 Common Issues & Solutions
-
-### Issue: "Failed to create payment intent"
-**Solution:** 
-- Check Stripe secret key in `.env.local`
-- Verify key starts with `sk_test_`
-- Restart dev server after adding keys
-
-### Issue: Stripe redirect not working
-**Solution:**
-- Check browser console for errors
-- Verify `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` is set
-- Clear browser cache
-
-### Issue: Receipt emails not sending
-**Solution:**
-- This is optional for testing
-- Verify AWS SES credentials
-- Check SES verified identities
-- Email functionality won't block payment
-
-### Issue: Can't see contract in fund releases
-**Solution:**
-- Make sure both parties submitted photos
-- Both parties must complete reviews
-- Check `ready_for_release_at` timestamp in database
-
-### Issue: Processing fee shows $0.00
-**Solution:**
-- Admin needs to set `payment_processing_percentage` in platform_settings
-- Go to `/muna/settings`
-- Set value (default should be 2.65)
-
----
-
-## 💡 Additional Tests
-
-### Test Different Card Scenarios
-
-**Successful Payment:**
-```
-4242 4242 4242 4242
+console.log(result.paymentIntent.id); // Copy this for next step
 ```
 
-**Payment Requires Authentication (3D Secure):**
+**Or simulate bot payment:**
+```bash
+curl -X POST http://localhost:3000/api/bot-payment \
+  -H "Content-Type: application/json" \
+  -d '{
+    "paymentIntentId": "pi_xxx"
+  }'
 ```
-4000 0027 6000 3184
+
+### Step 4: Capture Payment (Hold in Escrow)
+
+```bash
+curl -X POST http://localhost:3000/api/escrow/capture \
+  -H "Content-Type: application/json" \
+  -d '{
+    "paymentIntentId": "pi_xxx"
+  }'
 ```
 
-**Declined Card:**
+**Expected Response:**
+```json
+{
+  "success": true,
+  "payment": {
+    "id": "uuid",
+    "status": "captured",
+    "stripe_charge_id": "ch_xxx",
+    "captured_at": "2026-04-28T12:00:00Z"
+  },
+  "approvalDeadline": "2026-04-30T12:00:00Z"
+}
 ```
-4000 0000 0000 0002
-```
 
-### Test Edge Cases
-
-1. **Client leaves during checkout** - payment not completed
-2. **Multiple bids on same project** - only one can be accepted
-3. **Provider without Stripe account** - should prompt to connect first
-4. **Dispute raised** - fund release blocked until resolved
-
----
-
-## 📊 Database Verification Queries
-
-### Check payment details:
+**Verify in Database:**
 ```sql
-SELECT * FROM contracts WHERE id = '[contract_id]';
+SELECT 
+  pt.status,
+  pt.stripe_charge_id,
+  pt.captured_at,
+  c.payment_status,
+  c.client_approval_deadline
+FROM payment_tracking pt
+JOIN contracts c ON c.id = pt.contract_id
+WHERE pt.stripe_payment_intent_id = 'pi_xxx';
 ```
 
-### Check notifications sent:
-```sql
-SELECT * FROM notifications WHERE related_id = '[contract_id]' ORDER BY created_at DESC;
+Expected:
+- `pt.status` = "captured"
+- `pt.stripe_charge_id` = populated
+- `c.payment_status` = "held"
+- `c.client_approval_deadline` = 48 hours from now
+
+**Verify in Stripe Dashboard:**
+- Go to: https://dashboard.stripe.com/test/payments
+- Find payment intent `pi_xxx`
+- Status should be "Succeeded"
+- Amount should match total_amount
+
+### Step 5: Release Payment to Provider
+
+```bash
+curl -X POST http://localhost:3000/api/escrow/release \
+  -H "Content-Type: application/json" \
+  -d '{
+    "contractId": "YOUR_CONTRACT_ID",
+    "releaseMethod": "client_approval"
+  }'
 ```
 
-### Check fund release status:
-```sql
-SELECT * FROM fund_releases WHERE contract_id = '[contract_id]';
+**Release Methods:**
+- `client_approval` - Client clicked "Approve Work"
+- `auto_release` - 48 hours passed
+- `admin_release` - Owner manual release
+
+**Expected Response:**
+```json
+{
+  "success": true,
+  "payment": {
+    "id": "uuid",
+    "status": "released",
+    "stripe_transfer_id": "tr_xxx",
+    "release_method": "client_approval",
+    "released_at": "2026-04-28T12:30:00Z"
+  },
+  "transferId": "tr_xxx"
+}
 ```
 
-### Check platform settings:
+**Verify in Database:**
 ```sql
-SELECT * FROM platform_settings WHERE setting_key = 'payment_processing_percentage';
+SELECT 
+  pt.status,
+  pt.stripe_transfer_id,
+  pt.release_method,
+  pt.released_at,
+  c.payment_status
+FROM payment_tracking pt
+JOIN contracts c ON c.id = pt.contract_id
+WHERE c.id = 'YOUR_CONTRACT_ID';
+```
+
+Expected:
+- `pt.status` = "released"
+- `pt.stripe_transfer_id` = populated
+- `c.payment_status` = "released"
+
+**Verify in Stripe Dashboard:**
+- Go to: https://dashboard.stripe.com/test/transfers
+- Find transfer `tr_xxx`
+- Amount = original amount × 0.98 (2% platform fee deducted)
+- Destination = provider's Stripe account ID
+
+**Verify Provider Received:**
+```sql
+SELECT 
+  amount_nzd,
+  (amount_nzd * 0.98) as provider_received,
+  (amount_nzd * 0.02) as platform_fee_kept
+FROM payment_tracking
+WHERE contract_id = 'YOUR_CONTRACT_ID';
 ```
 
 ---
 
-## ✨ Testing Complete!
+## Testing Refund Flow
 
-If all checklist items pass, your payment system is working correctly:
+### Find a Captured Payment
 
-1. ✅ **Escrow System** - Funds held by BlueTika
-2. ✅ **Secure Payment** - Stripe integration working
-3. ✅ **Fee Transparency** - All fees displayed clearly
-4. ✅ **Notifications** - Both parties notified
-5. ✅ **Receipts** - Professional emails sent
-6. ✅ **Manual Release** - Admin control over payouts
-7. ✅ **Dispute Protection** - Funds held until cleared
+```sql
+SELECT 
+  c.id as contract_id,
+  pt.stripe_payment_intent_id
+FROM contracts c
+JOIN payment_tracking pt ON pt.contract_id = c.id
+WHERE pt.status = 'captured'
+LIMIT 1;
+```
 
-**Next Steps:**
-- Test with real Stripe account (live mode)
-- Configure production AWS SES
-- Set payment processing percentage in admin settings
-- Add your bank account to Stripe for fund management
+### Refund the Payment
+
+```bash
+curl -X POST http://localhost:3000/api/escrow/refund \
+  -H "Content-Type: application/json" \
+  -d '{
+    "contractId": "YOUR_CONTRACT_ID",
+    "reason": "Test refund - client disputed work quality"
+  }'
+```
+
+**Expected Response:**
+```json
+{
+  "success": true,
+  "payment": {
+    "id": "uuid",
+    "status": "refunded",
+    "refund_reason": "Test refund - client disputed work quality",
+    "refunded_at": "2026-04-28T13:00:00Z"
+  },
+  "refundId": "re_xxx"
+}
+```
+
+**Verify:**
+```sql
+SELECT status, refund_reason FROM payment_tracking WHERE contract_id = 'YOUR_CONTRACT_ID';
+```
+
+Expected:
+- `status` = "refunded"
+- `refund_reason` = populated
+
+**Verify in Stripe Dashboard:**
+- Full amount refunded to client (including all fees)
+
+---
+
+## Error Scenarios to Test
+
+### 1. Payment Not Found
+```bash
+curl -X POST http://localhost:3000/api/escrow/capture \
+  -H "Content-Type: application/json" \
+  -d '{"paymentIntentId": "pi_fake_id"}'
+```
+Expected: 500 error
+
+### 2. Provider Without Stripe Account
+Create contract with provider who hasn't connected Stripe, then try to release.
+Expected: "Provider does not have a connected Stripe account"
+
+### 3. Double Capture Attempt
+Capture payment twice with same `paymentIntentId`.
+Expected: Error on second attempt
+
+### 4. Release Without Capture
+Try to release a payment still in "pending_payment" status.
+Expected: "Payment not found or not captured"
+
+---
+
+## Database Verification Queries
+
+### All Payments
+```sql
+SELECT 
+  pt.id,
+  pt.status,
+  pt.amount_nzd,
+  pt.created_at,
+  pt.released_at,
+  client.full_name as client,
+  provider.full_name as provider
+FROM payment_tracking pt
+JOIN profiles client ON pt.client_id = client.id
+JOIN profiles provider ON pt.provider_id = provider.id
+ORDER BY pt.created_at DESC
+LIMIT 20;
+```
+
+### Payment Status Distribution
+```sql
+SELECT 
+  status,
+  COUNT(*) as count,
+  SUM(amount_nzd) as total_amount
+FROM payment_tracking
+GROUP BY status;
+```
+
+### Platform Revenue (2% fee)
+```sql
+SELECT 
+  SUM(platform_fee) as total_platform_fees,
+  COUNT(*) as completed_payments
+FROM payment_tracking
+WHERE status = 'released';
+```
+
+---
+
+## Success Criteria
+
+✅ System validation passes all checks
+✅ Payment created with correct amounts
+✅ Client can pay via test card
+✅ Payment captured and held in escrow
+✅ 48-hour approval deadline set correctly
+✅ Payment released transfers to provider
+✅ Provider receives 98% of contract amount
+✅ Platform keeps 2% fee
+✅ Refund returns full amount to client
+✅ All database records consistent
+✅ No errors in console logs
+✅ Stripe Dashboard shows all operations
+
+---
+
+## Quick Commands Summary
+
+```bash
+# Validate system
+curl http://localhost:3000/api/escrow/validate
+
+# Full cycle test
+curl -X POST http://localhost:3000/api/test-full-cycle
+
+# Create payment
+curl -X POST http://localhost:3000/api/escrow/create \
+  -H "Content-Type: application/json" \
+  -d '{"contractId": "uuid"}'
+
+# Bot payment simulation
+curl -X POST http://localhost:3000/api/bot-payment \
+  -H "Content-Type: application/json" \
+  -d '{"paymentIntentId": "pi_xxx"}'
+
+# Capture payment
+curl -X POST http://localhost:3000/api/escrow/capture \
+  -H "Content-Type: application/json" \
+  -d '{"paymentIntentId": "pi_xxx"}'
+
+# Release payment
+curl -X POST http://localhost:3000/api/escrow/release \
+  -H "Content-Type: application/json" \
+  -d '{"contractId": "uuid", "releaseMethod": "client_approval"}'
+
+# Refund payment
+curl -X POST http://localhost:3000/api/escrow/refund \
+  -H "Content-Type: application/json" \
+  -d '{"contractId": "uuid", "reason": "Dispute"}'
+```

@@ -1,271 +1,356 @@
-# BlueTika Escrow System - Implementation Documentation
+<![CDATA[
+# BlueTika Escrow System - Implementation Guide
 
-## Rule Execution Logic
+## System Architecture
 
-### 1. Escrow Start
-**Rule:** Client pays 102% upfront to start the Contract.
-- **Implementation:** ✅ Verified in `src/pages/checkout/[contractId].tsx`
-  - Platform fee: 2% of agreed price
-  - Payment processing contribution: ~2.65% + $0.30
-  - Total collected: ~102% of agreed price
-  - Files: `paymentService.ts` handles fee calculation
-  - Evidence: Checkout form shows breakdown with platform fee + processing fee
-
-### 2. Extra Charges
-**Rule:** Either party can use the "Add Payment" button anytime. Client must "Accept" additions before the job ends.
-- **Implementation:** ✅ Verified in `src/services/additionalChargeService.ts`
-  - Button available in contract UI (`AdditionalChargeRequest.tsx`)
-  - Creates pending charges with `status: 'pending'`
-  - Client must explicitly accept before contract completion
-  - Stripe payment intent created only after client acceptance
-  - Evidence: `additionalChargeService.createAdditionalCharge()` + acceptance flow
-
-### 3. Job Completion
-**Rule:** Service Provider must upload "Before & After" photos + explanation to trigger the end of the Project.
-- **Implementation:** ✅ Verified in `src/services/evidencePhotoService.ts`
-  - Provider uploads "before" photos at job start
-  - Provider uploads "after" photos at job completion
-  - Both photo sets require confirmation (locked permanently)
-  - Explanation captured in contract completion flow
-  - Evidence: `EvidencePhotoUpload.tsx` component + `confirmEvidencePhotos()`
-
-### 4. The 24-Hour Lock
-**Rule:** Client has a strict 24-hour window to dispute once photos are uploaded. After 24h, the money is considered "Earned."
-- **Implementation:** ✅ Verified in `src/services/fundReleaseService.ts`
-  - Contract marked `ready_for_release_at` timestamp when both parties submit reviews
-  - Admin panel filters contracts where `ready_for_release_at + 24 hours < current_time`
-  - Query: `gte('ready_for_release_at', twentyFourHoursAgo)`
-  - Evidence: `getReadyForReleaseContracts()` enforces 24h minimum wait
-  - Location: `/muna/fund-releases` admin panel
-
-### 5. Platform Rule
-**Rule:** Chat stays here. Off-platform deals void all payment protection.
-- **Implementation:** ✅ Platform notices added to:
-  - Project detail page (`src/pages/project/[id].tsx`)
-  - Checkout page (`src/pages/checkout/[contractId].tsx`)
-  - Contracts page (`src/pages/contracts.tsx`)
-  - Evidence upload component (`src/components/EvidencePhotoUpload.tsx`)
-  - FAQ page (`src/pages/faq.tsx`)
-  - Notice text: "To keep your funds safe, all communication and extra payments must happen within BlueTika..."
-
-### 6. Friday Release
-**Rule:** Review the "Earned" jobs in /muna and batch-release the 92% payouts every Friday.
-- **Implementation:** ✅ Verified in `/muna/fund-releases.tsx`
-  - Admin panel at `/muna/fund-releases`
-  - Shows all contracts past 24-hour dispute window
-  - Manual release button with confirmation dialog
-  - Calculates 92% payout (8% commission)
-  - Sends email notifications to both parties
-  - Evidence: `fundReleaseService.releaseFunds()` + email templates
-
-## Payment Breakdown
-
-### Client Pays (102%):
 ```
-Agreed Price:                 $1,000.00
-Platform Fee (2%):            $   20.00
-Payment Processing (~2.65%):  $   26.50
-─────────────────────────────────────
-Total Client Pays:            $1,046.50
+┌─────────────────────────────────────────────────────────────┐
+│                    ESCROW PAYMENT FLOW                      │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  1. Client Accepts Bid                                      │
+│     ↓                                                       │
+│     POST /api/escrow/create                                 │
+│     - Creates payment_tracking record                       │
+│     - Creates Stripe PaymentIntent (manual capture)         │
+│     - Returns clientSecret for frontend                     │
+│                                                             │
+│  2. Client Pays via Stripe Elements                         │
+│     ↓                                                       │
+│     Frontend: stripe.confirmCardPayment(clientSecret)       │
+│     - Client enters card details                            │
+│     - Stripe authorizes payment                             │
+│                                                             │
+│  3. Payment Captured (Held in Escrow)                       │
+│     ↓                                                       │
+│     POST /api/escrow/capture                                │
+│     - Captures payment in Stripe                            │
+│     - Updates payment_tracking (status: captured)           │
+│     - Updates contract (payment_status: held)               │
+│     - Sets 48-hour approval deadline                        │
+│                                                             │
+│  4. Provider Completes Work                                 │
+│     ↓                                                       │
+│     Client reviews work                                     │
+│                                                             │
+│  5. Payment Released                                        │
+│     ↓                                                       │
+│     POST /api/escrow/release                                │
+│     - Transfers funds to provider Stripe account            │
+│     - Updates payment_tracking (status: released)           │
+│     - Updates contract (payment_status: released)           │
+│     - Sends email notifications                             │
+│                                                             │
+│  Alternative: Refund                                        │
+│     ↓                                                       │
+│     POST /api/escrow/refund                                 │
+│     - Refunds payment to client                             │
+│     - Updates payment_tracking (status: refunded)           │
+│     - Updates contract (status: cancelled)                  │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### Provider Receives (92%):
-```
-Agreed Price:                 $1,000.00
-Commission (8%):              $   80.00
-─────────────────────────────────────
-Net to Provider:              $  920.00
+## Integration with Existing System
+
+### 1. Contract Creation (When Client Accepts Bid)
+
+**File:** `src/pages/project/[id].tsx` or wherever you handle bid acceptance
+
+```typescript
+// After client accepts bid and contract is created
+const handleAcceptBid = async (bidId: string) => {
+  try {
+    // 1. Create contract (existing logic)
+    const { data: contract, error } = await contractService.acceptBid(bidId);
+    if (error) throw error;
+
+    // 2. Create escrow payment (NEW)
+    const response = await fetch('/api/escrow/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contractId: contract.id }),
+    });
+
+    const { success, clientSecret, error: escrowError } = await response.json();
+    if (!success) throw new Error(escrowError);
+
+    // 3. Redirect to checkout page with clientSecret
+    router.push(`/checkout/${contract.id}?client_secret=${clientSecret}`);
+  } catch (error) {
+    console.error('Accept bid error:', error);
+    toast.error('Failed to create payment');
+  }
+};
 ```
 
-### Platform Revenue:
+### 2. Checkout Page (Client Pays)
+
+**File:** `src/pages/checkout/[contractId].tsx` (already exists)
+
+Update to use the new escrow flow:
+
+```typescript
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+
+function CheckoutPage() {
+  const router = useRouter();
+  const { contractId } = router.query;
+  const clientSecret = router.query.client_secret as string;
+
+  return (
+    <Elements stripe={stripePromise} options={{ clientSecret }}>
+      <CheckoutForm contractId={contractId as string} />
+    </Elements>
+  );
+}
+
+function CheckoutForm({ contractId }: { contractId: string }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+
+    setLoading(true);
+
+    try {
+      // 1. Confirm payment with Stripe
+      const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(
+        clientSecret,
+        {
+          payment_method: {
+            card: elements.getElement(CardElement)!,
+            billing_details: { name: 'Client Name' },
+          },
+        }
+      );
+
+      if (stripeError) throw new Error(stripeError.message);
+
+      // 2. Capture payment (hold in escrow)
+      const response = await fetch('/api/escrow/capture', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentIntentId: paymentIntent.id }),
+      });
+
+      const { success, error } = await response.json();
+      if (!success) throw new Error(error);
+
+      // 3. Redirect to contract page
+      toast.success('Payment successful! Work can now begin.');
+      router.push(`/contracts`);
+    } catch (error) {
+      console.error('Payment error:', error);
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <CardElement />
+      <button type="submit" disabled={!stripe || loading}>
+        {loading ? 'Processing...' : 'Pay Now'}
+      </button>
+    </form>
+  );
+}
 ```
-Platform Fee (2%):            $   20.00
-Commission (8%):              $   80.00
-Payment Processing Fee:       $  -26.50
-─────────────────────────────────────
-Net Platform Revenue:         $   73.50
+
+### 3. Contract Completion (Client Approves Work)
+
+**File:** `src/pages/contracts.tsx` or contract detail page
+
+```typescript
+const handleApproveWork = async (contractId: string) => {
+  try {
+    // Release payment to provider
+    const response = await fetch('/api/escrow/release', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contractId,
+        releaseMethod: 'client_approval',
+      }),
+    });
+
+    const { success, error } = await response.json();
+    if (!success) throw new Error(error);
+
+    toast.success('Payment released to provider!');
+    // Refresh contract data
+  } catch (error) {
+    console.error('Release error:', error);
+    toast.error('Failed to release payment');
+  }
+};
+```
+
+### 4. Admin Override (Manual Release/Refund)
+
+**File:** `src/pages/muna/escrow-management.tsx` (create this page)
+
+```typescript
+// Admin can manually release or refund payments
+const handleManualRelease = async (contractId: string) => {
+  const response = await fetch('/api/escrow/release', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contractId,
+      releaseMethod: 'admin_release',
+    }),
+  });
+  // Handle response
+};
+
+const handleRefund = async (contractId: string, reason: string) => {
+  const response = await fetch('/api/escrow/refund', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contractId, reason }),
+  });
+  // Handle response
+};
 ```
 
 ## Database Schema
 
-### Key Tables
-- `contracts` - Main contract records with payment tracking
-- `evidence_photos` - Before/After photo storage with confirmation timestamps
-- `fund_releases` - Release history with admin notes
-- `additional_charges` - Extra payments during project
-- `disputes` - Dispute records (if raised during 24h window)
+### payment_tracking Table (Created)
 
-### Critical Fields
-- `contracts.ready_for_release_at` - Timestamp when 24h countdown starts
-- `contracts.payment_status` - "pending" | "confirmed" | "released"
-- `evidence_photos.confirmed_at` - When photos were permanently locked
-- `additional_charges.status` - "pending" | "accepted" | "paid"
-
-## User Flow Validation
-
-### Happy Path (No Disputes):
-1. ✅ Client accepts bid → redirected to checkout
-2. ✅ Client pays 102% → funds held in escrow (Stripe)
-3. ✅ Provider uploads "Before" photos → locks them
-4. ✅ Provider completes work
-5. ✅ Provider uploads "After" photos → locks them → 24h timer starts
-6. ✅ Client reviews (within 24h) → submits review → no dispute
-7. ✅ 24h passes → contract appears in `/muna/fund-releases`
-8. ✅ Admin releases funds (Friday) → 92% to provider, emails sent
-9. ✅ Provider receives Stripe payout in 2-3 business days
-
-### Dispute Path:
-1. Client accepts bid → pays 102%
-2. Provider completes work → uploads "After" photos
-3. Client reviews (within 24h) → **raises dispute**
-4. Admin reviews dispute in `/muna/disputes`
-5. Admin makes decision → funds released or refunded
-6. Both parties notified via email
-
-### Extra Charges Path:
-1. Contract active → either party clicks "Add Payment"
-2. Request created with `status: pending`
-3. Client reviews → clicks "Accept"
-4. Client redirected to `/checkout-additional/[chargeId]`
-5. Client pays → funds added to escrow
-6. Contract total updated
-
-## Security & Protection
-
-### Payment Protection Features:
-- ✅ All funds held in Stripe escrow until completion
-- ✅ Evidence photos permanently locked (cannot be changed)
-- ✅ 24-hour dispute window clearly communicated
-- ✅ All communication within platform (chat not yet implemented)
-- ✅ Additional charges require explicit client acceptance
-- ✅ Admin review before fund release
-
-### User Protection:
-- ✅ Clients: Can dispute within 24h if work doesn't match agreement
-- ✅ Providers: Payment guaranteed after 24h dispute window passes
-- ✅ Both: Platform notices explain off-platform deals void protection
-
-## Admin Controls
-
-### Fund Release Panel (`/muna/fund-releases`):
-- View all contracts ready for release (>24h after completion)
-- See payment breakdown (agreed price, commission, net to provider)
-- Add admin notes before releasing
-- Manual release button (safety against automatic releases)
-- Email notifications sent to both parties
-
-### Monitoring:
-- Days waiting indicator (warns if >2 days pending)
-- Contract status tracking
-- Evidence photo confirmation status
-- Review submission tracking
-
-## Implementation Notes
-
-### The /muna View:
-**Status:** ✅ Implemented correctly
-```typescript
-// Filter: Current_Time > (Completion_Time + 24 hours)
-const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-const { data } = await supabase
-  .from("contracts")
-  .select(...)
-  .eq("status", "completed")
-  .eq("payment_status", "confirmed")
-  .not("ready_for_release_at", "is", null)
-  .gte("ready_for_release_at", twentyFourHoursAgo);
+```sql
+CREATE TABLE payment_tracking (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  contract_id UUID REFERENCES contracts(id) ON DELETE CASCADE,
+  client_id UUID REFERENCES profiles(id),
+  provider_id UUID REFERENCES profiles(id),
+  amount_nzd DECIMAL(10,2) NOT NULL,
+  platform_fee DECIMAL(10,2) NOT NULL,
+  payment_processing_fee DECIMAL(10,2) NOT NULL,
+  total_amount DECIMAL(10,2) NOT NULL,
+  status TEXT CHECK (status IN ('pending_payment', 'captured', 'released', 'refunded')) DEFAULT 'pending_payment',
+  stripe_payment_intent_id TEXT,
+  stripe_charge_id TEXT,
+  stripe_transfer_id TEXT,
+  release_method TEXT CHECK (release_method IN ('client_approval', 'auto_release', 'admin_release')),
+  refund_reason TEXT,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  approved_at TIMESTAMPTZ,
+  released_at TIMESTAMPTZ,
+  refunded_at TIMESTAMPTZ,
+  captured_at TIMESTAMPTZ
+);
 ```
 
-### The "Add Payment" Button:
-**Status:** ✅ Implemented correctly
-- Button updates contract total via `additional_charges` table
-- Creates "Pending Approval" state visible to client
-- Client must explicitly accept before charge is processed
-- No surprise bills - client sees amount before approving
+### Existing contracts Table (No Changes Needed)
 
-### The Payout:
-**Status:** ✅ Liability limited correctly
-- Platform only verifies photos exist and 24h passed
-- Workmanship guarantees "between parties" after release
-- Platform notices clearly state this on all relevant pages
-- Admin releases funds manually (not automatic)
+Already has these escrow fields:
+- `payment_status` (pending, held, released, refunded)
+- `stripe_payment_intent_id`
+- `client_approval_deadline`
+- `auto_release_eligible_at`
+- `payment_captured_at`
+- `escrow_released_method`
+
+## Environment Variables Required
+
+```env
+# Stripe (Test Mode)
+STRIPE_SECRET_KEY=sk_test_...
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
+
+# Supabase (Already configured)
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...
+```
+
+## Safety Features
+
+1. **Immutable Audit Trail**
+   - All payment operations logged to `payment_tracking`
+   - Never delete records, only update status
+
+2. **Double Verification**
+   - Check Stripe status before database updates
+   - Verify provider has Stripe Connect account before release
+
+3. **Error Recovery**
+   - Idempotency: API calls can be retried safely
+   - Rollback: Failed operations don't leave partial state
+
+4. **Email Notifications**
+   - Client notified on payment capture
+   - Provider notified on payment release
+   - Admin alerted on refunds
+
+5. **48-Hour Auto-Release**
+   - Edge Function: `auto-release-escrow` runs hourly
+   - Checks `auto_release_eligible_at` timestamp
+   - Releases funds if client hasn't approved/disputed
 
 ## Testing Checklist
 
-### Payment Flow:
-- [ ] Client can pay 102% at checkout
-- [ ] Funds held in Stripe until completion
-- [ ] Platform fee + processing fee calculated correctly
+- [ ] System validation passes (`GET /api/escrow/validate`)
+- [ ] Create escrow payment works
+- [ ] Client can pay via Stripe test card
+- [ ] Payment captured and held correctly
+- [ ] Client approval releases payment
+- [ ] Provider receives 98% of contract amount
+- [ ] Refund returns full amount to client
+- [ ] Email notifications sent
+- [ ] Admin can manually release/refund
+- [ ] Auto-release triggers after 48 hours
 
-### Evidence Photos:
-- [ ] Provider can upload "Before" photos
-- [ ] Provider can upload "After" photos
-- [ ] Photos lock permanently when confirmed
-- [ ] Cannot be changed after confirmation
+## Production Deployment
 
-### 24-Hour Window:
-- [ ] Timer starts when "After" photos confirmed
-- [ ] Contract appears in admin panel after 24h
-- [ ] Client can dispute during 24h window
-- [ ] No disputes allowed after 24h passes
+1. **Switch to Live Stripe Keys**
+   ```env
+   STRIPE_SECRET_KEY=sk_live_...
+   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_...
+   ```
 
-### Fund Release:
-- [ ] Admin can see all ready-for-release contracts
-- [ ] Payment breakdown shows correctly (92% to provider)
-- [ ] Manual release button works
-- [ ] Email notifications sent to both parties
-- [ ] Stripe payout initiated to provider
+2. **Enable Stripe Webhooks**
+   - Add webhook endpoint: `https://bluetika.co.nz/api/webhooks/stripe`
+   - Subscribe to events: `payment_intent.succeeded`, `transfer.created`, `refund.created`
 
-### Extra Charges:
-- [ ] Either party can request additional payment
-- [ ] Client must accept before processing
-- [ ] Additional amount added to escrow
-- [ ] Total visible before client accepts
+3. **Configure Auto-Release Cron**
+   - Edge Function already exists: `auto-release-escrow`
+   - Runs hourly via Supabase Cron
 
-## Platform Notice (Live on App)
+4. **Monitor Payment Tracking**
+   - Set up alerts for failed payments
+   - Daily reconciliation report (Stripe vs Database)
 
-**Current Implementation:**
-```
-"Notice: To keep your funds safe, all communication and extra payments must 
-happen within BlueTika. Once the Service Provider submits 'After' photos, 
-the Client has 24 hours to raise a dispute. Any workmanship guarantees after 
-payment release are handled directly between the Client and Provider. Approved 
-funds are released to your account every Friday."
-```
+## Support & Troubleshooting
 
-**Displayed On:**
-- `/project/[id]` - Project detail page
-- `/checkout/[contractId]` - Checkout page
-- `/contracts` - Contracts dashboard
-- Evidence photo upload component
-- FAQ page (expanded explanation)
+**Common Issues:**
 
-## Compliance & Legal
+1. **"Provider does not have a connected Stripe account"**
+   - Provider must complete Stripe Connect onboarding
+   - Check: `profiles.stripe_account_id` is populated
 
-### Payment Processing:
-- Stripe handles all payment processing
-- Platform never holds client funds directly
-- Escrow managed via Stripe payment intents
-- Payouts to providers via Stripe Connect
+2. **"Payment intent cannot be captured"**
+   - Client hasn't paid yet
+   - Check Stripe Dashboard for payment status
 
-### Dispute Resolution:
-- 24-hour window clearly communicated
-- Evidence photos permanently locked
-- Admin has final decision authority
-- Both parties notified of outcomes
+3. **"Payment not found or not captured"**
+   - Payment must be in "captured" status to release/refund
+   - Query: `SELECT status FROM payment_tracking WHERE contract_id = 'xxx'`
 
-### Liability Limitation:
-- Workmanship guarantees "between parties"
-- Platform verifies completion only (photos + 24h wait)
-- Off-platform deals void all protections
-- Clear notices on all relevant pages
+**Admin Tools:**
 
-## Future Enhancements
-
-### Potential Improvements:
-- [ ] Automated Friday releases (with manual override)
-- [ ] In-platform chat system (currently missing)
-- [ ] Automatic dispute window expiry notifications
-- [ ] Provider payout dashboard (track pending releases)
-- [ ] Client refund tracking for disputed contracts
-- [ ] Analytics dashboard for fund releases
+- Validation endpoint: `/api/escrow/validate`
+- Payment tracking query: `SELECT * FROM payment_tracking ORDER BY created_at DESC LIMIT 20`
+- Stripe Dashboard: https://dashboard.stripe.com
+</file_contents>

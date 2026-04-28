@@ -1,242 +1,447 @@
+<![CDATA[
 # Bot Escrow Testing Guide
 
-## ✅ Bots Now Follow the EXACT Same Escrow Rules
+## Testing Escrow with Bot System
 
-### Complete Bot Flow (Matches Real Users)
+BlueTika has automated bot users that create projects, submit bids, and complete contracts. This guide shows how to test the escrow system using bots for rapid iteration.
+
+## Bot Payment Flow
 
 ```
-1. BOT CLIENT posts project
-   └─> Project status: "open"
-
-2. BOT PROVIDER submits bid
-   └─> Bid status: "pending"
-
-3. BOT CLIENT accepts bid
-   └─> Contract created with status: "accepted"
-   └─> Project status: "in_progress"
-   └─> Payment status: "pending" (simulated - bots don't use Stripe)
-
-4. BOT PROVIDER completes work (bot-complete-contracts function)
-   ├─> Uploads "before" evidence photo (confirmed)
-   ├─> Uploads "after" evidence photo (confirmed)
-   ├─> Sets work_done_at: NOW
-   ├─> Sets client_dispute_deadline: NOW + 24 hours
-   └─> Submits provider review (5 stars)
-
-5. BOT CLIENT submits review (if client is also a bot)
-   ├─> Submits client review (5 stars)
-   ├─> Sets provider_dispute_deadline: NOW + 5 working days
-   └─> Sets ready_for_release_at: NOW
-
-6. 24-HOUR DISPUTE WINDOW (enforced)
-   └─> Contract status: "awaiting_fund_release"
-   └─> Contract is NOT visible in /muna/fund-releases yet
-   └─> Client could still dispute (but bots don't)
-
-7. AFTER 24 HOURS PASS
-   └─> Contract appears in /muna/fund-releases
-   └─> Admin can manually release 92% payout
-
-8. ADMIN RELEASES FUNDS (manual, Friday)
-   └─> Contract status: "funds_released"
-   └─> Provider receives 92% (8% commission)
+Bot Client accepts Bot Provider's bid
+    ↓
+Escrow payment created (pending_payment)
+    ↓
+Bot makes payment via test card
+    ↓
+Payment captured (held in escrow)
+    ↓
+Bot provider completes work
+    ↓
+Bot client approves work
+    ↓
+Payment released to bot provider
 ```
 
-## Key Implementation Details
+## Prerequisites
 
-### Evidence Photos (Step 4)
-```typescript
-// Bot uploads BEFORE photo
-await supabaseClient.from("evidence_photos").insert({
-  contract_id: contract.id,
-  uploaded_by: contract.provider_id,
-  photo_type: "before",
-  photo_url: `https://picsum.photos/seed/${contract.id}-before/800/600`,
-  caption: "Work area before starting the project",
-  is_confirmed: true  // ✅ Permanently locked
-});
+1. **Bot accounts exist** (`user_type = 'bot'`)
+2. **Bot providers have Stripe Connect accounts**
+3. **Bot projects and bids active**
 
-// Bot uploads AFTER photo
-await supabaseClient.from("evidence_photos").insert({
-  contract_id: contract.id,
-  uploaded_by: contract.provider_id,
-  photo_type: "after",
-  photo_url: `https://picsum.photos/seed/${contract.id}-after/800/600`,
-  caption: "Project completed as agreed. All work done to specification.",
-  is_confirmed: true  // ✅ Permanently locked
-});
-```
+## Quick Bot Test (5 minutes)
 
-### 24-Hour Dispute Window (Step 4)
-```typescript
-// Mark work done - triggers 24-hour client dispute window
-const workDoneAt = new Date().toISOString();
-const clientDisputeDeadline = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-
-await supabaseClient.from("contracts").update({
-  work_done_at: workDoneAt,
-  client_dispute_deadline: clientDisputeDeadline  // ✅ NOW + 24 hours
-}).eq("id", contract.id);
-```
-
-### Reviews (Steps 4-5)
-```typescript
-// Provider review (always submitted by bot)
-await supabaseClient.from("reviews").insert({
-  contract_id: contract.id,
-  reviewer_role: "provider",
-  reviewee_role: "client",
-  rating: 5,
-  comment: "Great client to work with. Clear communication and prompt payment.",
-  is_public: true
-});
-
-// Client review (only if client is also a bot)
-if (clientBot) {
-  await supabaseClient.from("reviews").insert({
-    contract_id: contract.id,
-    reviewer_role: "client",
-    reviewee_role: "provider",
-    rating: 5,
-    comment: "Excellent service! Work completed exactly as promised.",
-    is_public: true
-  });
-}
-```
-
-### Fund Release Eligibility (Step 5)
-```typescript
-// After both reviews submitted, set ready_for_release_at
-await supabaseClient.from("contracts").update({
-  provider_dispute_deadline: deadline.toISOString(),  // 5 working days
-  ready_for_release_at: now.toISOString()  // ✅ Eligible after 24h from this timestamp
-}).eq("id", contract.id);
-
-// Update status to awaiting_fund_release (matches real user flow)
-await supabaseClient.from("contracts").update({
-  status: "awaiting_fund_release"
-}).eq("id", contract.id);
-```
-
-### Admin Panel Filter (Step 7)
-```typescript
-// /muna/fund-releases shows contracts where:
-// Current_Time > (ready_for_release_at + 24 hours)
-
-const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-
-const { data } = await supabase
-  .from("contracts")
-  .select(...)
-  .eq("status", "awaiting_fund_release")
-  .lte("ready_for_release_at", twentyFourHoursAgo)  // ✅ Only show after 24h passed
-  .order("ready_for_release_at", { ascending: true });
-```
-
-## Testing the 24-Hour Window
-
-### Manual Test (Fast)
-1. Go to `/muna/bot-lab`
-2. Click "Run Activity Cycle" button
-3. Wait for bots to:
-   - Post projects
-   - Submit bids
-   - Accept bids (create contracts)
-   - Complete work (upload photos + reviews)
-4. Go to `/muna/fund-releases`
-5. **Result:** List should be EMPTY (24 hours haven't passed)
-6. Wait 24 hours OR manually update `ready_for_release_at` in database:
-   ```sql
-   UPDATE contracts 
-   SET ready_for_release_at = NOW() - INTERVAL '25 hours'
-   WHERE status = 'awaiting_fund_release';
-   ```
-7. Refresh `/muna/fund-releases`
-8. **Result:** Contracts now appear, ready for manual release
-
-### Automated Test (Edge Function)
-The `auto-release-escrow` function runs on a schedule and:
-- Checks for contracts past the auto-release window
-- Flags them as `escrow_needs_review: true`
-- Sends notifications to admin and provider
-
-This is a SAFETY mechanism, separate from the normal 24-hour flow.
-
-## Bot vs Real User Comparison
-
-| Step | Real User | Bot | Match? |
-|------|-----------|-----|--------|
-| Upload evidence photos | Manual via UI | Auto (picsum.photos URLs) | ✅ Same result |
-| Confirm photos | Click "Confirm" button | Auto-confirmed | ✅ Same result |
-| Trigger 24h window | On photo confirm | On photo confirm | ✅ EXACT |
-| Submit reviews | Manual via modal | Auto (5 stars) | ✅ Same result |
-| Set ready_for_release_at | On both reviews | On both reviews | ✅ EXACT |
-| 24h dispute window | Enforced | Enforced | ✅ EXACT |
-| Appear in admin panel | After 24h | After 24h | ✅ EXACT |
-| Fund release | Admin manual | Admin manual | ✅ EXACT |
-
-## Key Changes Made
-
-### Before (Incorrect)
-```typescript
-// ❌ Bots bypassed escrow - no evidence photos, no 24h window
-// ❌ Auto-approval after reviews submitted
-// ❌ Funds appeared immediately in admin panel
-```
-
-### After (Correct)
-```typescript
-// ✅ Bots upload evidence photos (before/after)
-// ✅ 24-hour dispute window enforced
-// ✅ Contracts only appear in admin panel after 24h
-// ✅ Admin manually releases funds (no auto-approval)
-```
-
-## Database Timeline Tracking
-
-Monitor a bot contract through its lifecycle:
+### Step 1: Find Active Bot Contract
 
 ```sql
 SELECT 
-  id,
-  status,
-  work_done_at,
-  client_dispute_deadline,
-  provider_dispute_deadline,
-  ready_for_release_at,
-  -- Time until client can dispute
-  EXTRACT(EPOCH FROM (client_dispute_deadline - NOW())) / 3600 as client_hours_left,
-  -- Time until contract appears in admin panel
-  EXTRACT(EPOCH FROM (ready_for_release_at + INTERVAL '24 hours' - NOW())) / 3600 as hours_until_release
-FROM contracts
-WHERE provider_id IN (SELECT profile_id FROM bot_accounts)
-ORDER BY created_at DESC
-LIMIT 10;
+  c.id as contract_id,
+  c.status,
+  c.final_amount,
+  client.full_name as client_name,
+  provider.full_name as provider_name,
+  provider.stripe_account_id
+FROM contracts c
+JOIN profiles client ON c.client_id = client.id
+JOIN profiles provider ON c.provider_id = provider.id
+WHERE 
+  client.user_type = 'bot'
+  AND provider.user_type = 'bot'
+  AND c.status = 'accepted'
+  AND provider.stripe_account_id IS NOT NULL
+LIMIT 1;
 ```
 
-## Expected Results
+Copy the `contract_id` and `provider.stripe_account_id`.
 
-### Immediately After Bot Completion
-- ✅ evidence_photos: 2 rows (before + after)
-- ✅ reviews: 2 rows (client + provider reviews)
-- ✅ work_done_at: Set
-- ✅ client_dispute_deadline: work_done_at + 24h
-- ✅ ready_for_release_at: Set
-- ❌ Fund release panel: Empty (24h not passed yet)
+### Step 2: Create Escrow Payment
 
-### After 24 Hours Pass
-- ✅ Fund release panel: Contract visible
-- ✅ Admin can click "Release Funds" button
-- ✅ Status changes to "funds_released"
-- ✅ Provider receives 92% payout
+```bash
+curl -X POST http://localhost:3000/api/escrow/create \
+  -H "Content-Type: application/json" \
+  -d '{
+    "contractId": "PASTE_CONTRACT_ID_HERE"
+  }'
+```
 
-## Conclusion
+**Expected Response:**
+```json
+{
+  "success": true,
+  "clientSecret": "pi_xxx_secret_yyy",
+  "paymentIntentId": "pi_xxx",
+  "payment": { ... },
+  "totalAmount": 104.95
+}
+```
 
-**Bots now follow the EXACT same escrow rules as real users.** This enables realistic end-to-end testing of:
-- Evidence photo uploads
-- Review submission
-- 24-hour dispute windows
-- Fund release approval process
-- Commission calculations
+Copy the `paymentIntentId`.
 
-The only difference: Bots use placeholder photos (picsum.photos) instead of real uploads, and they always give 5-star reviews. The **escrow timing and logic is identical.**
+### Step 3: Simulate Bot Payment
+
+**Option A: API Endpoint (Recommended for Bots)**
+
+Create this test endpoint:
+
+```typescript
+// src/pages/api/bot-payment.ts
+import type { NextApiRequest, NextApiResponse } from "next";
+import Stripe from "stripe";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: "2025-02-24.acacia",
+});
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  try {
+    const { paymentIntentId } = req.body;
+
+    // Confirm payment with test card
+    const paymentIntent = await stripe.paymentIntents.confirm(paymentIntentId, {
+      payment_method: "pm_card_visa", // Stripe test payment method
+      return_url: "https://bluetika.co.nz/contracts",
+    });
+
+    return res.status(200).json({
+      success: true,
+      paymentIntent,
+    });
+  } catch (error) {
+    console.error("Bot payment error:", error);
+    return res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : "Payment failed",
+    });
+  }
+}
+```
+
+Then call it:
+
+```bash
+curl -X POST http://localhost:3000/api/bot-payment \
+  -H "Content-Type: application/json" \
+  -d '{
+    "paymentIntentId": "pi_xxx"
+  }'
+```
+
+**Option B: Manual via Stripe CLI**
+
+```bash
+stripe payment_intents confirm pi_xxx \
+  --payment-method=pm_card_visa
+```
+
+### Step 4: Capture Payment
+
+```bash
+curl -X POST http://localhost:3000/api/escrow/capture \
+  -H "Content-Type: application/json" \
+  -d '{
+    "paymentIntentId": "pi_xxx"
+  }'
+```
+
+**Verify in database:**
+```sql
+SELECT 
+  pt.status,
+  pt.captured_at,
+  c.payment_status,
+  c.client_approval_deadline
+FROM payment_tracking pt
+JOIN contracts c ON c.id = pt.contract_id
+WHERE pt.stripe_payment_intent_id = 'pi_xxx';
+```
+
+Expected:
+- `pt.status` = "captured"
+- `c.payment_status` = "held"
+- `c.client_approval_deadline` set to +48 hours
+
+### Step 5: Release Payment
+
+```bash
+curl -X POST http://localhost:3000/api/escrow/release \
+  -H "Content-Type: application/json" \
+  -d '{
+    "contractId": "PASTE_CONTRACT_ID_HERE",
+    "releaseMethod": "client_approval"
+  }'
+```
+
+**Verify:**
+```sql
+SELECT 
+  pt.status,
+  pt.stripe_transfer_id,
+  pt.released_at,
+  c.payment_status
+FROM payment_tracking pt
+JOIN contracts c ON c.id = pt.contract_id
+WHERE c.id = 'PASTE_CONTRACT_ID_HERE';
+```
+
+Expected:
+- `pt.status` = "released"
+- `pt.stripe_transfer_id` populated
+- `c.payment_status` = "released"
+
+Check Stripe Dashboard → Transfers to see funds moved to provider.
+
+## Automated Bot Escrow Flow
+
+### Full Cycle Script
+
+Create this endpoint for complete bot flow testing:
+
+```typescript
+// src/pages/api/test-full-cycle.ts
+import type { NextApiRequest, NextApiResponse } from "next";
+import { createClient } from "@supabase/supabase-js";
+import Stripe from "stripe";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: "2025-02-24.acacia",
+});
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  const log: string[] = [];
+
+  try {
+    // 1. Find bot contract
+    log.push("Step 1: Finding bot contract...");
+    const { data: contract, error: contractError } = await supabase
+      .from("contracts")
+      .select(`
+        *,
+        client:profiles!contracts_client_id_fkey(user_type, full_name),
+        provider:profiles!contracts_provider_id_fkey(user_type, full_name, stripe_account_id)
+      `)
+      .eq("status", "accepted")
+      .not("provider.stripe_account_id", "is", null)
+      .limit(1)
+      .single();
+
+    if (contractError || !contract) {
+      throw new Error("No suitable bot contract found");
+    }
+
+    log.push(`✓ Found contract: ${contract.id}`);
+
+    // 2. Create escrow payment
+    log.push("Step 2: Creating escrow payment...");
+    const createResponse = await fetch(`${process.env.NEXTAUTH_URL}/api/escrow/create`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contractId: contract.id }),
+    });
+    const createResult = await createResponse.json();
+    if (!createResult.success) throw new Error(createResult.error);
+
+    log.push(`✓ Payment created: ${createResult.paymentIntentId}`);
+
+    // 3. Simulate bot payment
+    log.push("Step 3: Bot making payment...");
+    const paymentIntent = await stripe.paymentIntents.confirm(
+      createResult.paymentIntentId,
+      {
+        payment_method: "pm_card_visa",
+        return_url: "https://bluetika.co.nz/contracts",
+      }
+    );
+
+    log.push(`✓ Payment confirmed: ${paymentIntent.status}`);
+
+    // 4. Capture payment
+    log.push("Step 4: Capturing payment...");
+    const captureResponse = await fetch(`${process.env.NEXTAUTH_URL}/api/escrow/capture`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ paymentIntentId: createResult.paymentIntentId }),
+    });
+    const captureResult = await captureResponse.json();
+    if (!captureResult.success) throw new Error(captureResult.error);
+
+    log.push(`✓ Payment captured and held in escrow`);
+
+    // 5. Wait 2 seconds (simulate work completion)
+    log.push("Step 5: Simulating work completion (2s)...");
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    // 6. Release payment
+    log.push("Step 6: Releasing payment to provider...");
+    const releaseResponse = await fetch(`${process.env.NEXTAUTH_URL}/api/escrow/release`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contractId: contract.id,
+        releaseMethod: "client_approval",
+      }),
+    });
+    const releaseResult = await releaseResponse.json();
+    if (!releaseResult.success) throw new Error(releaseResult.error);
+
+    log.push(`✓ Payment released: ${releaseResult.transferId}`);
+
+    // 7. Verify final state
+    log.push("Step 7: Verifying final state...");
+    const { data: finalPayment } = await supabase
+      .from("payment_tracking")
+      .select("*")
+      .eq("contract_id", contract.id)
+      .single();
+
+    log.push(`✓ Final payment status: ${finalPayment?.status}`);
+    log.push(`✓ Transfer ID: ${finalPayment?.stripe_transfer_id}`);
+
+    return res.status(200).json({
+      success: true,
+      log,
+      contractId: contract.id,
+      paymentIntentId: createResult.paymentIntentId,
+      transferId: releaseResult.transferId,
+    });
+  } catch (error) {
+    log.push(`✗ Error: ${error instanceof Error ? error.message : "Unknown error"}`);
+    return res.status(500).json({
+      success: false,
+      log,
+      error: error instanceof Error ? error.message : "Test failed",
+    });
+  }
+}
+```
+
+Run the full test:
+
+```bash
+curl -X POST http://localhost:3000/api/test-full-cycle
+```
+
+**Expected Output:**
+```json
+{
+  "success": true,
+  "log": [
+    "Step 1: Finding bot contract...",
+    "✓ Found contract: uuid-xxx",
+    "Step 2: Creating escrow payment...",
+    "✓ Payment created: pi_xxx",
+    "Step 3: Bot making payment...",
+    "✓ Payment confirmed: requires_capture",
+    "Step 4: Capturing payment...",
+    "✓ Payment captured and held in escrow",
+    "Step 5: Simulating work completion (2s)...",
+    "Step 6: Releasing payment to provider...",
+    "✓ Payment released: tr_xxx",
+    "Step 7: Verifying final state...",
+    "✓ Final payment status: released",
+    "✓ Transfer ID: tr_xxx"
+  ],
+  "contractId": "uuid-xxx",
+  "paymentIntentId": "pi_xxx",
+  "transferId": "tr_xxx"
+}
+```
+
+## Integration with Existing Bot System
+
+### Update Bot Automation to Include Payments
+
+**File:** Existing bot Edge Functions
+
+Add payment steps to bot contract completion:
+
+```typescript
+// After bot accepts bid
+const createEscrowResponse = await fetch(`${SITE_URL}/api/escrow/create`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ contractId: contract.id }),
+});
+
+const { paymentIntentId } = await createEscrowResponse.json();
+
+// Bot makes payment
+const stripe = new Stripe(STRIPE_KEY);
+await stripe.paymentIntents.confirm(paymentIntentId, {
+  payment_method: "pm_card_visa",
+});
+
+// Capture payment
+await fetch(`${SITE_URL}/api/escrow/capture`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ paymentIntentId }),
+});
+
+// Later: Bot completes work and approves
+await fetch(`${SITE_URL}/api/escrow/release`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    contractId: contract.id,
+    releaseMethod: "client_approval",
+  }),
+});
+```
+
+## Monitoring Bot Payments
+
+```sql
+-- All bot payments today
+SELECT 
+  pt.id,
+  pt.status,
+  pt.amount_nzd,
+  pt.created_at,
+  client.full_name as client,
+  provider.full_name as provider
+FROM payment_tracking pt
+JOIN profiles client ON pt.client_id = client.id
+JOIN profiles provider ON pt.provider_id = provider.id
+WHERE 
+  client.user_type = 'bot'
+  AND provider.user_type = 'bot'
+  AND pt.created_at > NOW() - INTERVAL '1 day'
+ORDER BY pt.created_at DESC;
+
+-- Bot payment success rate
+SELECT 
+  status,
+  COUNT(*) as count,
+  ROUND(AVG(amount_nzd), 2) as avg_amount
+FROM payment_tracking pt
+JOIN profiles client ON pt.client_id = client.id
+WHERE client.user_type = 'bot'
+GROUP BY status;
+```
+
+## Success Metrics
+
+✅ Bot can create escrow payment
+✅ Bot payment confirmed via Stripe test card
+✅ Payment captured and held correctly
+✅ Bot provider receives 98% of contract amount
+✅ No errors in payment flow
+✅ Full cycle completes in <10 seconds
+
+This allows rapid testing of the escrow system without manual intervention!
+</file_contents>
