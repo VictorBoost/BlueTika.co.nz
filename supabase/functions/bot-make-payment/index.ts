@@ -29,7 +29,16 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) {
+      console.error("❌ STRIPE_SECRET_KEY not found in environment");
+      return new Response(
+        JSON.stringify({ error: "Stripe API key not configured" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+      );
+    }
+
+    const stripe = new Stripe(stripeKey, {
       apiVersion: "2024-11-20.acacia",
     });
 
@@ -58,9 +67,10 @@ serve(async (req) => {
       .maybeSingle();
 
     if (!isBotClient) {
+      console.log("⚠️ Skipping non-bot contract:", contractId);
       return new Response(
-        JSON.stringify({ error: "Not a bot contract" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 }
+        JSON.stringify({ error: "Not a bot contract", skipped: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
       );
     }
 
