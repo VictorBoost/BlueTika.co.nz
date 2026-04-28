@@ -3,11 +3,6 @@ import { supabase } from "@/lib/supabase";
 import { sendBidNotification, sendContractNotification, sendPaymentNotification } from "@/lib/email-sender";
 import { emailLogService } from "@/services/emailLogService";
 
-/**
- * API endpoint to test complete bot cycle with real emails
- * POST /api/test-full-cycle
- * Body: { clientEmail: string, providerEmail: string }
- */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -19,25 +14,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: "Both clientEmail and providerEmail are required" });
   }
 
-  console.log("🧪 Starting full cycle test...");
-  console.log("   Client:", clientEmail);
-  console.log("   Provider:", providerEmail);
+  console.log("🧪 Full cycle test starting");
+  console.log("Client:", clientEmail);
+  console.log("Provider:", providerEmail);
 
   try {
-    // Step 1: Get or create profiles
-    let { data: clientProfile } = await supabase
+    let clientProfile: any;
+    let providerProfile: any;
+
+    const { data: existingClient } = await supabase
       .from("profiles")
       .select("*")
       .eq("email", clientEmail)
       .maybeSingle();
 
-    let { data: providerProfile } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("email", providerEmail)
-      .maybeSingle();
-
-    if (!clientProfile) {
+    if (!existingClient) {
       const { data: newClient, error } = await supabase
         .from("profiles")
         .insert({
@@ -54,10 +45,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       if (error) throw error;
       clientProfile = newClient;
-      console.log("✅ Created client profile");
+    } else {
+      clientProfile = existingClient;
     }
 
-    if (!providerProfile) {
+    const { data: existingProvider } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("email", providerEmail)
+      .maybeSingle();
+
+    if (!existingProvider) {
       const { data: newProvider, error } = await supabase
         .from("profiles")
         .insert({
@@ -76,26 +74,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       if (error) throw error;
       providerProfile = newProvider;
-      console.log("✅ Created provider profile");
+    } else {
+      providerProfile = existingProvider;
     }
 
-    // Randomize category for testing
     const categories = [
-      { cat: "Plumbing", sub: "Repairs & Maintenance", title: "Test Project - Fix Leaking Pipe" },
-      { cat: "Electrical", sub: "Wiring", title: "Test Project - Install New Outlets" },
-      { cat: "Cleaning", sub: "Deep Clean", title: "Test Project - End of Tenancy Cleaning" },
-      { cat: "Gardening", sub: "Lawn Care", title: "Test Project - Garden Clearance" },
-      { cat: "Moving", sub: "Furniture Moving", title: "Test Project - Move Heavy Sofa" }
+      { cat: "Plumbing", sub: "Repairs & Maintenance", title: "Fix Leaking Pipe" },
+      { cat: "Electrical", sub: "Wiring", title: "Install New Outlets" },
+      { cat: "Cleaning", sub: "Deep Clean", title: "End of Tenancy Cleaning" }
     ];
     const randomProject = categories[Math.floor(Math.random() * categories.length)];
 
-    // Step 2: Create a project
     const { data: project, error: projectError } = await supabase
       .from("projects")
       .insert({
         client_id: clientProfile.id,
         title: randomProject.title,
-        description: "This is an automated test project with a randomized category.",
+        description: "Automated test project",
         category: randomProject.cat,
         subcategory: randomProject.sub,
         budget_min: 150,
@@ -107,9 +102,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .single();
 
     if (projectError) throw projectError;
-    console.log(`✅ Created project: ${project.id} (${randomProject.cat})`);
 
-    // Step 3: Provider submits bid
     const bidAmount = Math.floor(Math.random() * 100) + 150;
     const { data: bid, error: bidError } = await supabase
       .from("bids")
@@ -117,7 +110,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         project_id: project.id,
         provider_id: providerProfile.id,
         amount: bidAmount,
-        message: "I can help with this project today. Experienced and ready to go.",
+        message: "I can help with this project today.",
         estimated_duration: "2-3 hours",
         status: "pending"
       })
@@ -125,25 +118,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .single();
 
     if (bidError) throw bidError;
-    console.log(`✅ Provider submitted bid: ${bid.id} ($${bidAmount})`);
 
-    // Send bid notification email
-    console.log("   📧 Sending bid notification to client...");
     try {
-      await sendBidNotification(
-        clientEmail,
-        project.title,
-        providerProfile.full_name || "Test Provider",
-        bidAmount
-      );
+      await sendBidNotification(clientEmail, project.title, providerProfile.full_name || "Test Provider", bidAmount);
       await emailLogService.logEmail(clientEmail, "bid_notification", "sent", { bid_id: bid.id });
-      console.log("   ✅ Bid notification email sent to client");
     } catch (emailErr: any) {
-      console.error("   ❌ Bid notification failed:", emailErr.message);
+      console.error("Bid email failed:", emailErr.message);
       await emailLogService.logEmail(clientEmail, "bid_notification", "failed", { bid_id: bid.id, error: emailErr.message });
     }
 
-    // Step 4: Client accepts bid (creates contract)
     const platformFee = Math.round(bid.amount * 0.10 * 100) / 100;
     const paymentFee = Math.round(bid.amount * 0.029 * 100) / 100 + 0.30;
 
@@ -164,49 +147,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .single();
 
     if (contractError) throw contractError;
-    console.log(`✅ Contract created: ${contract.id}`);
 
-    // Update bid and project status
     await supabase.from("bids").update({ status: "accepted" }).eq("id", bid.id);
     await supabase.from("projects").update({ status: "in_progress" }).eq("id", project.id);
 
-    // Send contract notification emails
-    console.log("   📧 Sending contract notifications...");
     try {
       await sendContractNotification(clientEmail, providerEmail, project.title);
       await emailLogService.logEmail(clientEmail, "contract_created_client", "sent", { contract_id: contract.id });
       await emailLogService.logEmail(providerEmail, "contract_created_provider", "sent", { contract_id: contract.id });
-      console.log("   ✅ Contract notification emails sent to both parties");
     } catch (emailErr: any) {
-      console.error("   ❌ Contract notification failed:", emailErr.message);
-      await emailLogService.logEmail(clientEmail, "contract_created_client", "failed", { contract_id: contract.id, error: emailErr.message });
+      console.error("Contract email failed:", emailErr.message);
     }
 
-    // Step 5: Trigger bot payment
-    console.log("💳 Triggering bot payment...");
-    const baseUrl = req.headers.origin || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-    const paymentResponse = await fetch(`${baseUrl}/api/bot-payment`, {
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+    await fetch(`${baseUrl}/api/bot-payment`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ contractId: contract.id })
     });
 
-    const paymentResult = await paymentResponse.json();
-    console.log("✅ Payment result:", paymentResult);
-
-    // Step 6: Provider uploads work evidence
     await supabase.from("evidence_photos").insert([
       {
         contract_id: contract.id,
         photo_url: "https://images.unsplash.com/photo-1581578731548-c64695cc6952",
         uploaded_by: providerProfile.id,
         description: "Before"
-      },
-      {
-        contract_id: contract.id,
-        photo_url: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a",
-        uploaded_by: providerProfile.id,
-        description: "After"
       }
     ]);
 
@@ -217,20 +182,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ready_for_release_at: new Date().toISOString()
     }).eq("id", contract.id);
 
-    console.log("✅ Provider uploaded work evidence");
-
-    // Step 7: Provider submits review of client
     await supabase.from("reviews").insert({
       contract_id: contract.id,
       reviewer_id: providerProfile.id,
       reviewee_id: clientProfile.id,
       rating: 5,
-      comment: "Great client! Clear communication and prompt payment.",
+      comment: "Great client!",
       review_type: "provider_to_client"
     });
-    console.log("✅ Provider submitted review of client (5 stars)");
 
-    // Step 8: Client releases funds and reviews provider
     await supabase.from("contracts").update({
       payment_status: "released",
       status: "completed",
@@ -242,28 +202,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       reviewer_id: clientProfile.id,
       reviewee_id: providerProfile.id,
       rating: 5,
-      comment: "Excellent work! Highly recommend!",
+      comment: "Excellent work!",
       review_type: "client_to_provider"
     });
-    console.log("✅ Client released funds and reviewed provider (5 stars)");
 
-    // Send payment notification emails
-    console.log("   📧 Sending payment release notifications...");
     try {
       await sendPaymentNotification(clientEmail, providerEmail, contract.final_amount);
       await emailLogService.logEmail(clientEmail, "payment_released_client", "sent", { contract_id: contract.id });
       await emailLogService.logEmail(providerEmail, "payment_released_provider", "sent", { contract_id: contract.id });
-      console.log("   ✅ Payment notification emails sent to both parties");
     } catch (emailErr: any) {
-      console.error("   ❌ Payment notification failed:", emailErr.message);
-      await emailLogService.logEmail(clientEmail, "payment_released_client", "failed", { contract_id: contract.id, error: emailErr.message });
+      console.error("Payment email failed:", emailErr.message);
     }
-
-    console.log("✅ Full cycle test completed successfully!");
-    console.log("📧 Check both email addresses for all notifications:");
-    console.log("   - Bid notification (client)");
-    console.log("   - Contract created (both)");
-    console.log("   - Payment released (both)");
 
     return res.status(200).json({
       success: true,
@@ -281,9 +230,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
   } catch (error: any) {
-    console.error("❌ Full cycle test error:", error);
+    console.error("Test failed:", error);
     return res.status(500).json({ 
-      error: error.message || "Unknown error occurred",
+      error: error.message || "Test failed",
       details: error.toString()
     });
   }
