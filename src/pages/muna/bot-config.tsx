@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Loader2 } from "lucide-react";
 
 interface BotConfig {
   id: string;
@@ -31,6 +32,22 @@ interface BotConfig {
   auto_submit_reviews: boolean;
 }
 
+interface ActionButton {
+  label: string;
+  action: string;
+  description: string;
+  icon: string;
+}
+
+const manualActions: ActionButton[] = [
+  { label: "Post Projects", action: "post_projects", description: "Bots create 1-5 new projects", icon: "📝" },
+  { label: "Submit Bids", action: "submit_bids", description: "Bots bid on open projects", icon: "💰" },
+  { label: "Accept Bids", action: "accept_bids", description: "Create contracts from accepted bids", icon: "✅" },
+  { label: "Process Payments", action: "process_payments", description: "Process Stripe payments for contracts", icon: "💳" },
+  { label: "Complete Work", action: "complete_work", description: "Upload evidence & submit reviews", icon: "📸" },
+  { label: "Release Funds", action: "release_funds", description: "Client bots release escrow funds", icon: "💰" }
+];
+
 export default function BotConfigPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -39,6 +56,7 @@ export default function BotConfigPage() {
   const [config, setConfig] = useState<BotConfig | null>(null);
   const [triggering, setTriggering] = useState(false);
   const [lastResult, setLastResult] = useState<any>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   useEffect(() => {
     loadConfig();
@@ -56,7 +74,6 @@ export default function BotConfigPage() {
       if (error) throw error;
       
       if (!data) {
-        // Create default config if it doesn't exist
         const { data: newConfig, error: createError } = await supabase
           .from("bot_configuration")
           .insert({
@@ -155,6 +172,30 @@ export default function BotConfigPage() {
     }
   };
 
+  const handleManualAction = async (action: string, label: string) => {
+    setActionLoading(action);
+    try {
+      const { data, error } = await supabase.functions.invoke("hourly-bot-cycle", {
+        body: { action }
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: `✅ ${label} Complete`,
+        description: `Successfully executed: ${label}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || `Failed to execute ${label}`,
+        variant: "destructive",
+      });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const updateConfig = (field: keyof BotConfig, value: any) => {
     if (!config) return;
     setConfig({ ...config, [field]: value });
@@ -195,12 +236,45 @@ export default function BotConfigPage() {
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
             <div>
-              <p className="font-semibold">Manual Bot Cycle Trigger</p>
-              <p className="text-sm text-muted-foreground">Run a complete bot activity cycle now</p>
+              <p className="font-semibold">Full Bot Cycle Trigger</p>
+              <p className="text-sm text-muted-foreground">Run all bot actions in sequence</p>
             </div>
             <Button onClick={handleTriggerBotCycle} disabled={triggering} size="lg">
-              {triggering ? "Running..." : "▶ Run Bot Cycle Now"}
+              {triggering ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Running...
+                </>
+              ) : (
+                "▶ Run Full Cycle Now"
+              )}
             </Button>
+          </div>
+
+          {/* Individual Action Buttons */}
+          <div className="p-4 border border-blue-500/20 rounded-lg space-y-3">
+            <p className="font-semibold text-blue-300">🎯 Individual Actions</p>
+            <p className="text-sm text-muted-foreground">Execute specific bot actions manually</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
+              {manualActions.map((item) => (
+                <Button
+                  key={item.action}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleManualAction(item.action, item.label)}
+                  disabled={actionLoading !== null}
+                  className="flex flex-col h-auto py-3 px-4 items-start"
+                >
+                  {actionLoading === item.action ? (
+                    <Loader2 className="h-4 w-4 animate-spin mb-1" />
+                  ) : (
+                    <span className="text-lg mb-1">{item.icon}</span>
+                  )}
+                  <span className="font-semibold text-xs">{item.label}</span>
+                  <span className="text-xs text-muted-foreground mt-1">{item.description}</span>
+                </Button>
+              ))}
+            </div>
           </div>
 
           <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg space-y-3">
