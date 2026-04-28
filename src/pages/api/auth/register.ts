@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabase } from "@/integrations/supabase/client";
-import { sesEmailService } from "@/services/sesEmailService";
+import { sendRegistrationEmail } from "@/lib/email-sender";
 import { emailLogService } from "@/services/emailLogService";
 
 export default async function handler(
@@ -21,25 +21,30 @@ export default async function handler(
       password,
       options: {
         data: { full_name: fullName },
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_BASE_URL || "https://bluetika.co.nz"}/auth/verify`,
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "https://bluetika.co.nz"}/auth/verify`,
       },
     });
 
     if (authError) return res.status(400).json({ error: authError.message });
     if (!authData.user) return res.status(400).json({ error: "Failed to create user account" });
 
-    // Bypass strict typing to safely update extended profile fields
     await supabase.from("profiles").update({
       full_name: fullName,
       user_type: userType,
     } as any).eq("id", authData.user.id);
 
-    const emailSent = await sesEmailService.sendWelcomeEmail(email, fullName);
-
-    if (emailSent) {
-      await emailLogService.logEmail(email, "welcome", "sent", { user_id: authData.user.id });
-    } else {
-      await emailLogService.logEmail(email, "welcome", "failed", { user_id: authData.user.id, error: "SES failed" });
+    try {
+      const emailResult = await sendRegistrationEmail(email, fullName, userType);
+      await emailLogService.logEmail(email, "welcome", "sent", { 
+        user_id: authData.user.id,
+        message_id: emailResult.messageId 
+      });
+    } catch (emailError: any) {
+      console.error("Failed to send registration email:", emailError);
+      await emailLogService.logEmail(email, "welcome", "failed", { 
+        user_id: authData.user.id, 
+        error: emailError.message 
+      });
     }
 
     if (authData.session) {
@@ -55,6 +60,7 @@ export default async function handler(
       message: "Registration successful!",
     });
   } catch (error: any) {
+    console.error("Registration error:", error);
     res.status(500).json({ error: "Registration failed." });
   }
 }
