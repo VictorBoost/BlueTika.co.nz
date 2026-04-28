@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -1661,6 +1661,39 @@ export type Database = {
           },
         ]
       }
+      email_audit: {
+        Row: {
+          created_at: string
+          email_to: string
+          email_type: string
+          error_message: string | null
+          event_trigger: string
+          id: string
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          email_to: string
+          email_type: string
+          error_message?: string | null
+          event_trigger: string
+          id?: string
+          sent_at?: string | null
+          status: string
+        }
+        Update: {
+          created_at?: string
+          email_to?: string
+          email_type?: string
+          error_message?: string | null
+          event_trigger?: string
+          id?: string
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       email_logs: {
         Row: {
           created_at: string | null
@@ -1694,6 +1727,102 @@ export type Database = {
         }
         Relationships: []
       }
+      email_queue: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          recipient_email: string
+          retry_count: number
+          sent_at: string | null
+          status: string
+          template_name: string
+          template_variables: Json | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          recipient_email: string
+          retry_count?: number
+          sent_at?: string | null
+          status?: string
+          template_name: string
+          template_variables?: Json | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          recipient_email?: string
+          retry_count?: number
+          sent_at?: string | null
+          status?: string
+          template_name?: string
+          template_variables?: Json | null
+        }
+        Relationships: []
+      }
+      email_senders: {
+        Row: {
+          created_at: string
+          email_count_24h: number
+          email_count_3d: number
+          escalation_status: boolean
+          id: string
+          last_email_at: string | null
+          sender_email: string
+        }
+        Insert: {
+          created_at?: string
+          email_count_24h?: number
+          email_count_3d?: number
+          escalation_status?: boolean
+          id?: string
+          last_email_at?: string | null
+          sender_email: string
+        }
+        Update: {
+          created_at?: string
+          email_count_24h?: number
+          email_count_3d?: number
+          escalation_status?: boolean
+          id?: string
+          last_email_at?: string | null
+          sender_email?: string
+        }
+        Relationships: []
+      }
+      email_templates: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          subject: string
+          template_name: string
+          updated_at: string
+          variables: Json | null
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          subject: string
+          template_name: string
+          updated_at?: string
+          variables?: Json | null
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          subject?: string
+          template_name?: string
+          updated_at?: string
+          variables?: Json | null
+        }
+        Relationships: []
+      }
       failed_login_lockouts: {
         Row: {
           created_at: string | null
@@ -1718,6 +1847,33 @@ export type Database = {
           id?: string
           locked_until?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      faqs: {
+        Row: {
+          answer: string
+          category: string
+          created_at: string
+          id: string
+          question: string
+          updated_at: string
+        }
+        Insert: {
+          answer: string
+          category: string
+          created_at?: string
+          id?: string
+          question: string
+          updated_at?: string
+        }
+        Update: {
+          answer?: string
+          category?: string
+          created_at?: string
+          id?: string
+          question?: string
+          updated_at?: string
         }
         Relationships: []
       }
