@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabase } from "@/lib/supabase";
-import { sesEmailService } from "@/services/sesEmailService";
+import { sendBidNotification, sendContractNotification, sendPaymentNotification } from "@/lib/email-sender";
+import { emailLogService } from "@/services/emailLogService";
 
 /**
  * API endpoint to test complete bot cycle with real emails
@@ -109,7 +110,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log(`✅ Created project: ${project.id} (${randomProject.cat})`);
 
     // Step 3: Provider submits bid
-    const bidAmount = Math.floor(Math.random() * 100) + 150; // Random amount between 150-250
+    const bidAmount = Math.floor(Math.random() * 100) + 150;
     const { data: bid, error: bidError } = await supabase
       .from("bids")
       .insert({
@@ -125,6 +126,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (bidError) throw bidError;
     console.log(`✅ Provider submitted bid: ${bid.id} ($${bidAmount})`);
+
+    // Send bid notification email
+    console.log("   📧 Sending bid notification to client...");
+    try {
+      await sendBidNotification(
+        clientEmail,
+        project.title,
+        providerProfile.full_name || "Test Provider",
+        bidAmount
+      );
+      await emailLogService.logEmail(clientEmail, "bid_notification", "sent", { bid_id: bid.id });
+      console.log("   ✅ Bid notification email sent to client");
+    } catch (emailErr: any) {
+      console.error("   ❌ Bid notification failed:", emailErr.message);
+      await emailLogService.logEmail(clientEmail, "bid_notification", "failed", { bid_id: bid.id, error: emailErr.message });
+    }
 
     // Step 4: Client accepts bid (creates contract)
     const platformFee = Math.round(bid.amount * 0.10 * 100) / 100;
@@ -153,9 +170,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await supabase.from("bids").update({ status: "accepted" }).eq("id", bid.id);
     await supabase.from("projects").update({ status: "in_progress" }).eq("id", project.id);
 
+    // Send contract notification emails
+    console.log("   📧 Sending contract notifications...");
+    try {
+      await sendContractNotification(clientEmail, providerEmail, project.title);
+      await emailLogService.logEmail(clientEmail, "contract_created_client", "sent", { contract_id: contract.id });
+      await emailLogService.logEmail(providerEmail, "contract_created_provider", "sent", { contract_id: contract.id });
+      console.log("   ✅ Contract notification emails sent to both parties");
+    } catch (emailErr: any) {
+      console.error("   ❌ Contract notification failed:", emailErr.message);
+      await emailLogService.logEmail(clientEmail, "contract_created_client", "failed", { contract_id: contract.id, error: emailErr.message });
+    }
+
     // Step 5: Trigger bot payment
     console.log("💳 Triggering bot payment...");
-    const baseUrl = req.headers.origin || "http://localhost:3000";
+    const baseUrl = req.headers.origin || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
     const paymentResponse = await fetch(`${baseUrl}/api/bot-payment`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -200,19 +229,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       review_type: "provider_to_client"
     });
     console.log("✅ Provider submitted review of client (5 stars)");
-    
-    // Send review notification email to client
-    console.log("   📧 Sending review notification to client...");
-    try {
-      await sesEmailService.sendEmail({
-        to: clientEmail,
-        subject: "BlueTika: Provider Reviewed You! ⭐",
-        htmlBody: `<h2>Review Received</h2><p>Your provider rated you 5 stars and said: "Great client! Clear communication and prompt payment."</p>`
-      });
-      console.log("   ✅ Client review notification email sent");
-    } catch (emailErr) {
-      console.warn("   ⚠️ Client review email failed:", emailErr);
-    }
 
     // Step 8: Client releases funds and reviews provider
     await supabase.from("contracts").update({
@@ -231,51 +247,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
     console.log("✅ Client released funds and reviewed provider (5 stars)");
 
-    console.log("   ✅ Funds released to provider");
-
-    // Send fund release emails
-    console.log("   📧 Sending fund release notifications...");
+    // Send payment notification emails
+    console.log("   📧 Sending payment release notifications...");
     try {
-      const finalAmount = contract.final_amount || bid.amount;
-
-      await sesEmailService.sendFundReleaseNotification(
-        providerEmail,
-        providerProfile.full_name || "Provider",
-        "provider",
-        project.title,
-        finalAmount,
-        0,
-        finalAmount,
-        baseUrl
-      );
-      console.log("   ✅ Provider fund release email sent");
-
-      await sesEmailService.sendFundReleaseNotification(
-        clientEmail,
-        clientProfile.full_name || "Client",
-        "client",
-        project.title,
-        finalAmount,
-        0,
-        finalAmount,
-        baseUrl
-      );
-      console.log("   ✅ Client fund release email sent");
-    } catch (emailErr) {
-      console.warn("   ⚠️ Fund release emails failed:", emailErr);
+      await sendPaymentNotification(clientEmail, providerEmail, contract.final_amount);
+      await emailLogService.logEmail(clientEmail, "payment_released_client", "sent", { contract_id: contract.id });
+      await emailLogService.logEmail(providerEmail, "payment_released_provider", "sent", { contract_id: contract.id });
+      console.log("   ✅ Payment notification emails sent to both parties");
+    } catch (emailErr: any) {
+      console.error("   ❌ Payment notification failed:", emailErr.message);
+      await emailLogService.logEmail(clientEmail, "payment_released_client", "failed", { contract_id: contract.id, error: emailErr.message });
     }
 
     console.log("✅ Full cycle test completed successfully!");
-    console.log("📧 Check both email addresses for notifications");
+    console.log("📧 Check both email addresses for all notifications:");
+    console.log("   - Bid notification (client)");
+    console.log("   - Contract created (both)");
+    console.log("   - Payment released (both)");
 
     return res.status(200).json({
       success: true,
-      message: "Full cycle test completed",
+      message: "Full cycle test completed - check your emails!",
       clientEmail,
       providerEmail,
       projectId: project.id,
       contractId: contract.id,
-      finalAmount: (contract.final_amount || bid.amount).toFixed(2)
+      finalAmount: contract.final_amount.toFixed(2),
+      emailsSent: [
+        "Bid notification to client",
+        "Contract notification to both parties",
+        "Payment notification to both parties"
+      ]
     });
 
   } catch (error: any) {
