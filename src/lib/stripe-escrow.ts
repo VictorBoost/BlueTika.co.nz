@@ -93,14 +93,12 @@ export async function capturePayment(
     }
 
     // Capture the payment (holds funds in Stripe balance)
-    // Expand charges to get charge ID in response
-    const capturedIntent = await stripe.paymentIntents.capture(paymentIntentId, {
-      expand: ["charges"],
-    });
+    const capturedIntent = await stripe.paymentIntents.capture(paymentIntentId);
 
-    // Extract charge ID from expanded charges
-    const charges = capturedIntent.charges as Stripe.ApiList<Stripe.Charge>;
-    const chargeId = charges.data[0]?.id;
+    // Extract charge ID
+    const chargeId = typeof capturedIntent.latest_charge === 'string' 
+      ? capturedIntent.latest_charge 
+      : capturedIntent.latest_charge?.id;
 
     return {
       success: true,
@@ -126,9 +124,7 @@ export async function releasePayment(
 ): Promise<ReleaseResult> {
   try {
     // Verify payment intent is captured
-    const intent = await stripe.paymentIntents.retrieve(paymentIntentId, {
-      expand: ["charges"],
-    });
+    const intent = await stripe.paymentIntents.retrieve(paymentIntentId);
 
     if (intent.status !== "succeeded") {
       return {
@@ -144,9 +140,10 @@ export async function releasePayment(
       };
     }
 
-    // Extract charge ID from expanded charges
-    const charges = intent.charges as Stripe.ApiList<Stripe.Charge>;
-    const chargeId = charges.data[0]?.id;
+    // Extract charge ID
+    const chargeId = typeof intent.latest_charge === 'string' 
+      ? intent.latest_charge 
+      : intent.latest_charge?.id;
 
     if (!chargeId) {
       return {
@@ -193,9 +190,7 @@ export async function refundPayment(
 ): Promise<RefundResult> {
   try {
     // Verify payment intent is captured
-    const intent = await stripe.paymentIntents.retrieve(paymentIntentId, {
-      expand: ["charges"],
-    });
+    const intent = await stripe.paymentIntents.retrieve(paymentIntentId);
 
     if (intent.status !== "succeeded") {
       return {
@@ -204,8 +199,9 @@ export async function refundPayment(
       };
     }
 
-    const charges = intent.charges as Stripe.ApiList<Stripe.Charge>;
-    const chargeId = charges.data[0]?.id;
+    const chargeId = typeof intent.latest_charge === 'string' 
+      ? intent.latest_charge 
+      : intent.latest_charge?.id;
 
     if (!chargeId) {
       return {
