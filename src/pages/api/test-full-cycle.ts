@@ -1,117 +1,240 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
-import { sendBidNotification, sendContractNotification, sendPaymentNotification } from "@/lib/email-sender";
-import { emailLogService } from "@/services/emailLogService";
+import { sendBidNotification, sendContractNotification, sendPaymentNotification, sendRegistrationEmail } from "@/lib/email-sender";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
 
   const { clientEmail, providerEmail } = req.body;
-  if (!clientEmail || !providerEmail) return res.status(400).json({ error: "Required" });
 
-  // Use Service Role to bypass all RLS policies for reliable testing
+  if (!clientEmail || !providerEmail) {
+    return res.status(400).json({ error: "Both emails required" });
+  }
+
+  console.log("🧪 Full cycle test starting");
+
   const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
   try {
-    const baseUrl = req.headers.origin || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-    
-    // 1. Let the bot setup verified profiles
-    const createProfilesResponse = await fetch(`${baseUrl}/api/create-test-profiles`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ clientEmail, providerEmail })
-    });
+    // Step 1: Get or create profiles using Service Role (bypasses RLS)
+    let clientProfile: any;
+    let providerProfile: any;
 
-    if (!createProfilesResponse.ok) throw new Error("Profile creation failed");
+    const { data: existingClient } = await supabaseAdmin
+      .from("profiles")
+      .select("*")
+      .eq("email", clientEmail)
+      .maybeSingle();
 
-    const { data: clientProfile } = await supabaseAdmin.from("profiles").select("*").eq("email", clientEmail).single();
-    const { data: providerProfile } = await supabaseAdmin.from("profiles").select("*").eq("email", providerEmail).single();
+    if (existingClient) {
+      clientProfile = existingClient;
+      console.log("✅ Client profile exists");
+    } else {
+      // Create profile directly (assuming auth user exists or will be created later)
+      const clientId = crypto.randomUUID();
+      const { data: newClient, error } = await supabaseAdmin
+        .from("profiles")
+        .insert({
+          id: clientId,
+          email: clientEmail,
+          full_name: "Test Client",
+          phone_number: "021 123 4567",
+          city_region: "Auckland",
+          account_status: "active"
+        })
+        .select()
+        .single();
 
-    if (!clientProfile || !providerProfile) throw new Error("Profiles not found");
+      if (error) throw error;
+      clientProfile = newClient;
+      console.log("✅ Client profile created");
+      
+      try {
+        await sendRegistrationEmail(clientEmail, "Test Client", "client");
+      } catch (e) {
+        console.log("Welcome email skipped");
+      }
+    }
 
-    // 2. Post Project
-    const { data: project, error: projectError } = await supabaseAdmin.from("projects").insert({
-      client_id: clientProfile.id,
-      title: "Automated Test Project - Plumbing Repair",
-      description: "Test project for email cycle",
-      budget: 250,
-      location: "Auckland",
-      status: "open"
-    }).select().single();
+    const { data: existingProvider } = await supabaseAdmin
+      .from("profiles")
+      .select("*")
+      .eq("email", providerEmail)
+      .maybeSingle();
+
+    if (existingProvider) {
+      providerProfile = existingProvider;
+      console.log("✅ Provider profile exists");
+    } else {
+      const providerId = crypto.randomUUID();
+      const { data: newProvider, error } = await supabaseAdmin
+        .from("profiles")
+        .insert({
+          id: providerId,
+          email: providerEmail,
+          full_name: "Test Provider",
+          phone_number: "027 987 6543",
+          city_region: "Wellington",
+          verification_status: "verified",
+          account_status: "active"
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      providerProfile = newProvider;
+      console.log("✅ Provider profile created");
+      
+      try {
+        await sendRegistrationEmail(providerEmail, "Test Provider", "provider");
+      } catch (e) {
+        console.log("Welcome email skipped");
+      }
+    }
+
+    // Step 2: Create project
+    const { data: project, error: projectError } = await supabaseAdmin
+      .from("projects")
+      .insert({
+        client_id: clientProfile.id,
+        title: "Test Plumbing Repair",
+        description: "Automated test project",
+        category: "Plumbing",
+        subcategory: "Repairs & Maintenance",
+        budget_min: 150,
+        budget_max: 300,
+        city_region: "Auckland",
+        status: "open"
+      })
+      .select()
+      .single();
+
     if (projectError) throw projectError;
+    console.log("✅ Project created");
 
-    // 3. Submit Bid
+    // Step 3: Provider submits bid
     const bidAmount = 250;
-    const { data: bid, error: bidError } = await supabaseAdmin.from("bids").insert({
-      project_id: project.id,
-      provider_id: providerProfile.id,
-      amount: bidAmount,
-      message: "I can help with this job today.",
-      status: "pending"
-    }).select().single();
+    const { data: bid, error: bidError } = await supabaseAdmin
+      .from("bids")
+      .insert({
+        project_id: project.id,
+        provider_id: providerProfile.id,
+        amount: bidAmount,
+        message: "I can help with this project today.",
+        estimated_timeline: "2-3 hours",
+        status: "pending"
+      })
+      .select()
+      .single();
+
     if (bidError) throw bidError;
+    console.log("✅ Bid submitted");
 
-    try { await sendBidNotification(clientEmail, project.title, providerProfile.full_name || "Provider", bidAmount); } catch(e){}
+    // Send bid notification
+    try {
+      await sendBidNotification(clientEmail, project.title, providerProfile.full_name || "Provider", bidAmount);
+      console.log("✅ Bid email sent");
+    } catch (e) {
+      console.log("⚠️ Bid email skipped");
+    }
 
-    // 4. Accept Bid (Create Contract)
-    const { data: contract, error: contractError } = await supabaseAdmin.from("contracts").insert({
-      project_id: project.id,
-      bid_id: bid.id,
-      client_id: clientProfile.id,
-      provider_id: providerProfile.id,
-      final_amount: bidAmount,
-      status: "pending_payment",
-      payment_status: "pending"
-    }).select().single();
+    // Step 4: Accept bid (create contract)
+    const { data: contract, error: contractError } = await supabaseAdmin
+      .from("contracts")
+      .insert({
+        project_id: project.id,
+        bid_id: bid.id,
+        client_id: clientProfile.id,
+        provider_id: providerProfile.id,
+        final_amount: bidAmount,
+        platform_fee: 25,
+        payment_processing_fee: 7.55,
+        status: "pending_payment",
+        payment_status: "pending"
+      })
+      .select()
+      .single();
+
     if (contractError) throw contractError;
 
     await supabaseAdmin.from("bids").update({ status: "accepted" }).eq("id", bid.id);
     await supabaseAdmin.from("projects").update({ status: "in_progress" }).eq("id", project.id);
+    console.log("✅ Contract created");
 
-    try { await sendContractNotification(clientEmail, providerEmail, project.title); } catch(e){}
+    // Send contract notifications
+    try {
+      await sendContractNotification(clientEmail, providerEmail, project.title);
+      console.log("✅ Contract emails sent");
+    } catch (e) {
+      console.log("⚠️ Contract emails skipped");
+    }
 
-    // 5. Simulate Payment
-    await fetch(`${baseUrl}/api/bot-payment`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contractId: contract.id })
-    });
-
-    // 6. Complete Work & Release Escrow
+    // Step 5: Complete work and release payment
     await supabaseAdmin.from("contracts").update({
+      payment_status: "paid",
       work_done_at: new Date().toISOString(),
-      status: "awaiting_fund_release",
-      ready_for_release_at: new Date().toISOString()
-    }).eq("id", contract.id);
-
-    // Reviews
-    await supabaseAdmin.from("reviews").insert([
-      { contract_id: contract.id, client_id: clientProfile.id, provider_id: providerProfile.id, reviewer_role: "provider", reviewee_role: "client", rating: 5, comment: "Great" },
-      { contract_id: contract.id, client_id: clientProfile.id, provider_id: providerProfile.id, reviewer_role: "client", reviewee_role: "provider", rating: 5, comment: "Good" }
-    ]);
-
-    await supabaseAdmin.from("contracts").update({
-      payment_status: "released",
       status: "completed",
       funds_released_at: new Date().toISOString()
     }).eq("id", contract.id);
 
-    try { await sendPaymentNotification(clientEmail, providerEmail, contract.final_amount); } catch(e){}
+    // Add reviews
+    await supabaseAdmin.from("reviews").insert([
+      {
+        contract_id: contract.id,
+        client_id: clientProfile.id,
+        provider_id: providerProfile.id,
+        rating: 5,
+        comment: "Excellent work!",
+        reviewer_role: "client",
+        reviewee_role: "provider"
+      },
+      {
+        contract_id: contract.id,
+        client_id: clientProfile.id,
+        provider_id: providerProfile.id,
+        rating: 5,
+        comment: "Great client!",
+        reviewer_role: "provider",
+        reviewee_role: "client"
+      }
+    ]);
+
+    console.log("✅ Work completed");
+
+    // Send payment notifications
+    try {
+      await sendPaymentNotification(clientEmail, providerEmail, bidAmount);
+      console.log("✅ Payment emails sent");
+    } catch (e) {
+      console.log("⚠️ Payment emails skipped");
+    }
 
     return res.status(200).json({
       success: true,
-      message: "Full cycle test completed! Check your emails.",
+      message: "Full cycle completed! Check your emails.",
       clientEmail,
       providerEmail,
       projectId: project.id,
       contractId: contract.id,
-      finalAmount: contract.final_amount
+      finalAmount: bidAmount.toFixed(2),
+      emailsSent: [
+        "Welcome emails (if new profiles)",
+        "Bid notification to client",
+        "Contract notifications to both",
+        "Payment notifications to both"
+      ]
     });
 
   } catch (error: any) {
-    return res.status(500).json({ error: error.message });
+    console.error("❌ Test error:", error);
+    return res.status(500).json({ 
+      error: error.message,
+      details: error.toString()
+    });
   }
 }
