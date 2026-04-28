@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -2478,6 +2478,100 @@ export type Database = {
           {
             foreignKeyName: "password_reset_tokens_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_tracking: {
+        Row: {
+          amount_nzd: number
+          approved_at: string | null
+          captured_at: string | null
+          client_id: string
+          contract_id: string
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          payment_processing_fee: number
+          platform_fee: number
+          provider_id: string
+          refund_reason: string | null
+          refunded_at: string | null
+          release_method: string | null
+          released_at: string | null
+          status: string
+          stripe_charge_id: string | null
+          stripe_payment_intent_id: string | null
+          stripe_transfer_id: string | null
+          total_amount: number
+          updated_at: string | null
+        }
+        Insert: {
+          amount_nzd: number
+          approved_at?: string | null
+          captured_at?: string | null
+          client_id: string
+          contract_id: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          payment_processing_fee?: number
+          platform_fee?: number
+          provider_id: string
+          refund_reason?: string | null
+          refunded_at?: string | null
+          release_method?: string | null
+          released_at?: string | null
+          status: string
+          stripe_charge_id?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_transfer_id?: string | null
+          total_amount: number
+          updated_at?: string | null
+        }
+        Update: {
+          amount_nzd?: number
+          approved_at?: string | null
+          captured_at?: string | null
+          client_id?: string
+          contract_id?: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          payment_processing_fee?: number
+          platform_fee?: number
+          provider_id?: string
+          refund_reason?: string | null
+          refunded_at?: string | null
+          release_method?: string | null
+          released_at?: string | null
+          status?: string
+          stripe_charge_id?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_transfer_id?: string | null
+          total_amount?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_tracking_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_tracking_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_tracking_provider_id_fkey"
+            columns: ["provider_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
