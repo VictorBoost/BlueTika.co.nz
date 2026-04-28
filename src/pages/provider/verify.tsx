@@ -232,14 +232,6 @@ export default function ProviderVerification() {
     setTradeCertificates(updated);
   };
 
-  const toggleCategory = (categoryId: string) => {
-    setSelectedCategories(prev =>
-      prev.includes(categoryId)
-        ? prev.filter(id => id !== categoryId)
-        : [...prev, categoryId]
-    );
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -628,13 +620,20 @@ export default function ProviderVerification() {
                     {categories.map((category) => (
                       <div
                         key={category.id}
-                        className="flex items-center space-x-2 p-3 border rounded-lg hover:border-primary/50 transition-colors cursor-pointer"
-                        onClick={() => toggleCategory(category.id)}
+                        className="flex items-center space-x-2 p-3 border rounded-lg hover:border-primary/50 transition-colors"
                       >
                         <Checkbox
                           id={`cat-${category.id}`}
                           checked={selectedCategories.includes(category.id)}
-                          onCheckedChange={() => toggleCategory(category.id)}
+                          onCheckedChange={(checked) => {
+                            setSelectedCategories(prev => {
+                              if (checked) {
+                                return prev.includes(category.id) ? prev : [...prev, category.id];
+                              } else {
+                                return prev.filter(id => id !== category.id);
+                              }
+                            });
+                          }}
                         />
                         <Label
                           htmlFor={`cat-${category.id}`}
