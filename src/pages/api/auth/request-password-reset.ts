@@ -52,14 +52,13 @@ export default async function handler(
     const resetLink = `${baseUrl}/auth/reset-password?token=${resetToken}`;
 
     try {
-      const emailResult = await sendPasswordResetEmail(email, resetLink);
+      await sendPasswordResetEmail(email, resetLink);
       
       await supabase.from("email_logs").insert({
         recipient_email: email,
         email_type: "password_reset",
         subject: "Reset your BlueTika password",
         status: "sent",
-        message_id: emailResult.messageId,
       });
     } catch (emailError: any) {
       console.error("Failed to send password reset email:", emailError);
