@@ -53,9 +53,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (error) throw error;
       clientProfile = newClient;
       console.log("✅ Client created");
-      
-      await sendRegistrationEmail(clientEmail, "Test Client", "client");
-      console.log("✅ Welcome email sent to client");
     }
 
     // Step 2: Get or create provider profile
@@ -89,9 +86,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (error) throw error;
       providerProfile = newProvider;
       console.log("✅ Provider created");
-      
-      await sendRegistrationEmail(providerEmail, "Test Provider", "provider");
-      console.log("✅ Welcome email sent to provider");
     }
 
     // Step 3: Create project
@@ -238,7 +232,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       contractId: contract.id,
       finalAmount: contract.final_amount.toFixed(2),
       emailsSent: [
-        "Welcome emails (both accounts)",
         "Bid notification to client",
         "Contract notification to both parties",
         "Payment notification to both parties"
