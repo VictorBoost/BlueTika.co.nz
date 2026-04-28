@@ -139,12 +139,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (bidError) throw bidError;
     console.log("✅ Bid submitted");
 
-    try {
-      await sendBidNotification(clientEmail, project.title, providerProfile.full_name || "Provider", bidAmount);
-      console.log("✅ Bid email sent");
-    } catch (e) {
-      console.log("⚠️ Bid email skipped");
-    }
+    // Send bid notification email
+    await sendBidNotification(clientEmail, project.title, providerProfile.full_name || "Test Provider", bidAmount);
+    console.log("✅ Bid notification email sent");
+
+    const platformFee = Math.round(bid.amount * 0.10 * 100) / 100;
+    const paymentFee = Math.round(bid.amount * 0.029 * 100) / 100 + 0.30;
 
     // Step 5: Accept bid (create contract)
     const { data: contract, error: contractError } = await supabaseAdmin
@@ -154,9 +154,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         bid_id: bid.id,
         client_id: clientProfile.id,
         provider_id: providerProfile.id,
-        final_amount: bidAmount,
-        platform_fee: 25,
-        payment_processing_fee: 7.55,
+        final_amount: bid.amount,
+        platform_fee: platformFee,
+        payment_processing_fee: paymentFee,
         status: "pending_payment",
         payment_status: "pending"
       })
@@ -164,20 +164,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .single();
 
     if (contractError) throw contractError;
+    console.log(`✅ Contract created: ${contract.id}`);
 
     await supabaseAdmin.from("bids").update({ status: "accepted" }).eq("id", bid.id);
     await supabaseAdmin.from("projects").update({ status: "in_progress" }).eq("id", project.id);
-    console.log(`✅ Contract created: ${contract.id}`);
 
     // Send contract notification emails
-    try {
-      await sendContractNotification(clientEmail, providerEmail, project.title);
-      console.log("✅ Contract notification emails sent");
-    } catch (emailErr: any) {
-      console.error("❌ Contract email failed:", emailErr.message);
-    }
+    await sendContractNotification(clientEmail, providerEmail, project.title);
+    console.log("✅ Contract notification emails sent");
 
-    // Simulate bot payment (update contract to paid status)
+    // Simulate bot payment
     console.log("💳 Simulating bot payment...");
     await supabaseAdmin.from("contracts").update({
       payment_status: "paid",
@@ -216,28 +212,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     ]);
 
-    console.log("✅ Work completed");
+    console.log("✅ Reviews submitted");
 
-    try {
-      await sendPaymentNotification(clientEmail, providerEmail, bidAmount);
-      console.log("✅ Payment emails sent");
-    } catch (e) {
-      console.log("⚠️ Payment emails skipped");
-    }
+    // Send payment notification emails
+    await sendPaymentNotification(clientEmail, providerEmail, contract.final_amount);
+    console.log("✅ Payment notification emails sent");
 
     return res.status(200).json({
       success: true,
-      message: "Full cycle completed! Check your emails.",
+      message: "Full cycle test completed - check your emails!",
       clientEmail,
       providerEmail,
       projectId: project.id,
       contractId: contract.id,
-      finalAmount: bidAmount.toFixed(2),
+      finalAmount: contract.final_amount.toFixed(2),
       emailsSent: [
-        "Welcome emails (if new profiles)",
+        "Welcome emails (both accounts)",
         "Bid notification to client",
-        "Contract notifications to both",
-        "Payment notifications to both"
+        "Contract notification to both parties",
+        "Payment notification to both parties"
       ]
     });
 
