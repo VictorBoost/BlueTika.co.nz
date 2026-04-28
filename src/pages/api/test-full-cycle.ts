@@ -167,22 +167,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     await supabaseAdmin.from("bids").update({ status: "accepted" }).eq("id", bid.id);
     await supabaseAdmin.from("projects").update({ status: "in_progress" }).eq("id", project.id);
-    console.log("✅ Contract created");
+    console.log(`✅ Contract created: ${contract.id}`);
 
+    // Send contract notification emails
     try {
       await sendContractNotification(clientEmail, providerEmail, project.title);
-      console.log("✅ Contract emails sent");
-    } catch (e) {
-      console.log("⚠️ Contract emails skipped");
+      await emailLogService.logEmail(clientEmail, "contract_created_client", "sent", { contract_id: contract.id });
+      await emailLogService.logEmail(providerEmail, "contract_created_provider", "sent", { contract_id: contract.id });
+      console.log("✅ Contract notification emails sent");
+    } catch (emailErr: any) {
+      console.error("❌ Contract email failed:", emailErr.message);
     }
 
-    // Step 6: Complete payment and work
+    // Simulate bot payment (update contract to paid status)
+    console.log("💳 Simulating bot payment...");
     await supabaseAdmin.from("contracts").update({
       payment_status: "paid",
-      work_done_at: new Date().toISOString(),
-      status: "completed",
-      funds_released_at: new Date().toISOString()
+      status: "in_progress"
     }).eq("id", contract.id);
+    console.log("✅ Payment processed");
+
+    // Upload evidence
+    await supabaseAdmin.from("evidence_photos").insert([
+      {
+        contract_id: contract.id,
+        photo_url: "https://images.unsplash.com/photo-1581578731548-c64695cc6952",
+        uploaded_by: providerProfile.id,
+        description: "Before"
+      }
+    ]);
 
     await supabaseAdmin.from("reviews").insert([
       {
