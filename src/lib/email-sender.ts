@@ -32,11 +32,19 @@ async function delay(ms: number): Promise<void> {
 async function sendEmail(options: SendEmailOptions): Promise<EmailResult> {
   const { to, subject, html, from = DEFAULT_FROM_EMAIL } = options;
 
+  console.log("📧 [EMAIL SENDER] Configuration check:");
+  console.log("   AWS Region:", process.env.AWS_REGION || "us-east-1");
+  console.log("   Access Key:", process.env.AMAZON_SES_ACCESS_KEY ? "✓ Set" : "✗ Missing");
+  console.log("   Secret Key:", process.env.AMAZON_SES_SECRET_KEY ? "✓ Set" : "✗ Missing");
+  console.log("   From:", from);
+  console.log("   To:", to);
+  console.log("   Subject:", subject);
+
   let lastError: Error | null = null;
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      console.log(`[EMAIL] Attempt ${attempt}/${MAX_RETRIES} - Sending to: ${to}, Subject: ${subject}`);
+      console.log(`📧 [EMAIL] Attempt ${attempt}/${MAX_RETRIES} - Sending to: ${to}`);
 
       const command = new SendEmailCommand({
         Source: from,
@@ -60,7 +68,7 @@ async function sendEmail(options: SendEmailOptions): Promise<EmailResult> {
       const response = await sesClient.send(command);
       const messageId = response.MessageId;
 
-      console.log(`[EMAIL] ✓ Success - MessageId: ${messageId}, To: ${to}`);
+      console.log(`✅ [EMAIL] SUCCESS - MessageId: ${messageId}, To: ${to}`);
 
       return {
         success: true,
@@ -68,26 +76,49 @@ async function sendEmail(options: SendEmailOptions): Promise<EmailResult> {
       };
     } catch (error: any) {
       lastError = error;
-      console.error(`[EMAIL] ✗ Attempt ${attempt} failed:`, {
+      console.error(`❌ [EMAIL] Attempt ${attempt} FAILED:`, {
         to,
         subject,
-        error: error.message,
-        code: error.code || error.name,
+        errorName: error.name,
+        errorCode: error.code || error.$metadata?.httpStatusCode,
+        errorMessage: error.message,
+        fullError: JSON.stringify(error, null, 2),
       });
+
+      if (error.name === "MessageRejected" || error.message?.includes("Email address is not verified")) {
+        console.error("🚨 [EMAIL] SES EMAIL NOT VERIFIED ERROR:");
+        console.error("   The sender email address needs to be verified in Amazon SES.");
+        console.error("   Current sender:", from);
+        console.error("   Recipient:", to);
+        console.error("   ");
+        console.error("   SOLUTION: Verify email addresses in AWS SES Console:");
+        console.error("   1. Go to: https://us-east-1.console.aws.amazon.com/ses/home?region=us-east-1#/verified-identities");
+        console.error("   2. Click 'Create identity'");
+        console.error("   3. Select 'Email address'");
+        console.error("   4. Enter: noreply@bluetika.co.nz");
+        console.error("   5. Click 'Create identity'");
+        console.error("   6. Check email and click verification link");
+        console.error("   ");
+        console.error("   OR if SES is in sandbox mode, also verify recipient emails:");
+        console.error("   - Verify:", to);
+        
+        throw new Error(`SES Email Not Verified: ${from}. Please verify in AWS SES Console.`);
+      }
 
       if (attempt < MAX_RETRIES) {
         const delayTime = RETRY_DELAY_MS * attempt;
-        console.log(`[EMAIL] Retrying in ${delayTime}ms...`);
+        console.log(`⏳ [EMAIL] Retrying in ${delayTime}ms...`);
         await delay(delayTime);
       }
     }
   }
 
   const errorMessage = `Failed to send email after ${MAX_RETRIES} attempts: ${lastError?.message || "Unknown error"}`;
-  console.error(`[EMAIL] ✗ FINAL FAILURE:`, {
+  console.error(`❌ [EMAIL] FINAL FAILURE:`, {
     to,
     subject,
     error: errorMessage,
+    errorCode: (lastError as any)?.code || lastError?.name,
   });
 
   throw new Error(errorMessage);
