@@ -172,8 +172,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Send contract notification emails
     try {
       await sendContractNotification(clientEmail, providerEmail, project.title);
-      await emailLogService.logEmail(clientEmail, "contract_created_client", "sent", { contract_id: contract.id });
-      await emailLogService.logEmail(providerEmail, "contract_created_provider", "sent", { contract_id: contract.id });
       console.log("✅ Contract notification emails sent");
     } catch (emailErr: any) {
       console.error("❌ Contract email failed:", emailErr.message);
