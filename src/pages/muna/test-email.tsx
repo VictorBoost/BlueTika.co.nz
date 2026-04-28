@@ -6,9 +6,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle2, XCircle, Loader2, Mail } from "lucide-react";
 
 export default function TestEmailPage() {
-  const [clientEmail, setClientEmail] = useState("koril_lotus@hotmail.com");
+  const [clientEmail, setClientEmail] = useState("vimonwi@gmail.com");
   const [providerEmail, setProviderEmail] = useState("goodnessgamo@gmail.com");
-  const [singleTestEmail, setSingleTestEmail] = useState("koril_lotus@hotmail.com");
+  const [singleTestEmail, setSingleTestEmail] = useState("vimonwi@gmail.com");
   const [testing, setTesting] = useState(false);
   const [singleTesting, setSingleTesting] = useState(false);
   const [result, setResult] = useState<any>(null);

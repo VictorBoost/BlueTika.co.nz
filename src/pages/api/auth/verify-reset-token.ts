@@ -19,7 +19,7 @@ export default async function handler(
     // Check if token exists and is valid
     const { data: resetToken, error } = await supabase
       .from("password_reset_tokens")
-      .select("*, profiles!password_reset_tokens_user_id_fkey(email)")
+      .select("*")
       .eq("token", token)
       .eq("used", false)
       .single();
