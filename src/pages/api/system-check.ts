@@ -59,7 +59,7 @@ export default async function handler(
       results.stripe.error = "Missing STRIPE_SECRET_KEY in environment";
     } else {
       const stripe = new Stripe(stripeKey, {
-        apiVersion: "2024-11-20.acacia",
+        apiVersion: "2025-02-24.acacia",
       });
 
       const balance = await stripe.balance.retrieve();
