@@ -94,7 +94,7 @@ serve(async (req) => {
         isBot: "true",
       },
       description: `BlueTika Bot Contract #${contract.id}`,
-      statement_descriptor: "BlueTika",
+      statement_descriptor_suffix: "BlueTika", // Changed from statement_descriptor
     });
 
     // Use Stripe test card for bot payments
