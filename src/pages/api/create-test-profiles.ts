@@ -81,17 +81,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (providerUserId) {
-      await supabaseAdmin.from("profiles").upsert({
-        id: providerUserId,
-        email: providerEmail,
+      await supabaseAdmin.from("profiles").update({
+        first_name: "Test",
+        last_name: "Provider", 
         full_name: "Test Provider",
         phone_number: "027 987 6543",
         city_region: "Wellington",
         is_client: false,
         is_provider: true,
-        verification_status: "approved",
+        verification_status: "verified",
         account_status: "active"
-      });
+      }).eq("id", providerUserId);
     }
 
     return res.status(200).json({ success: true, message: "Profiles ready" });
