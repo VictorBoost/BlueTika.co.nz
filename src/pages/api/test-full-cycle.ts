@@ -8,11 +8,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const { clientEmail, providerEmail } = req.body;
+
   if (!clientEmail || !providerEmail) {
-    return res.status(400).json({ error: "Both emails required" });
+    return res.status(400).json({ error: "Both clientEmail and providerEmail are required" });
   }
 
   console.log("🧪 Full cycle test starting");
+  console.log("Client:", clientEmail);
+  console.log("Provider:", providerEmail);
 
   const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -20,7 +23,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   );
 
   try {
-    // Step 1: Create or get client profile
+    // Step 1: Get or create client profile
     let clientProfile: any;
     const { data: existingClient } = await supabaseAdmin
       .from("profiles")
@@ -42,7 +45,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           phone_number: "021 123 4567",
           city_region: "Auckland",
           is_client: true,
-          is_provider: false,
           account_status: "active"
         })
         .select()
@@ -52,15 +54,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       clientProfile = newClient;
       console.log("✅ Client created");
       
-      try {
-        await sendRegistrationEmail(clientEmail, "Test Client", "client");
-        console.log("✅ Welcome email sent to client");
-      } catch (e) {
-        console.log("⚠️ Welcome email skipped");
-      }
+      await sendRegistrationEmail(clientEmail, "Test Client", "client");
+      console.log("✅ Welcome email sent to client");
     }
 
-    // Step 2: Create or get provider profile
+    // Step 2: Get or create provider profile
     let providerProfile: any;
     const { data: existingProvider } = await supabaseAdmin
       .from("profiles")
@@ -81,7 +79,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           full_name: "Test Provider",
           phone_number: "027 987 6543",
           city_region: "Wellington",
-          is_client: false,
           is_provider: true,
           verification_status: "verified",
           account_status: "active"
@@ -93,23 +90,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       providerProfile = newProvider;
       console.log("✅ Provider created");
       
-      try {
-        await sendRegistrationEmail(providerEmail, "Test Provider", "provider");
-        console.log("✅ Welcome email sent to provider");
-      } catch (e) {
-        console.log("⚠️ Welcome email skipped");
-      }
+      await sendRegistrationEmail(providerEmail, "Test Provider", "provider");
+      console.log("✅ Welcome email sent to provider");
     }
 
     // Step 3: Create project
+    const categories = [
+      { cat: "Plumbing", sub: "Repairs & Maintenance", title: "Test Plumbing Repair" },
+      { cat: "Electrical", sub: "Wiring", title: "Test Electrical Work" },
+      { cat: "Cleaning", sub: "Deep Clean", title: "Test Cleaning Job" }
+    ];
+    const randomProject = categories[Math.floor(Math.random() * categories.length)];
+
     const { data: project, error: projectError } = await supabaseAdmin
       .from("projects")
       .insert({
         client_id: clientProfile.id,
-        title: "Test Plumbing Repair",
+        title: randomProject.title,
         description: "Automated test project",
-        category: "Plumbing",
-        subcategory: "Repairs & Maintenance",
+        category: randomProject.cat,
+        subcategory: randomProject.sub,
         budget_min: 150,
         budget_max: 300,
         city_region: "Auckland",
@@ -139,7 +139,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (bidError) throw bidError;
     console.log("✅ Bid submitted");
 
-    // Send bid notification email
     await sendBidNotification(clientEmail, project.title, providerProfile.full_name || "Test Provider", bidAmount);
     console.log("✅ Bid notification email sent");
 
@@ -169,11 +168,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await supabaseAdmin.from("bids").update({ status: "accepted" }).eq("id", bid.id);
     await supabaseAdmin.from("projects").update({ status: "in_progress" }).eq("id", project.id);
 
-    // Send contract notification emails
     await sendContractNotification(clientEmail, providerEmail, project.title);
     console.log("✅ Contract notification emails sent");
 
-    // Simulate bot payment
+    // Step 6: Simulate bot payment
     console.log("💳 Simulating bot payment...");
     await supabaseAdmin.from("contracts").update({
       payment_status: "paid",
@@ -181,7 +179,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }).eq("id", contract.id);
     console.log("✅ Payment processed");
 
-    // Upload evidence
+    // Step 7: Upload evidence
     await supabaseAdmin.from("evidence_photos").insert([
       {
         contract_id: contract.id,
@@ -191,6 +189,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     ]);
 
+    await supabaseAdmin.from("contracts").update({
+      work_done_at: new Date().toISOString(),
+      after_photos_submitted_at: new Date().toISOString(),
+      status: "awaiting_fund_release",
+      ready_for_release_at: new Date().toISOString()
+    }).eq("id", contract.id);
+
+    // Step 8: Submit reviews
     await supabaseAdmin.from("reviews").insert([
       {
         contract_id: contract.id,
@@ -212,9 +218,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     ]);
 
+    await supabaseAdmin.from("contracts").update({
+      payment_status: "released",
+      status: "completed",
+      funds_released_at: new Date().toISOString()
+    }).eq("id", contract.id);
+
     console.log("✅ Reviews submitted");
 
-    // Send payment notification emails
     await sendPaymentNotification(clientEmail, providerEmail, contract.final_amount);
     console.log("✅ Payment notification emails sent");
 
