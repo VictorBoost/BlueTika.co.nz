@@ -8,9 +8,39 @@ import { CheckCircle2, XCircle, Loader2, Mail } from "lucide-react";
 export default function TestEmailPage() {
   const [clientEmail, setClientEmail] = useState("koril_lotus@hotmail.com");
   const [providerEmail, setProviderEmail] = useState("goodnessgamo@gmail.com");
+  const [singleTestEmail, setSingleTestEmail] = useState("koril_lotus@hotmail.com");
   const [testing, setTesting] = useState(false);
+  const [singleTesting, setSingleTesting] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const [singleResult, setSingleResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [singleError, setSingleError] = useState<string | null>(null);
+
+  async function runSingleEmailTest() {
+    setSingleTesting(true);
+    setSingleResult(null);
+    setSingleError(null);
+
+    try {
+      const response = await fetch("/api/test-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: singleTestEmail }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || data.details || "Test failed");
+      }
+
+      setSingleResult(data);
+    } catch (err: any) {
+      setSingleError(err.message);
+    } finally {
+      setSingleTesting(false);
+    }
+  }
 
   async function runFullCycleTest() {
     setTesting(true);
@@ -44,13 +74,83 @@ export default function TestEmailPage() {
         <div>
           <h1 className="text-3xl font-bold mb-2">Email System Test</h1>
           <p className="text-muted-foreground">
-            Test complete email flow: Bid → Contract → Payment notifications
+            Test Amazon SES email sending with BlueTika templates
           </p>
         </div>
 
+        {/* Single Email Test */}
+        <Card className="p-6 space-y-6 border-blue-500">
+          <div>
+            <h2 className="text-xl font-semibold mb-4">🚀 Quick Single Email Test</h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              Send one test email immediately to verify SES is working
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Test Email Address
+                </label>
+                <Input
+                  type="email"
+                  value={singleTestEmail}
+                  onChange={(e) => setSingleTestEmail(e.target.value)}
+                  placeholder="your@email.com"
+                />
+              </div>
+
+              <Button
+                onClick={runSingleEmailTest}
+                disabled={singleTesting || !singleTestEmail}
+                className="w-full"
+                size="lg"
+              >
+                {singleTesting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Sending Test Email...
+                  </>
+                ) : (
+                  <>
+                    <Mail className="w-4 h-4 mr-2" />
+                    Send Single Test Email
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {singleError && (
+            <Alert variant="destructive">
+              <XCircle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Email Failed:</strong> {singleError}
+                <p className="mt-2 text-xs">Check Vercel logs for full error details</p>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {singleResult && (
+            <Alert className="border-green-500 bg-green-50 dark:bg-green-950">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              <AlertDescription>
+                <strong className="text-green-900 dark:text-green-100">✅ Email Sent Successfully!</strong>
+                <div className="mt-2 text-sm space-y-1">
+                  <p><strong>Recipient:</strong> {singleResult.recipient}</p>
+                  <p><strong>Message ID:</strong> <code className="text-xs">{singleResult.messageId}</code></p>
+                  <p className="text-green-700 dark:text-green-300 mt-2">Check your inbox!</p>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+        </Card>
+
+        {/* Full Cycle Test */}
         <Card className="p-6 space-y-6">
           <div>
-            <h2 className="text-xl font-semibold mb-4">Test Configuration</h2>
+            <h2 className="text-xl font-semibold mb-4">📧 Full Cycle Email Test</h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              Test complete flow: Bid → Contract → Payment notifications
+            </p>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2">
