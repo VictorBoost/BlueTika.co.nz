@@ -1,5 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+// Service role client for admin operations that bypass RLS
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type Project = Database["public"]["Tables"]["projects"]["Insert"];
@@ -109,247 +115,179 @@ export const botLabService = {
   },
 
   async getAutomationStatus() {
-    const { data: automationSetting } = await supabase
-      .from("platform_settings")
-      .select("setting_value")
-      .eq("setting_key", "bot_automation_enabled")
-      .single();
-
-    const { data: paymentSetting } = await supabase
-      .from("platform_settings")
-      .select("setting_value")
-      .eq("setting_key", "bot_payments_enabled")
-      .single();
-
-    const isEnabled = automationSetting?.setting_value === "true";
-    const paymentsEnabled = paymentSetting?.setting_value === "true";
-
-    return {
-      isActive: isEnabled,
-      paymentsEnabled,
-      schedule: "Every 5-8 minutes (automatic)",
-      dailyBotCount: "Each bot runs full cycle",
-      actions: [
-        "✅ Post 1-5 projects per bot",
-        "✅ Submit 1-3 bids per bot",
-        "✅ Accept 1-2 bids and create contracts",
-        "✅ Complete Stripe payments (TEST MODE)",
-        "✅ Upload before/after photos",
-        "✅ Submit work for approval",
-        "🔄 Auto-release funds after 48 hours"
-      ]
-    };
-  },
-
-  async toggleAutomation(enabled: boolean): Promise<boolean> {
-    const { error } = await supabase
-      .from("platform_settings")
-      .upsert({ 
-        setting_key: "bot_automation_enabled",
-        setting_value: enabled ? "true" : "false",
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: "setting_key"
-      });
-
-    if (error) {
-      console.error("Failed to toggle automation:", error);
-      return false;
-    }
-
-    return true;
-  },
-
-  async toggleBotPayments(enabled: boolean): Promise<boolean> {
-    const { error } = await supabase
-      .from("platform_settings")
-      .upsert({ 
-        setting_key: "bot_payments_enabled",
-        setting_value: enabled ? "true" : "false",
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: "setting_key"
-      });
-
-    if (error) {
-      console.error("Failed to toggle bot payments:", error);
-      return false;
-    }
-
-    return true;
-  },
-
-  async testBotPayment(contractId: string) {
     try {
-      const response = await fetch('/api/bot-payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contractId })
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Payment failed');
-      }
-      
-      return await response.json();
+      // Use admin client to bypass RLS
+      const { data: config } = await supabaseAdmin
+        .from("bot_configuration")
+        .select("*")
+        .single();
+
+      return {
+        isActive: config?.automation_enabled || false,
+        actions: [
+          "Generate bot accounts (clients & providers)",
+          "Post projects from client bots",
+          "Submit bids from provider bots", 
+          "Accept winning bids",
+          "Process payments",
+          "Complete contracts",
+          "Submit reviews"
+        ]
+      };
     } catch (error) {
-      console.error("Payment test failed:", error);
+      console.error("getAutomationStatus error:", error);
+      return { isActive: false, actions: [] };
+    }
+  },
+
+  async getBotStats() {
+    try {
+      // Use admin client to bypass RLS
+      const [bots, projects, bids, contracts, reviews] = await Promise.all([
+        supabaseAdmin.from("bot_accounts").select("*", { count: "exact" }),
+        supabaseAdmin.from("projects").select("*", { count: "exact" }).eq("is_bot_generated", true),
+        supabaseAdmin.from("bids").select("*", { count: "exact" }),
+        supabaseAdmin.from("contracts").select("*", { count: "exact" }),
+        supabaseAdmin.from("reviews").select("*", { count: "exact" })
+      ]);
+
+      const clientBots = bots.data?.filter((b: any) => b.bot_type === "client").length || 0;
+      const providerBots = bots.data?.filter((b: any) => b.bot_type === "provider").length || 0;
+      const paidContracts = contracts.data?.filter((c: any) => c.payment_status === "paid").length || 0;
+
+      // Get recent errors
+      const { data: errors } = await supabaseAdmin
+        .from("bot_activity_logs")
+        .select("*")
+        .eq("status", "failed")
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      // Count errors by type
+      const errorSummary: Record<string, number> = {};
+      errors?.forEach((err: any) => {
+        errorSummary[err.action_type] = (errorSummary[err.action_type] || 0) + 1;
+      });
+
+      return {
+        totalBots: bots.count || 0,
+        clientBots,
+        providerBots,
+        totalProjects: projects.count || 0,
+        totalBids: bids.count || 0,
+        totalContracts: contracts.count || 0,
+        paidContracts,
+        totalReviews: reviews.count || 0,
+        errorSummary,
+        recentErrors: errors || []
+      };
+    } catch (error) {
+      console.error("getBotStats error:", error);
+      return {
+        totalBots: 0,
+        clientBots: 0,
+        providerBots: 0,
+        totalProjects: 0,
+        totalBids: 0,
+        totalContracts: 0,
+        paidContracts: 0,
+        totalReviews: 0,
+        errorSummary: {},
+        recentErrors: []
+      };
+    }
+  },
+
+  async toggleAutomation(enable: boolean) {
+    try {
+      // Use admin client to bypass RLS
+      const { error } = await supabaseAdmin
+        .from("bot_configuration")
+        .upsert({
+          id: 1,
+          automation_enabled: enable,
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
+      return { success: true };
+    } catch (error) {
+      console.error("toggleAutomation error:", error);
       throw error;
     }
   },
 
   async runManualCycle() {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/hourly-bot-cycle`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Cycle failed');
-      }
-      
-      return await response.json();
+      const response = await fetch("/api/bot-payment", { method: "POST" });
+      const data = await response.json();
+      return data;
     } catch (error) {
-      console.error("Manual cycle failed:", error);
+      console.error("runManualCycle error:", error);
       throw error;
     }
   },
 
-  async generateBots(count: number = 50) {
+  async testBotPayment(contractId: string) {
     try {
-      const response = await fetch('/api/generate-bots', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ count })
-      });
-      
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.statusText}`);
-      }
-      
-      return await response.json();
-    } catch (error) {
-      console.error("Failed to generate bots:", error);
-      return { success: 0, failed: count, errors: [error instanceof Error ? error.message : "Unknown error"] };
-    }
-  },
-
-  async createBot(type: "client" | "provider", batch: number): Promise<string | null> {
-    try {
-      const response = await fetch('/api/generate-bots', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ count: 1 })
+      const response = await fetch("/api/bot-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contractId })
       });
       const data = await response.json();
-      return data.success > 0 ? "success" : null;
+      if (!response.ok) throw new Error(data.error || "Payment failed");
+      return data;
     } catch (error) {
-      return null;
+      console.error("testBotPayment error:", error);
+      throw error;
     }
   },
 
-  async removeBots(count: number = 50) {
+  async generateBots(count: number) {
     try {
-      // Get oldest bots first
-      const { data: bots, error: fetchError } = await supabase
+      const response = await fetch("/api/generate-bots", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ count })
+      });
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("generateBots error:", error);
+      throw error;
+    }
+  },
+
+  async removeBots(count: number) {
+    try {
+      // Use admin client to bypass RLS
+      const { data: oldestBots } = await supabaseAdmin
         .from("bot_accounts")
-        .select("id, profile_id")
-        .eq("is_active", true)
+        .select("profile_id")
         .order("created_at", { ascending: true })
         .limit(count);
 
-      if (fetchError) {
-        console.error("Fetch bots error:", fetchError);
-        return { success: 0, failed: count, errors: [fetchError.message] };
+      if (!oldestBots || oldestBots.length === 0) {
+        return { success: 0, failed: 0, errors: ["No bots found"] };
       }
 
-      if (!bots || bots.length === 0) {
-        return { success: 0, failed: 0, errors: ["No bots to remove"] };
-      }
-
-      const profileIds = bots.map(b => b.profile_id);
       const results = { success: 0, failed: 0, errors: [] as string[] };
 
-      // Delete all related data for these bots
-      try {
-        // 1. Get contract IDs to delete child records
-        const { data: contracts } = await supabase
-          .from("contracts")
-          .select("id")
-          .or(`client_id.in.(${profileIds.join(',')}),provider_id.in.(${profileIds.join(',')})`);
-
-        const contractIds = contracts?.map(c => c.id) || [];
-
-        // 2. Delete contract-related data
-        if (contractIds.length > 0) {
-          const { error: e1 } = await (supabase as any).from("evidence_photos").delete().in("contract_id", contractIds);
-          if (e1) console.error("evidence_photos delete error:", e1.message);
-          
-          const { error: e2 } = await (supabase as any).from("contract_messages").delete().in("contract_id", contractIds);
-          if (e2) console.error("contract_messages delete error:", e2.message);
-          
-          const { error: e3 } = await (supabase as any).from("reviews").delete().in("contract_id", contractIds);
-          if (e3) console.error("reviews delete error (by contract):", e3.message);
+      for (const bot of oldestBots) {
+        try {
+          // Delete from auth (cascades to profiles and bot_accounts)
+          const { error } = await supabaseAdmin.auth.admin.deleteUser(bot.profile_id);
+          if (error) {
+            results.failed++;
+            results.errors.push(`Failed to delete ${bot.profile_id}: ${error.message}`);
+          } else {
+            results.success++;
+          }
+        } catch (error: any) {
+          results.failed++;
+          results.errors.push(`Exception deleting ${bot.profile_id}: ${error.message}`);
         }
-
-        // 3. Delete reviews by bot IDs
-        await (supabase as any).from("reviews").delete().in("reviewer_id", profileIds);
-        await (supabase as any).from("reviews").delete().in("reviewee_id", profileIds);
-
-        // 4. Delete contracts
-        await (supabase as any).from("contracts").delete().in("client_id", profileIds);
-        await (supabase as any).from("contracts").delete().in("provider_id", profileIds);
-
-        // 5. Delete bids
-        await (supabase as any).from("bids").delete().in("provider_id", profileIds);
-
-        // 6. Get project IDs
-        const { data: projects } = await (supabase as any)
-          .from("projects")
-          .select("id")
-          .in("client_id", profileIds);
-
-        const projectIds = projects?.map((p: any) => p.id) || [];
-
-        // 7. Delete project bids
-        if (projectIds.length > 0) {
-          await (supabase as any).from("bids").delete().in("project_id", projectIds);
-        }
-
-        // 8. Delete projects
-        await (supabase as any).from("projects").delete().in("client_id", profileIds);
-
-        // 9. Delete bot activity logs
-        await (supabase as any).from("bot_activity_logs").delete().in("bot_id", profileIds);
-
-        // 10. Delete bot bypass attempts
-        await (supabase as any).from("bot_bypass_attempts").delete().in("bot_profile_id", profileIds);
-
-        // 11. Delete bot accounts
-        await (supabase as any).from("bot_accounts").delete().in("profile_id", profileIds);
-
-        // 12. Delete profiles
-        const { error: profileError } = await (supabase as any)
-          .from("profiles")
-          .delete()
-          .in("id", profileIds);
-
-        if (profileError) {
-          console.error("Profile deletion error:", profileError);
-          results.failed = bots.length;
-          results.errors.push(profileError.message);
-        } else {
-          results.success = bots.length;
-        }
-      } catch (error: any) {
-        console.error("Cascade deletion error:", error);
-        results.failed = bots.length;
-        results.errors.push(error.message);
       }
 
       return results;
@@ -361,293 +299,29 @@ export const botLabService = {
 
   async killSwitch() {
     try {
-      console.log("🚨 Kill switch initiated...");
-      
-      // Disable automation first
-      await this.toggleAutomation(false);
-      await this.toggleBotPayments(false);
-      console.log("✅ Automation disabled");
-
-      // Get all bot profile IDs
-      const { data: botProfiles } = await supabase
+      // Use admin client to bypass RLS
+      const { data: allBots } = await supabaseAdmin
         .from("bot_accounts")
         .select("profile_id");
 
-      const profileIds = botProfiles?.map(b => b.profile_id) || [];
-      
-      if (profileIds.length === 0) {
-        console.log("ℹ️ No bots to delete");
+      if (!allBots || allBots.length === 0) {
         return { success: true, deleted: 0 };
       }
 
-      console.log(`📊 Found ${profileIds.length} bots to delete`);
-
-      // Delete in proper cascade order
-      console.log("🗑️ Step 1: Deleting contract-related data...");
-      const { data: allContracts } = await supabase
-        .from("contracts")
-        .select("id")
-        .or(`client_id.in.(${profileIds.join(',')}),provider_id.in.(${profileIds.join(',')})`);
-
-      const contractIds = allContracts?.map(c => c.id) || [];
-      console.log(`   Found ${contractIds.length} contracts`);
-
-      if (contractIds.length > 0) {
-        await (supabase as any).from("evidence_photos").delete().in("contract_id", contractIds);
-        await (supabase as any).from("contract_messages").delete().in("contract_id", contractIds);
-        await (supabase as any).from("reviews").delete().in("contract_id", contractIds);
-        console.log("   ✅ Contract children deleted");
+      let deleted = 0;
+      for (const bot of allBots) {
+        try {
+          await supabaseAdmin.auth.admin.deleteUser(bot.profile_id);
+          deleted++;
+        } catch (error) {
+          console.error(`Failed to delete bot ${bot.profile_id}:`, error);
+        }
       }
 
-      console.log("🗑️ Step 2: Deleting reviews...");
-      await (supabase as any).from("reviews").delete().in("reviewer_id", profileIds);
-      await (supabase as any).from("reviews").delete().in("reviewee_id", profileIds);
-      console.log("   ✅ Reviews deleted");
-
-      console.log("🗑️ Step 3: Deleting contracts...");
-      await (supabase as any).from("contracts").delete().in("client_id", profileIds);
-      await (supabase as any).from("contracts").delete().in("provider_id", profileIds);
-      console.log("   ✅ Contracts deleted");
-
-      console.log("🗑️ Step 4: Deleting bids...");
-      await (supabase as any).from("bids").delete().in("provider_id", profileIds);
-      
-      const { data: allProjects } = await supabase
-        .from("projects")
-        .select("id")
-        .in("client_id", profileIds);
-
-      const projectIds = allProjects?.map((p: any) => p.id) || [];
-      if (projectIds.length > 0) {
-        await (supabase as any).from("bids").delete().in("project_id", projectIds);
-      }
-      console.log("   ✅ Bids deleted");
-
-      console.log("🗑️ Step 5: Deleting projects...");
-      await (supabase as any).from("projects").delete().in("client_id", profileIds);
-      console.log("   ✅ Projects deleted");
-
-      console.log("🗑️ Step 6: Deleting bot metadata...");
-      await (supabase as any).from("bot_activity_logs").delete().in("bot_id", profileIds);
-      await (supabase as any).from("bot_bypass_attempts").delete().in("bot_profile_id", profileIds);
-      console.log("   ✅ Bot metadata deleted");
-
-      console.log("🗑️ Step 7: Deleting bot accounts...");
-      await (supabase as any).from("bot_accounts").delete().in("profile_id", profileIds);
-      console.log("   ✅ Bot accounts deleted");
-
-      console.log("🗑️ Step 8: Deleting profiles...");
-      const { error: profileError } = await (supabase as any)
-        .from("profiles")
-        .delete()
-        .in("id", profileIds);
-
-      if (profileError) {
-        console.error("❌ Profile deletion failed:", profileError);
-        throw profileError;
-      }
-
-      console.log("   ✅ Profiles deleted");
-      console.log(`✅ Kill switch complete! Deleted ${profileIds.length} bots`);
-
-      return { success: true, deleted: profileIds.length };
+      return { success: true, deleted };
     } catch (error: any) {
-      console.error("❌ Kill switch error:", error);
+      console.error("killSwitch error:", error);
       return { success: false, error: error.message, deleted: 0 };
     }
-  },
-
-  async getBotStats() {
-    // Get bot profile IDs first
-    const { data: botProfiles } = await supabase
-      .from("bot_accounts")
-      .select("profile_id")
-      .eq("is_active", true);
-
-    const botProfileIds = botProfiles?.map(b => b.profile_id) || [];
-
-    // Get total bot counts
-    const { count: totalBots } = await supabase
-      .from("bot_accounts")
-      .select("*", { count: "exact", head: true })
-      .eq("is_active", true);
-
-    const { count: providerBots } = await supabase
-      .from("bot_accounts")
-      .select("*", { count: "exact", head: true })
-      .eq("bot_type", "service_provider")
-      .eq("is_active", true);
-
-    const { count: clientBots } = await supabase
-      .from("bot_accounts")
-      .select("*", { count: "exact", head: true })
-      .eq("bot_type", "client")
-      .eq("is_active", true);
-
-    // Get entity counts (only bot-created)
-    const { count: totalProjects } = await (supabase as any)
-      .from("projects")
-      .select("*", { count: "exact", head: true })
-      .in("client_id", botProfileIds);
-
-    const { count: totalBids } = await (supabase as any)
-      .from("bids")
-      .select("*", { count: "exact", head: true })
-      .in("provider_id", botProfileIds);
-
-    const { count: totalContracts } = await (supabase as any)
-      .from("contracts")
-      .select("*", { count: "exact", head: true })
-      .in("client_id", botProfileIds);
-
-    const { count: paidContracts } = await (supabase as any)
-      .from("contracts")
-      .select("*", { count: "exact", head: true })
-      .in("payment_status", ["held", "released"])
-      .in("client_id", botProfileIds);
-
-    const { count: completedContracts } = await (supabase as any)
-      .from("contracts")
-      .select("*", { count: "exact", head: true })
-      .eq("status", "completed")
-      .in("client_id", botProfileIds);
-
-    const { count: totalReviews } = await (supabase as any)
-      .from("reviews")
-      .select("*", { count: "exact", head: true })
-      .in("reviewer_id", botProfileIds);
-
-    // Get error logs
-    const { data: errorLogs } = await supabase
-      .from("bot_activity_logs")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(100);
-
-    const errorSummary = (errorLogs || []).reduce((acc, log) => {
-      if (log.error_message) {
-        const key = log.action_type || "unknown";
-        acc[key] = (acc[key] || 0) + 1;
-      }
-      return acc;
-    }, {} as Record<string, number>);
-
-    return {
-      totalBots: totalBots || 0,
-      providerBots: providerBots || 0,
-      clientBots: clientBots || 0,
-      totalProjects: totalProjects || 0,
-      totalBids: totalBids || 0,
-      totalContracts: totalContracts || 0,
-      paidContracts: paidContracts || 0,
-      completedContracts: completedContracts || 0,
-      totalReviews: totalReviews || 0,
-      errorSummary,
-      recentErrors: errorLogs?.filter(log => log.error_message).slice(0, 20) || []
-    };
-  },
-
-  async getBypassLogs() {
-    // Get all bypass attempts
-    const { data: allAttempts, count: totalAttempts } = await supabase
-      .from("bot_bypass_attempts")
-      .select("*", { count: "exact" })
-      .order("created_at", { ascending: false });
-
-    // Count by detection status
-    const { count: detected } = await supabase
-      .from("bot_bypass_attempts")
-      .select("*", { count: "exact", head: true })
-      .eq("detection_status", "detected");
-
-    const { count: warned } = await supabase
-      .from("bot_bypass_attempts")
-      .select("*", { count: "exact", head: true })
-      .eq("detection_status", "warned");
-
-    const { count: flagged } = await supabase
-      .from("bot_bypass_attempts")
-      .select("*", { count: "exact", head: true })
-      .eq("detection_status", "flagged");
-
-    // Count by attempt type
-    const typeBreakdown = (allAttempts || []).reduce((acc, attempt) => {
-      const type = attempt.attempt_type || "unknown";
-      acc[type] = (acc[type] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    // Get recent attempts with project/bid details
-    const { data: recentAttempts } = await supabase
-      .from("bot_bypass_attempts")
-      .select(`
-        *,
-        bot:profiles!bot_bypass_attempts_bot_profile_id_fkey(full_name),
-        project:projects(id, title),
-        bid:bids(id, message)
-      `)
-      .order("created_at", { ascending: false })
-      .limit(50);
-
-    return {
-      totalAttempts: totalAttempts || 0,
-      detected: detected || 0,
-      warned: warned || 0,
-      flagged: flagged || 0,
-      pending: (totalAttempts || 0) - (detected || 0) - (warned || 0) - (flagged || 0),
-      typeBreakdown,
-      recentAttempts: recentAttempts || [],
-      detectionRate: totalAttempts ? ((detected || 0) / totalAttempts * 100).toFixed(1) : "0.0"
-    };
-  },
-
-  async getTrendData() {
-    // Get activity logs for last 7 days
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-    const { data: logs } = await supabase
-      .from("bot_activity_logs")
-      .select("created_at, action_type")
-      .gte("created_at", sevenDaysAgo.toISOString())
-      .order("created_at", { ascending: true });
-
-    // Group by date
-    const dailyActivity = (logs || []).reduce((acc, log) => {
-      const date = new Date(log.created_at).toISOString().split('T')[0];
-      if (!acc[date]) {
-        acc[date] = { date, total: 0, post_project: 0, submit_bid: 0, accept_bid: 0, make_payment: 0, submit_review: 0 };
-      }
-      acc[date].total++;
-      if (log.action_type) {
-        acc[date][log.action_type as keyof typeof acc[typeof date]] = (acc[date][log.action_type as keyof typeof acc[typeof date]] as number) + 1;
-      }
-      return acc;
-    }, {} as Record<string, any>);
-
-    // Get bot count history (approximate by looking at creation timestamps)
-    const { data: botAccounts } = await supabase
-      .from("bot_accounts")
-      .select("created_at")
-      .gte("created_at", sevenDaysAgo.toISOString())
-      .order("created_at", { ascending: true });
-
-    const dailyBotGrowth = (botAccounts || []).reduce((acc, bot) => {
-      const date = new Date(bot.created_at).toISOString().split('T')[0];
-      acc[date] = (acc[date] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    // Convert to cumulative
-    let cumulativeBots = 0;
-    const botGrowthData = Object.keys(dailyBotGrowth).sort().map(date => {
-      cumulativeBots += dailyBotGrowth[date];
-      return { date, count: cumulativeBots };
-    });
-
-    return {
-      activityTrend: Object.values(dailyActivity),
-      botGrowth: botGrowthData
-    };
   }
 };
