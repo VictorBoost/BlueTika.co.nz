@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Activity, Bot, FileText, DollarSign, CheckCircle2, Star, RefreshCw, Filter } from "lucide-react";
+import { Activity, Bot, FileText, DollarSign, CheckCircle2, Star, RefreshCw, Filter, ArrowLeft } from "lucide-react";
 
 interface BotActivityLog {
   id: string;
@@ -33,7 +33,6 @@ interface ActivityStats {
   complete_work: number;
   submit_review: number;
   make_payment: number;
-  // Entity counts
   provider_bots: number;
   client_bots: number;
   total_projects: number;
@@ -67,7 +66,6 @@ export default function BotActivityPage() {
     paid_contracts: 0,
     total_reviews: 0,
   });
-  const [trendData, setTrendData] = useState<any>(null);
 
   useEffect(() => {
     checkAuth();
@@ -144,7 +142,6 @@ export default function BotActivityPage() {
 
       setActivities(formattedData);
 
-      // Get direct bot stats from database
       const { data: botProfiles } = await supabase
         .from("profiles")
         .select("id, is_client, is_provider")
@@ -168,7 +165,6 @@ export default function BotActivityPage() {
         .from("reviews")
         .select("id, reviewer_id");
 
-      // Action type stats
       const { data: allLogs } = await supabase
         .from("bot_activity_logs")
         .select("action_type");
@@ -202,173 +198,239 @@ export default function BotActivityPage() {
       }
     } catch (error) {
       console.error("Error loading activities", error);
+      toast({
+        title: "Error loading activities",
+        description: "Failed to load bot activity logs",
+        variant: "destructive",
+      });
     }
   };
 
+  if (loading) {
+    return (
+      <>
+        <SEO title="Bot Activity Monitor" />
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </>
+    );
+  }
+
+  if (!isAuthorized) {
+    return (
+      <>
+        <SEO title="Access Denied" />
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <Card className="max-w-md">
+            <CardHeader>
+              <CardTitle>Access Denied</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground mb-4">You don't have permission to access this page.</p>
+              <Button onClick={() => router.push("/muna")}>Return to Control Centre</Button>
+            </CardContent>
+          </Card>
+        </div>
+      </>
+    );
+  }
+
   return (
-    <div>
-      <SEO title="Bot Activity" description="View recent bot activity logs." />
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center gap-2">
-          <Select onValueChange={(value) => setFilterType(value)}>
-            <SelectTrigger>
-              <Filter className="mr-2 h-4 w-4" />
-              <SelectValue placeholder="Filter by action type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="post_project">Post Project</SelectItem>
-              <SelectItem value="submit_bid">Submit Bid</SelectItem>
-              <SelectItem value="accept_bid">Accept Bid</SelectItem>
-              <SelectItem value="complete_work">Complete Work</SelectItem>
-              <SelectItem value="submit_review">Submit Review</SelectItem>
-              <SelectItem value="make_payment">Make Payment</SelectItem>
-            </SelectContent>
-          </Select>
-          <Switch checked={autoRefresh} onCheckedChange={(checked) => setAutoRefresh(checked)} />
-          <Label className="ml-2">Auto Refresh</Label>
+    <>
+      <SEO title="Bot Activity Monitor" />
+      <div className="min-h-screen bg-background p-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center gap-4 mb-8">
+            <Button variant="ghost" onClick={() => router.push("/muna")}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Control Centre
+            </Button>
+          </div>
+
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold">Bot Activity Monitor</h1>
+            <p className="text-muted-foreground mt-2">Real-time bot activity feeds and automation logs</p>
+          </div>
+
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-4">
+              <Select value={filterType} onValueChange={(value) => setFilterType(value)}>
+                <SelectTrigger className="w-[200px]">
+                  <Filter className="mr-2 h-4 w-4" />
+                  <SelectValue placeholder="Filter by action" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Actions</SelectItem>
+                  <SelectItem value="post_project">Post Project</SelectItem>
+                  <SelectItem value="submit_bid">Submit Bid</SelectItem>
+                  <SelectItem value="accept_bid">Accept Bid</SelectItem>
+                  <SelectItem value="complete_work">Complete Work</SelectItem>
+                  <SelectItem value="submit_review">Submit Review</SelectItem>
+                  <SelectItem value="make_payment">Make Payment</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <div className="flex items-center gap-2">
+                <Switch checked={autoRefresh} onCheckedChange={setAutoRefresh} />
+                <Label>Auto Refresh (30s)</Label>
+              </div>
+            </div>
+            
+            <Button onClick={loadActivities} variant="outline">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh Now
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Total Activity</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-2">
+                  <Activity className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-2xl font-bold">{stats.total}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Provider Bots</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-2">
+                  <Bot className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-2xl font-bold">{stats.provider_bots}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Client Bots</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-2">
+                  <Bot className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-2xl font-bold">{stats.client_bots}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Projects Created</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-2xl font-bold">{stats.total_projects}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Bids Submitted</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-2">
+                  <DollarSign className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-2xl font-bold">{stats.total_bids}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Contracts Active</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-2xl font-bold">{stats.total_contracts}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Paid Contracts</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-2">
+                  <DollarSign className="h-5 w-5 text-success" />
+                  <span className="text-2xl font-bold">{stats.paid_contracts}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Reviews Posted</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-2">
+                  <Star className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-2xl font-bold">{stats.total_reviews}</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Activity</CardTitle>
+              <CardDescription>
+                Latest {activities.length} bot actions
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Bot Name</TableHead>
+                    <TableHead>Action</TableHead>
+                    <TableHead>Details</TableHead>
+                    <TableHead>Time</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {activities.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                        No bot activity found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    activities.map((activity) => (
+                      <TableRow key={activity.id}>
+                        <TableCell className="font-medium">
+                          {activity.bot_profile?.full_name || "Unknown Bot"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{activity.action_type.replace("_", " ")}</Badge>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {typeof activity.details === "string" 
+                            ? activity.details 
+                            : JSON.stringify(activity.details)}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {new Date(activity.created_at).toLocaleString()}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Total Activity</CardTitle>
-            <CardDescription>Total number of bot activities.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <Activity className="h-6 w-6" />
-                <span className="font-bold text-xl">{stats.total}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Provider Bots</CardTitle>
-            <CardDescription>Total number of provider bots.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <Bot className="h-6 w-6" />
-                <span className="font-bold text-xl">{stats.provider_bots}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Client Bots</CardTitle>
-            <CardDescription>Total number of client bots.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <Bot className="h-6 w-6" />
-                <span className="font-bold text-xl">{stats.client_bots}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Total Projects</CardTitle>
-            <CardDescription>Total number of projects.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <FileText className="h-6 w-6" />
-                <span className="font-bold text-xl">{stats.total_projects}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Total Bids</CardTitle>
-            <CardDescription>Total number of bids.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <DollarSign className="h-6 w-6" />
-                <span className="font-bold text-xl">{stats.total_bids}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Total Contracts</CardTitle>
-            <CardDescription>Total number of contracts.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-6 w-6" />
-                <span className="font-bold text-xl">{stats.total_contracts}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Paid Contracts</CardTitle>
-            <CardDescription>Total number of paid contracts.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <DollarSign className="h-6 w-6" />
-                <span className="font-bold text-xl">{stats.paid_contracts}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Total Reviews</CardTitle>
-            <CardDescription>Total number of reviews.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <Star className="h-6 w-6" />
-                <span className="font-bold text-xl">{stats.total_reviews}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-      <div className="mt-4">
-        <Table>
-          <TableHeader>
-            <TableHead>ID</TableHead>
-            <TableHead>Bot</TableHead>
-            <TableHead>Action</TableHead>
-            <TableHead>Details</TableHead>
-            <TableHead>Created At</TableHead>
-          </TableHeader>
-          <TableBody>
-            {activities.map(activity => (
-              <TableRow key={activity.id}>
-                <TableCell>{activity.id}</TableCell>
-                <TableCell>{activity.bot_profile?.full_name || activity.bot_id}</TableCell>
-                <TableCell>{activity.action_type}</TableCell>
-                <TableCell>{activity.details}</TableCell>
-                <TableCell>{new Date(activity.created_at).toLocaleString()}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
+    </>
   );
 }
