@@ -88,31 +88,27 @@ export const aiVerificationService = {
    */
   async verifyDocument(
     documentId: string,
-    imageUrl: string,
+    fileUrl: string,
     documentType: keyof typeof DOCUMENT_REQUIREMENTS,
     providerId: string
   ): Promise<VerificationResult> {
     try {
-      // Step 1: AI scan
-      const scanResult = await this.scanDocument(imageUrl, documentType, providerId);
+      // Step 2: AI scan (but never auto-approve - owner manually reviews everything)
+      const scanResult = await this.scanDocument(fileUrl, documentType);
       
-      // Step 2: Calculate confidence and decision
-      const autoApproved = scanResult.confidence >= CONFIDENCE_THRESHOLD &&
-        scanResult.isCorrectType &&
-        scanResult.isReadable &&
-        scanResult.appearsGenuine &&
-        !scanResult.isExpired;
-      
-      // Step 3: Update document record with AI results
+      // AI provides confidence for owner's reference, but does NOT auto-approve
+      const autoApproved = false; // Always false - manual review required
+
+      // Step 3: Update document record with AI results (for owner's reference only)
       const { error: updateError } = await supabase
         .from("verification_documents")
         .update({
           ai_confidence_score: scanResult.confidence,
-          ai_scan_result: autoApproved ? "pass" : "review_required",
+          ai_scan_result: "review_required", // Always requires manual review
           ai_scan_reason: scanResult.reason,
           scanned_at: new Date().toISOString(),
           status: "pending",
-          auto_approved: autoApproved,
+          auto_approved: false, // Never auto-approve
         })
         .eq("id", documentId);
 
@@ -125,24 +121,24 @@ export const aiVerificationService = {
         providerId,
         documentId,
         documentType,
-        autoApproved ? "auto_approve" : "ai_scan",
+        "ai_scan", // Always ai_scan, never auto_approve
         scanResult.confidence,
         "ai",
         null,
-        scanResult.reason
+        "Document scanned by AI - manual review required"
       );
 
-      // Step 5: If auto-approved, send email notification but keep in queue for owner review
-      if (autoApproved) {
-        console.log("AUTO-APPROVED: Document passed 75% threshold, notifying user but keeping in admin queue", { providerId, documentType });
-        // Email will be sent by caller (verificationService)
-      }
+      console.log("AI SCAN COMPLETE: Document scanned but requires manual owner approval", { 
+        providerId, 
+        documentType, 
+        confidence: scanResult.confidence 
+      });
 
       return {
         success: true,
         autoApproved,
         confidence: scanResult.confidence,
-        result: autoApproved ? "approved" : "pending_review",
+        result: "pending_review",
         reason: scanResult.reason,
         documentId,
       };

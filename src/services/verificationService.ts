@@ -76,7 +76,20 @@ export const verificationService = {
       };
     }
 
-    // Trigger AI verification for supported document types (auto-approve at 0.75+ confidence)
+    // Update profile to show verification is pending (prevents re-uploads)
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .update({
+        provider_verification_status: "pending"
+      })
+      .eq("id", providerId);
+
+    if (profileError) {
+      console.error("Failed to update profile status:", profileError);
+      // Non-blocking - document is already uploaded
+    }
+
+    // Trigger AI verification for supported document types (for owner's reference only - no auto-approval)
     const aiSupportedTypes = ["driver_licence", "driver_licence_back", "police_check", "trade_certificate", "first_aid"];
     if (aiSupportedTypes.includes(documentType)) {
       try {
@@ -87,28 +100,9 @@ export const verificationService = {
           providerId
         );
 
-        console.log("AI verification result:", aiResult);
+        console.log("AI verification result (for owner reference only):", aiResult);
 
-        // If auto-approved (0.75+ confidence), send email notification
-        if (aiResult.autoApproved) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("email, full_name, first_name")
-            .eq("id", providerId)
-            .single();
-
-          if (profile?.email) {
-            const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://bluetika.co.nz";
-            await sesEmailService.sendDocumentAutoApproved(
-              profile.email,
-              profile.full_name || profile.first_name || "Service Provider",
-              documentType.replace(/_/g, " "),
-              aiResult.confidence,
-              baseUrl
-            );
-          }
-        }
-
+        // No auto-approval emails - all documents go to manual review
         return { data: { ...data, aiResult }, error: null };
       } catch (aiError) {
         console.error("AI verification error (non-blocking):", aiError);

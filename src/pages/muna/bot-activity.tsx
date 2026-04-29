@@ -85,19 +85,33 @@ export default function BotActivityPage() {
     }
   }, [autoRefresh, loading]);
 
-  const checkAuth = async () => {
+  async function checkAuth() {
     try {
-      const response = await fetch("/api/auth/verify-admin");
-      if (!response.ok) {
-        router.push("/muna/login");
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        router.push("/muna");
         return;
       }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("id", user.id)
+        .single();
+      
+      if (!profile || profile.email !== "bluetikanz@gmail.com") {
+        router.push("/muna");
+        return;
+      }
+      
+      setIsAuthorized(true);
       setLoading(false);
     } catch (error) {
-      console.error("Auth check failed", error);
-      router.push("/muna/login");
+      console.error("Bot Activity - Access check failed:", error);
+      router.push("/muna");
     }
-  };
+  }
 
   const loadActivities = async () => {
     try {

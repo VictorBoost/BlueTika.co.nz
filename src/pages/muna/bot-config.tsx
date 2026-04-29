@@ -59,8 +59,35 @@ export default function BotConfigPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   useEffect(() => {
-    loadConfig();
+    checkAccess();
   }, []);
+
+  async function checkAccess() {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        router.push("/muna");
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("id", user.id)
+        .single();
+      
+      if (!profile || profile.email !== "bluetikanz@gmail.com") {
+        router.push("/muna");
+        return;
+      }
+      
+      loadConfig();
+    } catch (error) {
+      console.error("Bot Config - Access check failed:", error);
+      router.push("/muna");
+    }
+  }
 
   const loadConfig = async () => {
     setLoading(true);

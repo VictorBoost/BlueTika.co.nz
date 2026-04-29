@@ -131,22 +131,16 @@ export default function ProviderVerification() {
         return null;
       }
 
-      // Show AI verification feedback
-      if (data && (data as any).aiResult) {
+      // Show verification feedback - always pending manual review
+      if (data) {
         const aiResult = (data as any).aiResult;
-        if (aiResult.autoApproved) {
-          toast({
-            title: "Document Auto-Approved! ✓",
-            description: `AI verified your driver licence (${aiResult.confidence}% confidence). You can now submit bids!`,
-            duration: 6000,
-          });
-        } else {
-          toast({
-            title: "Document Submitted for Review",
-            description: `Your document has been submitted for manual review by our admin team. You'll receive an email once approved. (AI confidence: ${aiResult.confidence}%)`,
-            duration: 6000,
-          });
-        }
+        const aiConfidence = aiResult?.confidence || 0;
+        
+        toast({
+          title: "Document Submitted for Review ✓",
+          description: `Your driver licence has been submitted for manual review by our admin team. You'll receive an email once approved.${aiConfidence > 0 ? ` (AI scanned: ${aiConfidence}% confidence - for admin reference)` : ''}`,
+          duration: 6000,
+        });
       }
 
       setUploading(false);
@@ -184,22 +178,16 @@ export default function ProviderVerification() {
         return null;
       }
 
-      // Show AI verification feedback
-      if (data && (data as any).aiResult) {
+      // Show verification feedback - always pending manual review
+      if (data) {
         const aiResult = (data as any).aiResult;
-        if (aiResult.autoApproved) {
-          toast({
-            title: "Certificate Auto-Approved! ✓",
-            description: `AI verified your trade certificate (${aiResult.confidence}% confidence).`,
-            duration: 6000,
-          });
-        } else {
-          toast({
-            title: "Certificate Submitted for Review",
-            description: `Your certificate has been submitted for manual review by our admin team. You'll receive an email once approved. (AI confidence: ${aiResult.confidence}%)`,
-            duration: 6000,
-          });
-        }
+        const aiConfidence = aiResult?.confidence || 0;
+        
+        toast({
+          title: "Certificate Submitted for Review ✓",
+          description: `Your trade certificate has been submitted for manual review by our admin team. You'll receive an email once approved.${aiConfidence > 0 ? ` (AI scanned: ${aiConfidence}% confidence - for admin reference)` : ''}`,
+          duration: 6000,
+        });
       }
 
       setUploading(false);

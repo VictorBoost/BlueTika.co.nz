@@ -41,10 +41,7 @@ export default function BotLab() {
       
       console.log("Bot Lab - Profile email:", profile?.email);
       
-      const hasAccess = profile?.email === "bluetikanz@gmail.com";
-      console.log("Bot Lab - Has access:", hasAccess);
-      
-      if (!hasAccess) {
+      if (!profile || profile.email !== "bluetikanz@gmail.com") {
         console.log("Bot Lab - Access denied, redirecting to /muna");
         router.push("/muna");
         return;
@@ -55,6 +52,8 @@ export default function BotLab() {
     } catch (error) {
       console.error("Bot Lab - Access check failed:", error);
       router.push("/muna");
+    } finally {
+      setLoading(false);
     }
   }
 
