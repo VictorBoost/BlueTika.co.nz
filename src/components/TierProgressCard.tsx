@@ -2,9 +2,15 @@ import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Trophy, TrendingUp, Info } from "lucide-react";
+import { Trophy, TrendingUp, Info, HelpCircle } from "lucide-react";
 import { getProviderTierStatus } from "@/services/commissionService";
 import type { ProviderTierStatus } from "@/services/commissionService";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface TierProgressCardProps {
   providerId: string;
@@ -45,6 +51,40 @@ export function TierProgressCard({ providerId }: TierProgressCardProps) {
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-semibold text-foreground">{currentTier.displayName}</h3>
+                
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="w-4 h-4 text-muted-foreground cursor-help hover:text-foreground transition-colors" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-sm p-4 space-y-2">
+                      <p className="font-semibold">How Tiers Work</p>
+                      <p className="text-sm">Your tier is based on <strong>prorated 60-day sales</strong>:</p>
+                      <ul className="text-sm space-y-1 list-disc list-inside">
+                        <li>Only completed & paid contracts count</li>
+                        <li>Sales are prorated by contract duration within 60 days</li>
+                        <li>Example: $1000 contract over 80 days = $750 counted (60/80)</li>
+                      </ul>
+                      
+                      {nextTier ? (
+                        <div className="pt-2 border-t space-y-1">
+                          <p className="font-semibold text-sm">Your Progress:</p>
+                          <p className="text-sm">• Current: <strong>${sales60Day.toFixed(2)}</strong></p>
+                          <p className="text-sm">• Next tier ({nextTier.displayName}): <strong>${nextTier.minSales.toFixed(2)}</strong></p>
+                          <p className="text-sm">• Amount needed: <strong>${amountToNextTier.toFixed(2)}</strong></p>
+                          <p className="text-sm text-muted-foreground mt-2">
+                            Complete more contracts to increase your 60-day sales and unlock lower commission rates!
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="pt-2 border-t">
+                          <p className="text-sm text-accent">🎉 You're at the highest tier! Keep up the great work.</p>
+                        </div>
+                      )}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                
                 {currentTier.isPromo && (
                   <Badge variant="destructive" className="text-xs px-1.5 py-0">
                     PROMO
