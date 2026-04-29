@@ -32,10 +32,10 @@ export default function AdminVerifyProviders() {
   const router = useRouter();
 
   useEffect(() => {
-    checkAdminAccess();
+    checkAuth();
   }, []);
 
-  const checkAdminAccess = async () => {
+  async function checkAuth() {
     try {
       const response = await fetch("/api/auth/verify-admin", {
         method: "GET",
@@ -54,16 +54,7 @@ export default function AdminVerifyProviders() {
         return;
       }
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("email")
-        .eq("id", user.id)
-        .single();
-
-      if (!profile || profile.email?.toLowerCase() !== "bluetikanz@gmail.com") {
-        router.push("/muna");
-        return;
-      }
+      
 
       loadDocuments();
     } catch (error) {

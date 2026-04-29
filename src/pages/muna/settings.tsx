@@ -78,10 +78,10 @@ export default function SettingsPage() {
   const [emailLogs, setEmailLogs] = useState<any[]>([]);
 
   useEffect(() => {
-    checkAdminAccess();
+    checkAuth();
   }, []);
 
-  const checkAdminAccess = async () => {
+  async function checkAuth() {
     try {
       const response = await fetch("/api/auth/verify-admin", {
         method: "GET",

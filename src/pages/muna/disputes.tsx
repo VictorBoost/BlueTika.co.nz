@@ -38,10 +38,10 @@ export default function AdminDisputes() {
   const [resolving, setResolving] = useState(false);
 
   useEffect(() => {
-    checkAdminAccess();
+    checkAccess();
   }, []);
 
-  const checkAdminAccess = async () => {
+  async function checkAccess() {
     try {
       const response = await fetch("/api/auth/verify-admin", {
         method: "GET",
@@ -56,17 +56,6 @@ export default function AdminDisputes() {
       }
 
       if (response.status === 403 || !data.isAdmin) {
-        router.push("/muna");
-        return;
-      }
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("email")
-        .eq("id", user.id)
-        .single();
-
-      if (!profile || profile.email?.toLowerCase() !== "bluetikanz@gmail.com") {
         router.push("/muna");
         return;
       }

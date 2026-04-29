@@ -42,16 +42,7 @@ export default function MonalisaLogsPage() {
         return;
       }
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("email")
-        .eq("id", user.id)
-        .single();
-
-      if (!profile || profile.email?.toLowerCase() !== "bluetikanz@gmail.com") {
-        router.push("/muna");
-        return;
-      }
+      
     } catch (error) {
       console.error("Owner verification error:", error);
       router.push("/muna");

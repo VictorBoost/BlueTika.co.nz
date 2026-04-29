@@ -27,10 +27,10 @@ export default function VerifyDomesticHelpers() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    checkAdminAccess();
+    checkAuth();
   }, []);
 
-  const checkAdminAccess = async () => {
+  async function checkAuth() {
     try {
       const response = await fetch("/api/auth/verify-admin", {
         method: "GET",

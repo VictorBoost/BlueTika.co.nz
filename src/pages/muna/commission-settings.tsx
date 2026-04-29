@@ -1,18 +1,16 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { Navigation } from "@/components/Navigation";
 import { SEO } from "@/components/SEO";
-import { Button } from "@/components/ui/button";
+import { Navigation } from "@/components/Navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Save, RefreshCw } from "lucide-react";
 
 interface CommissionSettings {
-  id: string;
   promo_active: boolean;
   promo_rate: number;
   warning_days: number;
@@ -24,34 +22,30 @@ export default function CommissionSettingsPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [settings, setSettings] = useState<CommissionSettings | null>(null);
+  const [settings, setSettings] = useState<CommissionSettings>({
+    promo_active: false,
+    promo_rate: 0,
+    warning_days: 7,
+    updated_at: new Date().toISOString(),
+  });
 
   useEffect(() => {
-    checkAccess();
+    checkAuth();
   }, []);
 
-  async function checkAccess() {
+  async function checkAuth() {
     try {
-      const response = await fetch("/api/auth/verify-admin", {
-        method: "GET",
-        credentials: "include",
-      });
-
+      const response = await fetch("/api/auth/verify-admin");
       const data = await response.json();
-      
-      if (response.status === 401) {
-        router.push("/muna/login");
-        return;
-      }
 
-      if (response.status === 403 || !data.isAdmin) {
+      if (!data.isAdmin) {
         router.push("/muna");
         return;
       }
 
       loadSettings();
     } catch (error) {
-      console.error("Access check failed:", error);
+      console.error("Auth check failed:", error);
       router.push("/muna");
     }
   }
@@ -61,30 +55,33 @@ export default function CommissionSettingsPage() {
       const { data, error } = await supabase
         .from("commission_settings")
         .select("*")
-        .maybeSingle();
+        .single();
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === "PGRST116") {
+          const { data: newSettings, error: insertError } = await supabase
+            .from("commission_settings")
+            .insert({
+              promo_active: false,
+              promo_rate: 0,
+              warning_days: 7,
+            })
+            .select()
+            .single();
 
-      if (!data) {
-        const { data: newSettings, error: createError } = await supabase
-          .from("commission_settings")
-          .insert({
-            promo_active: true,
-            promo_rate: 8.0,
-            warning_days: 7,
-          })
-          .select()
-          .single();
-
-        if (createError) throw createError;
-        setSettings(newSettings);
-      } else {
+          if (insertError) throw insertError;
+          if (newSettings) setSettings(newSettings);
+        } else {
+          throw error;
+        }
+      } else if (data) {
         setSettings(data);
       }
     } catch (error: any) {
+      console.error("Error loading settings:", error);
       toast({
-        title: "Error loading settings",
-        description: error.message,
+        title: "Error",
+        description: error.message || "Failed to load commission settings",
         variant: "destructive",
       });
     } finally {
@@ -93,8 +90,6 @@ export default function CommissionSettingsPage() {
   }
 
   async function handleSave() {
-    if (!settings) return;
-
     setSaving(true);
     try {
       const { error } = await supabase
@@ -105,7 +100,7 @@ export default function CommissionSettingsPage() {
           warning_days: settings.warning_days,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", settings.id);
+        .eq("id", "00000000-0000-0000-0000-000000000001");
 
       if (error) throw error;
 
@@ -116,18 +111,13 @@ export default function CommissionSettingsPage() {
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to update settings",
         variant: "destructive",
       });
     } finally {
       setSaving(false);
     }
   }
-
-  const updateSetting = (field: keyof CommissionSettings, value: any) => {
-    if (!settings) return;
-    setSettings({ ...settings, [field]: value });
-  };
 
   if (loading) {
     return (
@@ -140,58 +130,37 @@ export default function CommissionSettingsPage() {
     );
   }
 
-  if (!settings) {
-    return (
-      <>
-        <SEO title="Commission Settings" />
-        <div className="min-h-screen bg-background flex items-center justify-center">
-          <Card className="max-w-md">
-            <CardHeader>
-              <CardTitle>Error</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground mb-4">Failed to load commission settings.</p>
-              <Button onClick={() => router.push("/muna")}>Return to Control Centre</Button>
-            </CardContent>
-          </Card>
-        </div>
-      </>
-    );
-  }
-
   return (
     <>
       <SEO title="Commission Settings" />
       <div className="min-h-screen bg-background">
         <Navigation />
-        <div className="max-w-4xl mx-auto p-8">
-          <div className="flex items-center gap-4 mb-8">
-            <Button variant="ghost" onClick={() => router.push("/muna")}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
+        <div className="container mx-auto p-6 max-w-4xl">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-3xl font-bold">Commission Settings</h1>
+              <p className="text-muted-foreground mt-2">Manage promotional rates and tier warnings</p>
+            </div>
+            <Button variant="outline" onClick={() => router.push("/muna")}>
               Back to Control Centre
             </Button>
           </div>
 
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold">Commission Settings</h1>
-            <p className="text-muted-foreground mt-2">Configure promotional commission rates</p>
-          </div>
-
-          <div className="grid gap-6">
+          <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Promotional Commission</CardTitle>
-                <CardDescription>Promotional rates for platform commission</CardDescription>
+                <CardTitle>Promotional Rate</CardTitle>
+                <CardDescription>Temporary promotional commission rate for special campaigns</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <Label>Enable Promotional Rate</Label>
-                    <p className="text-sm text-muted-foreground">Apply promotional commission rate</p>
+                    <p className="text-sm text-muted-foreground">Activate temporary promotional pricing</p>
                   </div>
                   <Switch
                     checked={settings.promo_active}
-                    onCheckedChange={(checked) => updateSetting("promo_active", checked)}
+                    onCheckedChange={(checked) => setSettings({ ...settings, promo_active: checked })}
                   />
                 </div>
 
@@ -200,45 +169,47 @@ export default function CommissionSettingsPage() {
                   <Input
                     type="number"
                     value={settings.promo_rate}
-                    onChange={(e) => updateSetting("promo_rate", parseFloat(e.target.value))}
+                    onChange={(e) => setSettings({ ...settings, promo_rate: parseFloat(e.target.value) || 0 })}
                     min={0}
                     max={100}
                     step={0.1}
+                    disabled={!settings.promo_active}
                   />
-                  <p className="text-xs text-muted-foreground">Percentage commission during promotional period</p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Warning Days</Label>
-                  <Input
-                    type="number"
-                    value={settings.warning_days}
-                    onChange={(e) => updateSetting("warning_days", parseInt(e.target.value))}
-                    min={1}
-                    max={30}
-                  />
-                  <p className="text-xs text-muted-foreground">Days before tier drop warning is sent</p>
+                  <p className="text-sm text-muted-foreground">
+                    Platform commission percentage during promotional period
+                  </p>
                 </div>
               </CardContent>
             </Card>
 
-            <div className="flex gap-4">
-              <Button onClick={handleSave} disabled={saving} className="flex-1">
-                {saving ? (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Save Changes
-                  </>
-                )}
+            <Card>
+              <CardHeader>
+                <CardTitle>Tier Warning Settings</CardTitle>
+                <CardDescription>Configure when to send tier downgrade warnings</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <Label>Warning Days Before Downgrade</Label>
+                  <Input
+                    type="number"
+                    value={settings.warning_days}
+                    onChange={(e) => setSettings({ ...settings, warning_days: parseInt(e.target.value) || 7 })}
+                    min={1}
+                    max={30}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Days before tier downgrade to send warning email
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="flex justify-end gap-4">
+              <Button variant="outline" onClick={() => router.push("/muna")}>
+                Cancel
               </Button>
-              <Button variant="outline" onClick={loadSettings}>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Reset
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? "Saving..." : "Save Changes"}
               </Button>
             </div>
           </div>

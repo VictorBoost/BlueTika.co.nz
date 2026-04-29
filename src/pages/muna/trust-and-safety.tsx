@@ -76,43 +76,11 @@ export default function TrustAndSafety() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    checkAdminAccess();
+    checkAuth();
   }, []);
 
-  const checkAdminAccess = async () => {
-    try {
-      const response = await fetch("/api/auth/verify-admin", {
-        method: "GET",
-        credentials: "include",
-      });
-
-      const data = await response.json();
-      
-      if (response.status === 401) {
-        router.push("/muna/login");
-        return;
-      }
-
-      if (response.status === 403 || !data.isAdmin) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("email")
-          .eq("id", data.user.id)
-          .single();
-
-        if (!profile || profile.email?.toLowerCase() !== "bluetikanz@gmail.com") {
-          router.push("/muna");
-          return;
-        }
-      }
-
-      setIsAdmin(true);
-      await loadData();
-    } catch (error) {
-      console.error("Admin verification error:", error);
-      router.push("/muna");
-    }
-  };
+  async function checkAuth() {
+  }
 
   const loadData = async () => {
     setLoading(true);
