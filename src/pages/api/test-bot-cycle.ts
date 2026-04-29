@@ -1,52 +1,33 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import { supabase } from "@/lib/supabase";
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    // Call the bot-complete-contracts Edge Function
+    const { data, error } = await supabase.functions.invoke("bot-complete-contracts", {
+      body: { limit: 10 }
+    });
 
-    if (!supabaseUrl || !supabaseAnonKey) {
-      return res.status(500).json({ error: "Missing Supabase configuration" });
-    }
-
-    // Call bot-complete-contracts Edge Function
-    const response = await fetch(
-      `${supabaseUrl}/functions/v1/bot-complete-contracts`,
-      {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${supabaseAnonKey}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      return res.status(response.status).json({
+    if (error) {
+      console.error("Error invoking bot-complete-contracts:", error);
+      return res.status(500).json({
         success: false,
-        error: data.error || "Edge Function failed",
-        details: data
+        error: error.message,
+        details: error
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: "Bot completion cycle triggered successfully",
+      message: "Bot completion cycle completed successfully",
       results: data,
       timestamp: new Date().toISOString()
     });
-
   } catch (error: any) {
-    console.error("Test bot cycle error:", error);
+    console.error("Error in test-bot-cycle:", error);
     return res.status(500).json({
       success: false,
       error: error.message,

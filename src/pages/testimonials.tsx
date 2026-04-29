@@ -30,7 +30,7 @@ interface Review {
       bio: string;
       location: string;
       avatar_url: string;
-      is_verified: boolean;
+      verification_status: string;
       verification_badges: string[];
       profiles: {
         email: string;
@@ -67,7 +67,7 @@ export default function TestimonialsPage() {
             bio,
             location,
             avatar_url,
-            is_verified,
+            verification_status,
             verification_badges,
             profiles!inner(email)
           )
@@ -229,7 +229,7 @@ export default function TestimonialsPage() {
                               <h3 className="font-semibold text-lg">
                                 {provider.business_name}
                               </h3>
-                              {provider.is_verified && (
+                              {provider.verification_status === 'approved' && (
                                 <CheckCircle2 className="h-5 w-5 text-accent" />
                               )}
                             </div>
