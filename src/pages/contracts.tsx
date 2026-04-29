@@ -78,6 +78,7 @@ export default function ContractsPage() {
         bids(id)
       `)
       .eq("client_id", userId)
+      .eq("status", "open")
       .order("created_at", { ascending: false });
 
     if (!error && data) {
@@ -379,223 +380,226 @@ export default function ContractsPage() {
         <Tabs defaultValue="active">
           <TabsList>
             <TabsTrigger value="active">Active Contracts</TabsTrigger>
-            <TabsTrigger value="my-projects">My Posted Projects</TabsTrigger>
             <TabsTrigger value="routine">Routine Arrangements ({routineContracts.length})</TabsTrigger>
             <TabsTrigger value="completed">Archive</TabsTrigger>
           </TabsList>
-
-          <TabsContent value="my-projects" className="space-y-4">
-            {loading ? (
-              <div className="flex justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin" />
-              </div>
-            ) : myProjects.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center text-muted-foreground">
-                  You haven't posted any projects yet.
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid md:grid-cols-2 gap-6">
-                {myProjects.map((project) => (
-                  <ProjectCard key={project.id} project={project} isOwner={false} />
-                ))}
-              </div>
-            )}
-          </TabsContent>
 
           <TabsContent value="active" className="space-y-4">
             {loading ? (
               <div className="flex justify-center py-12">
                 <Loader2 className="w-8 h-8 animate-spin" />
               </div>
-            ) : contracts.filter(c => c.status !== "Completed" && c.status !== "Awaiting Fund Release" && c.status !== "cancelled").length === 0 ? (
+            ) : myProjects.length === 0 && contracts.filter(c => c.status !== "Completed" && c.status !== "Awaiting Fund Release" && c.status !== "cancelled").length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center text-muted-foreground">
-                  No active contracts found
+                  No active projects or contracts found
                 </CardContent>
               </Card>
             ) : (
-              contracts
-                .filter(c => c.status !== "Completed" && c.status !== "Awaiting Fund Release" && c.status !== "cancelled")
-                .map((contract) => {
-                  const isClient = contract.client_id === user?.id;
-                  const otherParty = isClient ? contract.provider : contract.client;
-                  const cancellationRequest = cancellationRequests[contract.id];
-                  const isPendingCancellation = cancellationRequest?.status === "pending";
-                  const isRequester = cancellationRequest?.requester_id === user?.id;
-                  
-                  return (
-                    <Card key={contract.id}>
-                      <CardHeader>
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <CardTitle>{contract.project?.title || 'Unknown Project'}</CardTitle>
-                            <CardDescription>
-                              {isClient ? "Service Provider" : "Client"}: {otherParty?.full_name}
-                            </CardDescription>
-                          </div>
-                          <Badge>{contract.status}</Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        {/* Client Approval Card - only for clients with held payments */}
-                        {isClient && contract.payment_status === "held" && (
-                          <ClientApprovalCard
-                            contractId={contract.id}
-                            clientApprovalDeadline={contract.client_approval_deadline}
-                            paymentStatus={contract.payment_status}
-                            providerId={contract.provider_id}
-                            projectTitle={contract.project?.title || "Project"}
-                            onApprovalComplete={() => loadContracts(user!.id)}
-                          />
-                        )}
+              <div className="space-y-8">
+                {/* My Posted Projects Section */}
+                {myProjects.length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                      <span className="bg-primary/10 text-primary px-2 py-1 rounded text-sm">Awaiting Bids</span>
+                      My Posted Projects
+                    </h3>
+                    <div className="grid md:grid-cols-2 gap-6">
+                      {myProjects.map((project) => (
+                        <ProjectCard key={project.id} project={project} isOwner={true} />
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-                        {isPendingCancellation && (
-                          <Alert variant="destructive">
-                            <XCircle className="h-4 w-4" />
-                            <AlertDescription>
-                              {isRequester ? (
-                                <>
-                                  <strong>Cancellation Requested</strong>
-                                  <br />
-                                  Waiting for {isClient ? "provider" : "client"} response. Auto-cancellation in 48 hours.
-                                  <br />
-                                  <span className="text-xs">Deadline: {new Date(cancellationRequest.auto_approval_deadline).toLocaleString("en-NZ")}</span>
-                                </>
-                              ) : (
-                                <>
-                                  <strong>Cancellation Request Received</strong>
-                                  <br />
-                                  {isClient ? "Provider" : "Client"} has requested to cancel this contract.
-                                  <br />
-                                  <strong>Reason:</strong> {cancellationRequest.reason}
-                                  <div className="flex gap-2 mt-3">
-                                    <Button
-                                      size="sm"
-                                      variant="destructive"
-                                      onClick={() => handleRespondToCancellation(cancellationRequest.id, "approved")}
-                                    >
-                                      Approve Cancellation
-                                    </Button>
+                {/* Active Contracts Section */}
+                {contracts.filter(c => c.status !== "Completed" && c.status !== "Awaiting Fund Release" && c.status !== "cancelled").length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">Active Contracts</h3>
+                    {contracts
+                      .filter(c => c.status !== "Completed" && c.status !== "Awaiting Fund Release" && c.status !== "cancelled")
+                      .map((contract) => {
+                        const isClient = contract.client_id === user?.id;
+                        const otherParty = isClient ? contract.provider : contract.client;
+                        const cancellationRequest = cancellationRequests[contract.id];
+                        const isPendingCancellation = cancellationRequest?.status === "pending";
+                        const isRequester = cancellationRequest?.requester_id === user?.id;
+                        
+                        return (
+                          <Card key={contract.id}>
+                            <CardHeader>
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <CardTitle>{contract.project?.title || 'Unknown Project'}</CardTitle>
+                                  <CardDescription>
+                                    {isClient ? "Service Provider" : "Client"}: {otherParty?.full_name}
+                                  </CardDescription>
+                                </div>
+                                <Badge>{contract.status}</Badge>
+                              </div>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                              {/* Client Approval Card - only for clients with held payments */}
+                              {isClient && contract.payment_status === "held" && (
+                                <ClientApprovalCard
+                                  contractId={contract.id}
+                                  clientApprovalDeadline={contract.client_approval_deadline}
+                                  paymentStatus={contract.payment_status}
+                                  providerId={contract.provider_id}
+                                  projectTitle={contract.project?.title || "Project"}
+                                  onApprovalComplete={() => loadContracts(user!.id)}
+                                />
+                              )}
+
+                              {isPendingCancellation && (
+                                <Alert variant="destructive">
+                                  <XCircle className="h-4 w-4" />
+                                  <AlertDescription>
+                                    {isRequester ? (
+                                      <>
+                                        <strong>Cancellation Requested</strong>
+                                        <br />
+                                        Waiting for {isClient ? "provider" : "client"} response. Auto-cancellation in 48 hours.
+                                        <br />
+                                        <span className="text-xs">Deadline: {new Date(cancellationRequest.auto_approval_deadline).toLocaleString("en-NZ")}</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <strong>Cancellation Request Received</strong>
+                                        <br />
+                                        {isClient ? "Provider" : "Client"} has requested to cancel this contract.
+                                        <br />
+                                        <strong>Reason:</strong> {cancellationRequest.reason}
+                                        <div className="flex gap-2 mt-3">
+                                          <Button
+                                            size="sm"
+                                            variant="destructive"
+                                            onClick={() => handleRespondToCancellation(cancellationRequest.id, "approved")}
+                                          >
+                                            Approve Cancellation
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => handleRespondToCancellation(cancellationRequest.id, "rejected")}
+                                          >
+                                            Reject
+                                          </Button>
+                                        </div>
+                                      </>
+                                    )}
+                                  </AlertDescription>
+                                </Alert>
+                              )}
+
+                              <ProgressSteps steps={[
+                                { label: "Active", status: contract.status === "active" ? "active" : "completed" },
+                                { label: "Work Done", status: contract.status === "Work Completed" ? "active" : (contract.status === "Evidence Uploaded" || contract.status === "Completed" || contract.status === "Awaiting Fund Release" ? "completed" : "upcoming") },
+                                { label: "Completed", status: contract.status === "Completed" || contract.status === "Awaiting Fund Release" ? "completed" : "upcoming" }
+                              ]} />
+                              
+                              <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                  <p className="text-muted-foreground">Agreed Price</p>
+                                  <p className="font-semibold">${contract.final_amount?.toFixed(2) || contract.agreed_price?.toFixed(2) || '0.00'}</p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground">Start Date</p>
+                                  <p className="font-semibold">
+                                    {contract.agreed_start_date ? new Date(contract.agreed_start_date).toLocaleDateString("en-NZ") : "Not Set"}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {calendarConnected && !contract.google_calendar_event_id && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleSyncToCalendar(contract)}
+                                  disabled={syncingCalendar === contract.id}
+                                >
+                                  {syncingCalendar === contract.id ? (
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  ) : (
+                                    <CalendarIcon className="w-4 h-4 mr-2" />
+                                  )}
+                                  Add to Calendar
+                                </Button>
+                              )}
+
+                              {/* Cancellation Request Section */}
+                              {!isPendingCancellation && contract.status === "active" && (
+                                <div className="border-t pt-4 mt-4">
+                                  {showCancellationForm === contract.id ? (
+                                    <div className="space-y-3">
+                                      <Label>Reason for Cancellation</Label>
+                                      <Textarea
+                                        placeholder="Please explain why you want to cancel this contract..."
+                                        value={cancellationReason}
+                                        onChange={(e) => setCancellationReason(e.target.value)}
+                                        rows={3}
+                                      />
+                                      <div className="flex gap-2">
+                                        <Button
+                                          size="sm"
+                                          variant="destructive"
+                                          onClick={() => handleRequestCancellation(contract.id)}
+                                          disabled={submittingCancellation}
+                                        >
+                                          {submittingCancellation ? "Submitting..." : "Submit Request"}
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => {
+                                            setShowCancellationForm(null);
+                                            setCancellationReason("");
+                                          }}
+                                        >
+                                          Cancel
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  ) : (
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      onClick={() => handleRespondToCancellation(cancellationRequest.id, "rejected")}
+                                      onClick={() => setShowCancellationForm(contract.id)}
                                     >
-                                      Reject
+                                      <XCircle className="w-4 h-4 mr-2" />
+                                      Request Cancellation
                                     </Button>
-                                  </div>
-                                </>
-                              )}
-                            </AlertDescription>
-                          </Alert>
-                        )}
-
-                        <ProgressSteps steps={[
-                          { label: "Active", status: contract.status === "active" ? "active" : "completed" },
-                          { label: "Work Done", status: contract.status === "Work Completed" ? "active" : (contract.status === "Evidence Uploaded" || contract.status === "Completed" || contract.status === "Awaiting Fund Release" ? "completed" : "upcoming") },
-                          { label: "Completed", status: contract.status === "Completed" || contract.status === "Awaiting Fund Release" ? "completed" : "upcoming" }
-                        ]} />
-                        
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <p className="text-muted-foreground">Agreed Price</p>
-                            <p className="font-semibold">${contract.final_amount?.toFixed(2) || contract.agreed_price?.toFixed(2) || '0.00'}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Start Date</p>
-                            <p className="font-semibold">
-                              {contract.agreed_start_date ? new Date(contract.agreed_start_date).toLocaleDateString("en-NZ") : "Not Set"}
-                            </p>
-                          </div>
-                        </div>
-
-                        {calendarConnected && !contract.google_calendar_event_id && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleSyncToCalendar(contract)}
-                            disabled={syncingCalendar === contract.id}
-                          >
-                            {syncingCalendar === contract.id ? (
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            ) : (
-                              <CalendarIcon className="w-4 h-4 mr-2" />
-                            )}
-                            Add to Calendar
-                          </Button>
-                        )}
-
-                        {/* Cancellation Request Section */}
-                        {!isPendingCancellation && contract.status === "active" && (
-                          <div className="border-t pt-4">
-                            {showCancellationForm === contract.id ? (
-                              <div className="space-y-3">
-                                <Label>Reason for Cancellation</Label>
-                                <Textarea
-                                  placeholder="Please explain why you want to cancel this contract..."
-                                  value={cancellationReason}
-                                  onChange={(e) => setCancellationReason(e.target.value)}
-                                  rows={3}
-                                />
-                                <div className="flex gap-2">
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    onClick={() => handleRequestCancellation(contract.id)}
-                                    disabled={submittingCancellation}
-                                  >
-                                    {submittingCancellation ? "Submitting..." : "Submit Request"}
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                      setShowCancellationForm(null);
-                                      setCancellationReason("");
-                                    }}
-                                  >
-                                    Cancel
-                                  </Button>
+                                  )}
                                 </div>
-                              </div>
-                            ) : (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setShowCancellationForm(contract.id)}
-                              >
-                                <XCircle className="w-4 h-4 mr-2" />
-                                Request Cancellation
-                              </Button>
-                            )}
-                          </div>
-                        )}
+                              )}
 
-                        {/* Evidence upload for provider when Work Completed */}
-                        {!isClient && contract.status === "Work Completed" && (
-                          <EvidencePhotoUpload
-                            contractId={contract.id}
-                            photoType="after"
-                            uploaderRole="provider"
-                            currentPhotos={[]}
-                            currentStatus="not_uploaded"
-                            otherPartyStatus="not_uploaded"
-                            onUpdate={() => loadContracts(user!.id)}
-                          />
-                        )}
+                              {/* Evidence upload for provider when Work Completed */}
+                              {!isClient && contract.status === "Work Completed" && (
+                                <EvidencePhotoUpload
+                                  contractId={contract.id}
+                                  photoType="after"
+                                  uploaderRole="provider"
+                                  currentPhotos={[]}
+                                  currentStatus="not_uploaded"
+                                  otherPartyStatus="not_uploaded"
+                                  onUpdate={() => loadContracts(user!.id)}
+                                />
+                              )}
 
-                        {/* Review submission when evidence uploaded */}
-                        {contract.status === "Evidence Uploaded" && (
-                          <Button onClick={() => handleOpenReviewModal(contract)}>
-                            Submit Review
-                          </Button>
-                        )}
-                      </CardContent>
-                    </Card>
-                  );
-                })
+                              {/* Review submission when evidence uploaded */}
+                              {contract.status === "Evidence Uploaded" && (
+                                <Button onClick={() => handleOpenReviewModal(contract)}>
+                                  Submit Review
+                                </Button>
+                              )}
+                            </CardContent>
+                          </Card>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
+              </div>
             )}
           </TabsContent>
 
