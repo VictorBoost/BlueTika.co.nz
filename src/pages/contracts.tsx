@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Calendar, Loader2, Clock, MapPin, Star, Calendar as CalendarIcon, AlertCircle, XCircle } from "lucide-react";
+import { Calendar, Loader2, Clock, MapPin, Star, Calendar as CalendarIcon, AlertCircle, XCircle, User } from "lucide-react";
 import { ProgressSteps } from "@/components/ProgressSteps";
 import { EvidencePhotoUpload } from "@/components/EvidencePhotoUpload";
 import { ReviewSubmissionModal } from "@/components/ReviewSubmissionModal";
@@ -295,6 +295,24 @@ export default function ContractsPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Top Header with Navigation */}
+      <header className="border-b bg-white">
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" onClick={() => router.push("/")} className="text-xl font-bold text-primary px-0 hover:bg-transparent">
+              BlueTika
+            </Button>
+            <Button variant="ghost" onClick={() => router.push("/projects")}>
+              Browse Projects
+            </Button>
+          </div>
+          <Button variant="outline" onClick={() => router.push("/account")} className="gap-2">
+            <User className="h-4 w-4" />
+            My Profile
+          </Button>
+        </div>
+      </header>
+
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">My Contracts</h1>

@@ -478,7 +478,7 @@ export default function PostProject() {
         date_preference: formData.date_preference,
         photos: photoUrls,
         video_url: videoUrl,
-        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
         is_expired: false,
       };
 
