@@ -1,9 +1,10 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Star, TrendingUp, MapPin, Briefcase, FileText, Flag, User } from "lucide-react";
+import { Star, TrendingUp, MapPin, Briefcase, FileText, Flag, User, Phone, Mail, Calendar, CheckCircle2, MessageSquare } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { useState, useEffect } from "react";
 import { ReportModal } from "./ReportModal";
@@ -164,6 +165,39 @@ export function ProviderProfileModal({ open, onOpenChange, provider }: ProviderP
                   <p className="text-muted-foreground whitespace-pre-wrap">{provider.bio}</p>
                 </div>
               )}
+
+              {/* Contact Information Section */}
+              <div className="space-y-3">
+                <h4 className="font-semibold text-sm">Contact Information</h4>
+                
+                {hasPaidContract ? (
+                  <>
+                    {provider.phone && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Phone className="h-4 w-4" />
+                        <span>{provider.phone}</span>
+                      </div>
+                    )}
+                    {provider.profiles?.email && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Mail className="h-4 w-4" />
+                        <span>{provider.profiles.email}</span>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="p-4 bg-accent/10 border border-accent/20 rounded-lg">
+                    <div className="flex items-center gap-2 text-accent mb-2">
+                      <MessageSquare className="h-5 w-5" />
+                      <span className="font-semibold">Connect via BlueTika</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Contact information becomes available after accepting their bid and completing payment. 
+                      All communication happens securely through our platform.
+                    </p>
+                  </div>
+                )}
+              </div>
             </TabsContent>
 
             <TabsContent value="credentials" className="space-y-6 mt-6">

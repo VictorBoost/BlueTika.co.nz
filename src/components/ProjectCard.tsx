@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, DollarSign, Calendar, Clock, Flag } from "lucide-react";
+import { MapPin, DollarSign, Calendar, Clock, Flag, User, Phone } from "lucide-react";
 import Link from "next/link";
 import type { Tables } from "@/integrations/supabase/types";
 import { useState } from "react";
@@ -128,6 +128,21 @@ export function ProjectCard({ project, isOwner }: ProjectCardProps) {
               <span>{getTimeAgo(project.created_at)}</span>
             </div>
           </div>
+
+          {/* Client Contact (only if contract paid) */}
+          {project.contract?.payment_status === 'paid' ? (
+            project.phone && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Phone className="h-4 w-4" />
+                <span>{project.phone}</span>
+              </div>
+            )
+          ) : (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Phone className="h-4 w-4" />
+              <span className="italic">Contact available after payment</span>
+            </div>
+          )}
         </CardContent>
         <CardFooter>
           <Button asChild className="w-full">

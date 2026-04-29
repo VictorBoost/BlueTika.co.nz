@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DollarSign, User, Clock, FileText, Star, TrendingUp } from "lucide-react";
+import { DollarSign, User, Clock, FileText, Star, TrendingUp, Phone, Shield, MessageSquare } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { useEffect, useState } from "react";
 import { getBidBadges } from "@/services/badgeService";

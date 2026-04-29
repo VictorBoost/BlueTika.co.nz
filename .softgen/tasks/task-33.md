@@ -44,19 +44,19 @@ position: 33
 ### **PORTION 1: Hide Contact Info** (2 hours) ⏱️
 
 **File 1: src/components/ProjectCard.tsx**
-- [ ] Wrap phone display in payment status check
-- [ ] Show "Contact available after payment" placeholder
-- [ ] Add tooltip explaining why hidden
+- [x] Wrap phone display in payment status check
+- [x] Show "Contact available after payment" placeholder
+- [x] Add tooltip explaining why hidden
 
 **File 2: src/components/BidCard.tsx**
-- [ ] Hide provider phone until bid accepted + paid
-- [ ] Add same placeholder message
-- [ ] Style consistently
+- [x] Hide provider phone until bid accepted + paid
+- [x] Add same placeholder message
+- [x] Style consistently
 
 **File 3: src/components/ProviderProfileModal.tsx**
-- [ ] Check if viewer has paid contract with this provider
-- [ ] Hide contact section if not paid
-- [ ] Add "Connect via BlueTika" message with icon
+- [x] Check if viewer has paid contract with this provider
+- [x] Hide contact section if not paid
+- [x] Add "Connect via BlueTika" message with icon
 
 **Test Cases:**
 - [ ] Browse projects → No phone visible
