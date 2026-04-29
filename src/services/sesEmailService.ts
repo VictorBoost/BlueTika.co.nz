@@ -5,6 +5,7 @@
 
 const SES_API_ENDPOINT = process.env.NEXT_PUBLIC_SES_ENDPOINT;
 const FROM_EMAIL = "support@bluetika.co.nz";
+const NOREPLY_EMAIL = "noreply@bluetika.co.nz";
 
 export interface SendEmailParams {
   to: string;
@@ -494,6 +495,47 @@ export async function sendMonalisaWeeklySummary(
   });
 }
 
+export async function sendWorkCompleteNotification(
+  clientEmail: string,
+  clientName: string,
+  providerName: string,
+  projectTitle: string,
+  contractId: string,
+  baseUrl: string = "https://bluetika.co.nz"
+): Promise<boolean> {
+  return sendEmail({
+    to: clientEmail,
+    subject: `Work Completed - ${projectTitle}`,
+    htmlBody: baseHtml("Work Completed - Please Review", `
+      <p>Kia ora ${clientName},</p>
+      <p><strong>${providerName}</strong> has marked the work as completed for your project: <strong>"${projectTitle}"</strong></p>
+      
+      <div class="highlight">
+        <h3 style="margin-top: 0;">What Happens Next?</h3>
+        <p style="margin-bottom: 0;">
+          ✓ You have <strong>48 hours</strong> to review the completed work<br>
+          ✓ The provider will upload "after" photos for your review<br>
+          ✓ You can approve the work or raise a dispute if needed<br>
+          ✓ If no action is taken within 48 hours, the work will be automatically approved
+        </p>
+      </div>
+
+      <a href="${baseUrl}/contracts" class="button">Review Work Now</a>
+
+      <div class="warning" style="margin-top: 20px;">
+        <p style="margin: 0; font-size: 14px;">
+          <strong>Important:</strong> If you have any concerns about the work quality, please raise a dispute within the 48-hour window. 
+          After this period, the payment will be automatically released.
+        </p>
+      </div>
+
+      <p style="margin-top: 20px; color: #666; font-size: 14px;">
+        Need help? Contact us at support@bluetika.co.nz
+      </p>
+    `, baseUrl)
+  });
+}
+
 export const sesEmailService = {
   sendEmail,
   sendEvidencePhotoReminder,
@@ -517,5 +559,6 @@ export const sesEmailService = {
   sendDocumentAutoApproved,
   sendDocumentManuallyApproved,
   sendDocumentRejected,
-  sendMonalisaWeeklySummary
+  sendMonalisaWeeklySummary,
+  sendWorkCompleteNotification
 };

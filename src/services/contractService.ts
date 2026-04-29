@@ -22,6 +22,27 @@ export const contractService = {
     return { data, error };
   },
 
+  async markWorkComplete(contractId: string) {
+    // Calculate 48-hour deadline in NZ timezone
+    const now = new Date();
+    const deadline = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+
+    const { data, error } = await supabase
+      .from("contracts")
+      .update({
+        status: "Work Completed",
+        work_done_at: now.toISOString(),
+        client_dispute_deadline: deadline.toISOString(),
+      })
+      .eq("id", contractId)
+      .select()
+      .single();
+
+    console.log("markWorkComplete:", { data, error });
+    if (error) console.error("Mark work complete error:", error);
+    return { data, error };
+  },
+
   async updateContractStatus(
     contractId: string,
     status: "active" | "completed" | "cancelled" | "awaiting_fund_release" | "dispute" | "funds_released" | string

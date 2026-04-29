@@ -20,6 +20,8 @@ import { ClientApprovalCard } from "@/components/ClientApprovalCard";
 import { toast } from "@/hooks/use-toast";
 import { SafetyBanner } from "@/components/SafetyBanner";
 import { ProjectCard } from "@/components/ProjectCard";
+import { MarkCompleteModal } from "@/components/MarkCompleteModal";
+import { sesEmailService } from "@/services/sesEmailService";
 
 type Contract = any;
 type RoutineBooking = any;
@@ -40,6 +42,9 @@ export default function ContractsPage() {
   const [cancellationReason, setCancellationReason] = useState("");
   const [submittingCancellation, setSubmittingCancellation] = useState(false);
   const [myProjects, setMyProjects] = useState<any[]>([]);
+  const [markCompleteModalOpen, setMarkCompleteModalOpen] = useState(false);
+  const [selectedContractForComplete, setSelectedContractForComplete] = useState<any>(null);
+  const [isMarkingComplete, setIsMarkingComplete] = useState(false);
 
   useEffect(() => {
     checkUserAndLoadData();
@@ -265,6 +270,69 @@ export default function ContractsPage() {
     if (user) loadRoutineContracts(user.id);
   }
 
+  async function handleMarkWorkComplete() {
+    if (!selectedContractForComplete || !user) return;
+
+    setIsMarkingComplete(true);
+
+    try {
+      const { data, error } = await contractService.markWorkComplete(selectedContractForComplete.id);
+
+      if (error) {
+        toast({
+          title: "Failed to Mark Complete",
+          description: "Could not update contract status. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Send notification to client
+      const clientEmail = selectedContractForComplete.client.email;
+      const clientName = selectedContractForComplete.client.full_name;
+      const providerName = selectedContractForComplete.provider.full_name;
+      const projectTitle = selectedContractForComplete.project.title;
+
+      // Create in-app notification
+      await notificationService.createNotification(
+        selectedContractForComplete.client_id,
+        "Work Completed - Please Review",
+        `${providerName} has completed work on "${projectTitle}". You have 48 hours to review.`,
+        "contract",
+        selectedContractForComplete.id
+      );
+
+      // Send email notification
+      const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://bluetika.co.nz";
+      await sesEmailService.sendWorkCompleteNotification(
+        clientEmail,
+        clientName,
+        providerName,
+        projectTitle,
+        selectedContractForComplete.id,
+        baseUrl
+      );
+
+      toast({
+        title: "Work Marked Complete",
+        description: "The client has been notified and has 48 hours to review your work."
+      });
+
+      setMarkCompleteModalOpen(false);
+      setSelectedContractForComplete(null);
+      await loadContracts(user.id);
+    } catch (error) {
+      console.error("Error marking work complete:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsMarkingComplete(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Top Header with Navigation */}
@@ -485,6 +553,24 @@ export default function ContractsPage() {
                                 </div>
                               )}
 
+                              {/* Mark Work Complete button for provider */}
+                              {!isClient && contract.status === "active" && (
+                                <div className="border-t pt-4 mt-4">
+                                  <Button
+                                    onClick={() => {
+                                      setSelectedContractForComplete(contract);
+                                      setMarkCompleteModalOpen(true);
+                                    }}
+                                    className="w-full"
+                                  >
+                                    Mark Work Complete
+                                  </Button>
+                                  <p className="text-sm text-muted-foreground mt-2 text-center">
+                                    Mark complete when all work is finished and ready for client review
+                                  </p>
+                                </div>
+                              )}
+
                               {/* Evidence upload for provider when Work Completed */}
                               {!isClient && contract.status === "Work Completed" && (
                                 <EvidencePhotoUpload
@@ -680,6 +766,20 @@ export default function ContractsPage() {
           projectTitle={routinePromptContract.project.title}
           userRole={routinePromptContract.client_id === user?.id ? "client" : "provider"}
           isDomesticHelper={routinePromptContract.project.category_id === "domestic-helper"}
+        />
+      )}
+
+      {/* Mark Work Complete Modal */}
+      {selectedContractForComplete && (
+        <MarkCompleteModal
+          isOpen={markCompleteModalOpen}
+          onClose={() => {
+            setMarkCompleteModalOpen(false);
+            setSelectedContractForComplete(null);
+          }}
+          onConfirm={handleMarkWorkComplete}
+          projectTitle={selectedContractForComplete.project.title}
+          isSubmitting={isMarkingComplete}
         />
       )}
     </div>
