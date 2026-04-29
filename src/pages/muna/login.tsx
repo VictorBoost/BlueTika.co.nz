@@ -22,7 +22,6 @@ export default function MunaLogin() {
     setLoading(true);
 
     try {
-      console.log("Attempting owner login...");
       const response = await fetch("/api/auth/muna-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -33,7 +32,6 @@ export default function MunaLogin() {
       });
 
       const data = await response.json();
-      console.log("Login response:", { status: response.status, isOwner: data.isOwner });
 
       if (!response.ok) {
         throw new Error(data.error || "Login failed");
@@ -48,7 +46,6 @@ export default function MunaLogin() {
         description: "Welcome back, Owner",
       });
 
-      // Use window.location.href for proper redirect after login
       setTimeout(() => {
         window.location.href = "/muna";
       }, 500);

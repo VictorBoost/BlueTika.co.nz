@@ -25,10 +25,8 @@ export default function BotLab() {
   async function checkAccess() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      console.log("Bot Lab - User:", user?.id);
       
       if (!user) {
-        console.log("Bot Lab - No user, redirecting to /muna");
         router.push("/muna");
         return;
       }
@@ -39,10 +37,7 @@ export default function BotLab() {
         .eq("id", user.id)
         .single();
       
-      console.log("Bot Lab - Profile data:", profile);
-      
       if (!profile || profile.email?.toLowerCase() !== "bluetikanz@gmail.com") {
-        console.log("Bot Lab - Access denied, redirecting to /muna");
         router.push("/muna");
         return;
       }
