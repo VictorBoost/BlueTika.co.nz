@@ -94,8 +94,16 @@ export default function TrustAndSafety() {
       }
 
       if (response.status === 403 || !data.isAdmin) {
-        router.push("/muna");
-        return;
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("email")
+          .eq("id", data.user.id)
+          .single();
+
+        if (!profile || profile.email?.toLowerCase() !== "bluetikanz@gmail.com") {
+          router.push("/muna");
+          return;
+        }
       }
 
       setIsAdmin(true);

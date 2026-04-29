@@ -33,12 +33,14 @@ export default function ChangePassword() {
         return;
       }
 
-      // CRITICAL: Only bluetikanz@gmail.com is owner
-      // DO NOT CHANGE THIS - Only owner can add emails from /muna settings
-      const isOwner = user.email?.toLowerCase() === "bluetikanz@gmail.com";
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("id", user.id)
+        .single();
 
-      if (!isOwner) {
-        router.push("/");
+      if (!profile || profile.email?.toLowerCase() !== "bluetikanz@gmail.com") {
+        router.push("/muna");
         return;
       }
 

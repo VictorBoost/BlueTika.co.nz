@@ -53,6 +53,17 @@ export default function MonaLisaPage() {
         return;
       }
 
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("id", user.id)
+        .single();
+
+      if (!profile || profile.email?.toLowerCase() !== "bluetikanz@gmail.com") {
+        router.push("/muna");
+        return;
+      }
+
       setIsOwner(true);
     } catch (error) {
       console.error("Owner verification error:", error);

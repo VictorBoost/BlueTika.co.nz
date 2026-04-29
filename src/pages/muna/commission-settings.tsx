@@ -60,6 +60,17 @@ export default function CommissionSettingsPage() {
         return;
       }
 
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("id", user.id)
+        .single();
+
+      if (!profile || profile.email?.toLowerCase() !== "bluetikanz@gmail.com") {
+        router.push("/muna");
+        return;
+      }
+
       await loadData();
     } catch (error) {
       console.error("Admin verification error:", error);

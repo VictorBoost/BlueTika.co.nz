@@ -16,6 +16,7 @@ import { authService } from "@/services/authService";
 import { Plus, Pencil, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { useRouter } from "next/router";
+import { supabase } from "@/integrations/supabase/client";
 
 type Category = Tables<"categories">;
 

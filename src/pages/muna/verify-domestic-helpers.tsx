@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { authService } from "@/services/authService";
 import { verificationService } from "@/services/verificationService";
 import { CheckCircle, XCircle, FileText, Phone } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 export default function VerifyDomesticHelpers() {
   const router = useRouter();

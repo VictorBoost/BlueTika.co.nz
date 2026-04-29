@@ -52,6 +52,17 @@ export default function FundReleases() {
         return;
       }
 
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("id", user.id)
+        .single();
+
+      if (!profile || profile.email?.toLowerCase() !== "bluetikanz@gmail.com") {
+        router.push("/muna");
+        return;
+      }
+
       setUserId(data.email);
       loadContracts();
     } catch (error) {
