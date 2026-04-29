@@ -19,7 +19,12 @@ export const verificationService = {
 
     if (uploadError) {
       console.error("File upload error:", uploadError);
-      return { data: null, error: uploadError };
+      return { 
+        data: null, 
+        error: { 
+          message: "Failed to upload file to storage. Please check your internet connection and try again." 
+        } 
+      };
     }
 
     // Get public URL
@@ -41,13 +46,38 @@ export const verificationService = {
       .select()
       .single();
 
-    if (error || !data) {
+    if (error) {
       console.error("Document record creation error:", error);
-      return { data: null, error };
+      
+      // User-friendly error messages
+      if (error.code === "42501") {
+        return { 
+          data: null, 
+          error: { 
+            message: "Unable to save document. Please ensure you're logged in and try again. If the issue persists, contact support." 
+          } 
+        };
+      }
+      
+      return { 
+        data: null, 
+        error: { 
+          message: "Failed to save document record. Please try again or contact support if the issue continues." 
+        } 
+      };
     }
 
-    // Trigger AI verification for supported document types
-    const aiSupportedTypes = ["driver_licence", "police_check", "trade_certificate", "first_aid"];
+    if (!data) {
+      return { 
+        data: null, 
+        error: { 
+          message: "Document upload completed but no confirmation received. Please refresh and check if your document was saved." 
+        } 
+      };
+    }
+
+    // Trigger AI verification for supported document types (auto-approve at 0.75+ confidence)
+    const aiSupportedTypes = ["driver_licence", "driver_licence_back", "police_check", "trade_certificate", "first_aid"];
     if (aiSupportedTypes.includes(documentType)) {
       try {
         const aiResult = await aiVerificationService.verifyDocument(
@@ -59,7 +89,7 @@ export const verificationService = {
 
         console.log("AI verification result:", aiResult);
 
-        // If auto-approved, send email notification
+        // If auto-approved (0.75+ confidence), send email notification
         if (aiResult.autoApproved) {
           const { data: profile } = await supabase
             .from("profiles")
@@ -88,7 +118,7 @@ export const verificationService = {
     }
 
     console.log("uploadDocument:", { data, error });
-    return { data, error };
+    return { data, error: null };
   },
 
   // Get provider's documents

@@ -31,3 +31,6 @@ Clean, professional SaaS aesthetic with NZ cultural elements (koru spiral, kiwi 
 - **GST Toggle:** Ready for future implementation (currently disabled).
 - **NZ Identity:** Footer displays "100% NZ Owned · Kiwis Helping Kiwis · bluetika.co.nz" on black background.
 - **About Page:** Brand story (Blue = trust, Tika = te reo Māori for right/fair), founder's builder story, koru + kiwi illustrations.
+
+## Development Rules
+- **CRITICAL SECURITY RULE:** NEVER modify, overwrite, or update the `.env.local` file under any circumstances. Environment variables, API keys, and database URLs (like Supabase) are strictly managed manually by the project owner. Do not attempt to fetch or sync new keys into `.env.local`.

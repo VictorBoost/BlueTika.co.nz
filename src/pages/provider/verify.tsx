@@ -124,7 +124,7 @@ export default function ProviderVerification() {
       if (error) {
         toast({
           title: "Upload failed",
-          description: error.message,
+          description: error.message || "Unable to upload document. Please try again.",
           variant: "destructive",
         });
         setUploading(false);
@@ -177,7 +177,7 @@ export default function ProviderVerification() {
       if (error) {
         toast({
           title: "Upload failed",
-          description: error.message,
+          description: error.message || "Unable to upload certificate. Please try again.",
           variant: "destructive",
         });
         setUploading(false);
