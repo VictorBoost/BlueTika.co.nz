@@ -8,10 +8,6 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 // Service role client for admin operations that bypass RLS
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-type Profile = Database["public"]["Tables"]["profiles"]["Row"];
-type Project = Database["public"]["Tables"]["projects"]["Insert"];
-type Bid = Database["public"]["Tables"]["bids"]["Insert"];
-
 // Realistic NZ data
 const NZ_FIRST_NAMES = [
   "Aroha", "Hemi", "Kiri", "Matiu", "Ngaire", "Rawiri", "Tane", "Whetu",
