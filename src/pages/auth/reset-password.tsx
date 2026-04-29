@@ -58,8 +58,14 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters");
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters");
+      return;
+    }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[\d\W]).{8,}$/;
+    if (!passwordRegex.test(password)) {
+      setError("Password must include an uppercase letter, a lowercase letter, and a number or special character.");
       return;
     }
 
@@ -174,7 +180,7 @@ export default function ResetPasswordPage() {
                         setError("");
                       }}
                       required
-                      minLength={6}
+                      minLength={8}
                       autoComplete="new-password"
                     />
                     <button
@@ -185,6 +191,7 @@ export default function ResetPasswordPage() {
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
+                  <p className="text-xs text-muted-foreground mt-1">Must be at least 8 characters, including uppercase, lowercase, and a number/special character.</p>
                 </div>
 
                 <div className="space-y-2">
@@ -199,7 +206,7 @@ export default function ResetPasswordPage() {
                         setError("");
                       }}
                       required
-                      minLength={6}
+                      minLength={8}
                       autoComplete="new-password"
                     />
                     <button

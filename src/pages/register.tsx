@@ -122,6 +122,13 @@ export default function RegisterPage() {
       return;
     }
 
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[\d\W]).{8,}$/;
+    if (!passwordRegex.test(formData.password)) {
+      setError("Password must include an uppercase letter, a lowercase letter, and a number or special character.");
+      setLoading(false);
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
       setLoading(false);
@@ -368,7 +375,7 @@ export default function RegisterPage() {
                         )}
                       </button>
                     </div>
-                    <p className="text-xs text-muted-foreground">Minimum 8 characters</p>
+                    <p className="text-xs text-muted-foreground">Must be at least 8 characters, including uppercase, lowercase, and a number/special character.</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="confirmPassword">Confirm Password</Label>
