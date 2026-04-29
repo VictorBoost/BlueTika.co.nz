@@ -22,6 +22,7 @@ import { SafetyBanner } from "@/components/SafetyBanner";
 import { ProjectCard } from "@/components/ProjectCard";
 import { MarkCompleteModal } from "@/components/MarkCompleteModal";
 import { sesEmailService } from "@/services/sesEmailService";
+import { notificationService } from "@/services/notificationService";
 
 type Contract = any;
 type RoutineBooking = any;
