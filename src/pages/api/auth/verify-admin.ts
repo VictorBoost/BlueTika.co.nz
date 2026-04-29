@@ -36,25 +36,20 @@ export default async function handler(
       });
     }
 
-    // CRITICAL: Only bluetikanz@gmail.com is owner
-    // DO NOT CHANGE THIS - Only owner can add emails from /muna settings
-    const isOwner = user.email?.toLowerCase() === OWNER_EMAIL;
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("email")
+      .eq("id", user.id)
+      .single();
 
-    if (!isOwner) {
-      return res.status(403).json({
-        isAdmin: false,
-        isOwner: false,
-        error: "Not authorized"
-      });
+    if (profileError || !profile) {
+      return res.status(401).json({ error: "Profile not found", isAdmin: false });
     }
 
-    // Owner verified
-    return res.status(200).json({
-      isAdmin: true,
-      isOwner: true,
-      email: user.email,
-      role: "Owner"
-    });
+    // Check if user is owner (case-insensitive)
+    const isAdmin = profile.email?.toLowerCase() === "bluetikanz@gmail.com";
+
+    return res.status(200).json({ isAdmin });
   } catch (error) {
     console.error("Admin verification error:", error);
     return res.status(500).json({ 

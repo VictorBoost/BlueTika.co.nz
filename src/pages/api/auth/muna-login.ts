@@ -39,11 +39,29 @@ export default async function handler(
     }
 
     // Get profile name for logging
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("full_name")
+      .select("*")
       .eq("id", data.user.id)
       .single();
+
+    if (profileError || !profile) {
+      return res.status(401).json({ error: "Profile not found" });
+    }
+
+    // Check if user is owner (case-insensitive)
+    if (profile.email?.toLowerCase() !== "bluetikanz@gmail.com") {
+      // Log failed admin access attempt
+      await supabase.from("auth_audit_logs").insert({
+        user_id: data.user.id,
+        action: "admin_login_denied",
+        ip_address: req.headers["x-forwarded-for"] || req.socket.remoteAddress,
+        user_agent: req.headers["user-agent"],
+        metadata: { email: profile.email },
+      } as any);
+
+      return res.status(403).json({ error: "Admin access denied" });
+    }
 
     // Send owner login alert (don't block login if this fails)
     try {

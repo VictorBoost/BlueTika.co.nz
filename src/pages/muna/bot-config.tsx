@@ -77,7 +77,7 @@ export default function BotConfigPage() {
         .eq("id", user.id)
         .single();
       
-      if (!profile || profile.email !== "bluetikanz@gmail.com") {
+      if (!profile || profile.email?.toLowerCase() !== "bluetikanz@gmail.com") {
         router.push("/muna");
         return;
       }

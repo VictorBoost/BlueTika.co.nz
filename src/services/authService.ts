@@ -164,3 +164,68 @@ export const authService = {
     });
   }
 };
+
+export async function signUp(email: string, password: string, fullName: string) {
+  try {
+    // Normalize email to lowercase
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const { data: existingProfile } = await supabase
+      .from("profiles")
+      .select("id")
+      .ilike("email", normalizedEmail)
+      .single();
+
+    if (existingProfile) {
+      return {
+        data: null,
+        error: { message: "An account with this email already exists" },
+      };
+    }
+
+    const { data, error } = await supabase.auth.signUp({
+      email: normalizedEmail,
+      password,
+      options: {
+        data: {
+          full_name: fullName,
+        },
+      },
+    });
+
+    if (error) return { data: null, error };
+
+    if (data.user) {
+      const { error: profileError } = await supabase.from("profiles").upsert({
+        id: data.user.id,
+        email: normalizedEmail,
+        full_name: fullName,
+      } as any);
+
+      if (profileError) {
+        console.error("Profile creation error:", profileError);
+        return { data: null, error: profileError };
+      }
+    }
+
+    return { data, error: null };
+  } catch (error: any) {
+    return { data: null, error };
+  }
+}
+
+export async function signIn(email: string, password: string) {
+  try {
+    // Normalize email to lowercase
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: normalizedEmail,
+      password,
+    });
+
+    return { data, error };
+  } catch (error: any) {
+    return { data: null, error };
+  }
+}

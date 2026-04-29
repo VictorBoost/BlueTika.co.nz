@@ -97,7 +97,7 @@ export const botLabService = {
         return false;
       }
 
-      const hasAccess = profile?.email === "bluetikanz@gmail.com";
+      const hasAccess = profile?.email?.toLowerCase() === "bluetikanz@gmail.com";
       console.log("botLabService - Owner access check:", { 
         userId: user.id,
         email: profile?.email, 
