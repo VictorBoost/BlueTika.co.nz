@@ -788,7 +788,7 @@ export default function ContractsPage() {
       )}
 
       {/* Contract Chat - Only for paid contracts */}
-      {selectedContract.payment_status === "paid" && user && (
+      {selectedContract?.payment_status === "paid" && user && (
         <ContractChat
           contractId={selectedContract.id}
           currentUserId={user.id}
@@ -800,8 +800,8 @@ export default function ContractsPage() {
       )}
 
       {/* Additional Charges Section */}
-      {user?.id === selectedContract.provider_id && 
-        selectedContract.status === "in_progress" && (
+      {user?.id === selectedContract?.provider_id && 
+        selectedContract?.status === "in_progress" && (
         <AdditionalChargeRequest 
           contractId={selectedContract.id}
           providerId={selectedContract.provider_id}
@@ -811,11 +811,13 @@ export default function ContractsPage() {
       )}
 
       {/* List of All Additional Charges */}
-      <AdditionalChargesList
-        charges={selectedContract.additional_charges || []}
-        isClient={user?.id === selectedContract.client_id}
-        onUpdate={() => { if (user) loadContracts(user.id); }}
-      />
+      {selectedContract && (
+        <AdditionalChargesList
+          charges={selectedContract.additional_charges || []}
+          isClient={user?.id === selectedContract.client_id}
+          onUpdate={() => { if (user) loadContracts(user.id); }}
+        />
+      )}
     </div>
   );
 }
