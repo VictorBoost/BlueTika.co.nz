@@ -93,7 +93,7 @@ export default async function handler(
         budget: 200,
         location: "Auckland",
         status: "open",
-      })
+      } as any)
       .select()
       .single();
 
@@ -124,7 +124,7 @@ export default async function handler(
         amount: 200,
         estimated_timeline: "3 days",
         message: "I can help with this project. Ready to start immediately.",
-      })
+      } as any)
       .select()
       .single();
 
@@ -157,7 +157,7 @@ export default async function handler(
         final_amount: bid.amount,
         status: "active",
         payment_status: "pending",
-      })
+      } as any)
       .select()
       .single();
 
@@ -174,12 +174,12 @@ export default async function handler(
 
     await supabase
       .from("bids")
-      .update({ status: "accepted" })
+      .update({ status: "accepted" } as any)
       .eq("id", bid.id);
 
     await supabase
       .from("projects")
-      .update({ status: "in_progress" })
+      .update({ status: "in_progress" } as any)
       .eq("id", project.id);
 
     results[results.length - 1] = {
@@ -219,7 +219,7 @@ export default async function handler(
       .update({
         payment_status: "paid",
         stripe_payment_intent: `test_pi_${Date.now()}`,
-      })
+      } as any)
       .eq("id", contract.id);
 
     if (paymentError) {
