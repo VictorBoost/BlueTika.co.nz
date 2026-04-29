@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
+import { Navigation } from "@/components/Navigation";
 import Link from "next/link";
 import { SEO } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
@@ -239,8 +240,9 @@ export default function BotActivityPage() {
   return (
     <>
       <SEO title="Bot Activity Monitor" />
-      <div className="min-h-screen bg-background p-8">
-        <div className="max-w-7xl mx-auto">
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <div className="max-w-7xl mx-auto p-8">
           <div className="flex items-center gap-4 mb-8">
             <Button variant="ghost" onClick={() => router.push("/muna")}>
               <ArrowLeft className="h-4 w-4 mr-2" />
