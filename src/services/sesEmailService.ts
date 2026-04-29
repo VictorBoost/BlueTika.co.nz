@@ -536,6 +536,86 @@ export async function sendWorkCompleteNotification(
   });
 }
 
+export async function sendContractMessageNotification(
+  recipientEmail: string,
+  recipientName: string,
+  senderName: string,
+  messagePreview: string,
+  projectTitle: string,
+  contractId: string,
+  baseUrl: string
+): Promise<void> {
+  const contractUrl = `${baseUrl}/contracts`;
+
+  const htmlBody = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #1B4FD8; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+        .message-box { background: white; padding: 15px; border-left: 4px solid #06B6D4; margin: 20px 0; }
+        .button { display: inline-block; background: #1B4FD8; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+        .footer { text-align: center; color: #666; font-size: 12px; margin-top: 30px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>💬 New Message on BlueTika</h1>
+        </div>
+        <div class="content">
+          <p>Hi ${recipientName},</p>
+          <p><strong>${senderName}</strong> sent you a message about:</p>
+          <p style="font-size: 18px; color: #1B4FD8;"><strong>${projectTitle}</strong></p>
+          
+          <div class="message-box">
+            <p style="margin: 0;">${messagePreview}${messagePreview.length >= 100 ? "..." : ""}</p>
+          </div>
+
+          <p>Reply directly on BlueTika to keep the conversation going:</p>
+          <a href="${contractUrl}" class="button">View Message & Reply</a>
+
+          <p style="margin-top: 30px; font-size: 14px; color: #666;">
+            <strong>💡 Tip:</strong> All communication stays secure on our platform. Never share contact details or arrange payments outside BlueTika.
+          </p>
+        </div>
+        <div class="footer">
+          <p>BlueTika - Kiwis Helping Kiwis</p>
+          <p>100% NZ Owned | <a href="${baseUrl}">bluetika.co.nz</a></p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const textBody = `
+Hi ${recipientName},
+
+${senderName} sent you a message about: ${projectTitle}
+
+Message preview:
+"${messagePreview}${messagePreview.length >= 100 ? "..." : ""}"
+
+Reply on BlueTika: ${contractUrl}
+
+💡 Tip: All communication stays secure on our platform. Never share contact details or arrange payments outside BlueTika.
+
+---
+BlueTika - Kiwis Helping Kiwis
+100% NZ Owned | bluetika.co.nz
+  `;
+
+  await sendEmail({
+    to: recipientEmail,
+    subject: `💬 ${senderName} sent you a message on BlueTika`,
+    htmlBody,
+    textBody
+  });
+}
+
 export const sesEmailService = {
   sendEmail,
   sendEvidencePhotoReminder,
@@ -560,5 +640,6 @@ export const sesEmailService = {
   sendDocumentManuallyApproved,
   sendDocumentRejected,
   sendMonalisaWeeklySummary,
-  sendWorkCompleteNotification
+  sendWorkCompleteNotification,
+  sendContractMessageNotification
 };

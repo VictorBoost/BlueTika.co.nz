@@ -136,11 +136,11 @@ position: 33
 ### **PORTION 4: Email Notifications for Messages** (1 hour) ⏱️
 
 **File: src/services/contractMessageService.ts**
-- [ ] After sendMessage succeeds → trigger email
-- [ ] Get recipient email (if sender is client → email provider, vice versa)
-- [ ] Email template: "New message on your contract: [preview]"
-- [ ] Link to contract page
-- [ ] Subject: "💬 [Name] sent you a message on BlueTika"
+- [x] After sendMessage succeeds → trigger email
+- [x] Get recipient email (if sender is client → email provider, vice versa)
+- [x] Email template: "New message on your contract: [preview]"
+- [x] Link to contract page
+- [x] Subject: "💬 [Name] sent you a message on BlueTika"
 
 **Email content:**
 - Sender name

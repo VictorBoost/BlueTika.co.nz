@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
+import { sesEmailService } from "./sesEmailService";
 
 type ContractMessage = Tables<"contract_messages">;
 
@@ -28,6 +29,45 @@ export async function sendMessage(
       .single();
 
     if (error) throw error;
+
+    // Send email notification to recipient
+    try {
+      const { data: contract } = await supabase
+        .from("contracts")
+        .select(`
+          id,
+          client_id,
+          provider_id,
+          project:projects(title),
+          client:profiles!contracts_client_id_fkey(full_name, email),
+          provider:profiles!contracts_provider_id_fkey(full_name, email)
+        `)
+        .eq("id", contractId)
+        .single();
+
+      if (contract) {
+        const isClientSender = senderId === contract.client_id;
+        const recipientEmail = isClientSender ? contract.provider.email : contract.client.email;
+        const recipientName = isClientSender ? contract.provider.full_name : contract.client.full_name;
+        const senderName = isClientSender ? contract.client.full_name : contract.provider.full_name;
+        const projectTitle = contract.project.title;
+
+        const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://bluetika.co.nz";
+
+        await sesEmailService.sendContractMessageNotification(
+          recipientEmail,
+          recipientName,
+          senderName,
+          message.substring(0, 100), // Preview first 100 chars
+          projectTitle,
+          contractId,
+          baseUrl
+        );
+      }
+    } catch (emailError) {
+      console.error("Failed to send email notification:", emailError);
+      // Don't fail the message send if email fails
+    }
 
     return { data, error: null };
   } catch (error) {
