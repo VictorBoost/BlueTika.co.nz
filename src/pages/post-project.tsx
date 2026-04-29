@@ -137,13 +137,9 @@ export default function PostProject() {
 
   const checkVerification = async () => {
     try {
-      // Use session API to check if user is logged in
-      const response = await fetch("/api/auth/session", {
-        method: "GET",
-        credentials: "include",
-      });
+      const session = await authService.getCurrentSession();
 
-      if (response.status === 401 || !response.ok) {
+      if (!session?.user) {
         // Not logged in
         toast({
           title: "Authentication required",
@@ -154,18 +150,8 @@ export default function PostProject() {
         return;
       }
 
-      const { user } = await response.json();
+      const user = session.user;
       
-      if (!user) {
-        toast({
-          title: "Authentication required",
-          description: "Please log in to post a project",
-          variant: "destructive",
-        });
-        router.push("/login?redirect=/post-project");
-        return;
-      }
-
       // Check if user is a client
       const { data: profile } = await supabase
         .from("profiles")
@@ -351,13 +337,9 @@ export default function PostProject() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Use session API to get current user
-    const sessionResponse = await fetch("/api/auth/session", {
-      method: "GET",
-      credentials: "include",
-    });
+    const session = await authService.getCurrentSession();
 
-    if (!sessionResponse.ok) {
+    if (!session?.user) {
       toast({
         title: "Authentication required",
         description: "Please log in to post a project",
@@ -367,17 +349,7 @@ export default function PostProject() {
       return;
     }
 
-    const { user } = await sessionResponse.json();
-    
-    if (!user) {
-      toast({
-        title: "Authentication required",
-        description: "Please log in to post a project",
-        variant: "destructive",
-      });
-      router.push("/login?redirect=/post-project");
-      return;
-    }
+    const user = session.user;
 
     if (isDomesticHelper && !formData.subcategory_id) {
       toast({
