@@ -20,6 +20,7 @@ import { RoutineContractPrompt } from "@/components/RoutineContractPrompt";
 import { ClientApprovalCard } from "@/components/ClientApprovalCard";
 import { toast } from "@/hooks/use-toast";
 import { SafetyBanner } from "@/components/SafetyBanner";
+import { ProjectCard } from "@/components/ProjectCard";
 
 type Contract = any;
 type RoutineBooking = any;
@@ -41,6 +42,7 @@ export default function ContractsPage() {
   const [showCancellationForm, setShowCancellationForm] = useState<string | null>(null);
   const [cancellationReason, setCancellationReason] = useState("");
   const [submittingCancellation, setSubmittingCancellation] = useState(false);
+  const [myProjects, setMyProjects] = useState<any[]>([]);
 
   useEffect(() => {
     checkUserAndLoadData();
@@ -63,6 +65,28 @@ export default function ContractsPage() {
     await loadContracts(user.id);
     await loadRoutineContracts(user.id);
     await loadCancellationRequests(user.id);
+    await loadMyProjects(user.id);
+  }
+
+  async function loadMyProjects(userId: string) {
+    const { data, error } = await supabase
+      .from("projects")
+      .select(`
+        *,
+        category:categories(name),
+        subcategory:subcategories(name),
+        bids(id)
+      `)
+      .eq("client_id", userId)
+      .order("created_at", { ascending: false });
+
+    if (!error && data) {
+      const projectsWithStats = data.map((p: any) => ({
+        ...p,
+        bid_count: Array.isArray(p.bids) ? p.bids.length : 0
+      }));
+      setMyProjects(projectsWithStats);
+    }
   }
 
   async function loadContracts(userId: string) {
@@ -355,9 +379,30 @@ export default function ContractsPage() {
         <Tabs defaultValue="active">
           <TabsList>
             <TabsTrigger value="active">Active Contracts</TabsTrigger>
+            <TabsTrigger value="my-projects">My Posted Projects</TabsTrigger>
             <TabsTrigger value="routine">Routine Arrangements ({routineContracts.length})</TabsTrigger>
             <TabsTrigger value="completed">Archive</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="my-projects" className="space-y-4">
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin" />
+              </div>
+            ) : myProjects.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center text-muted-foreground">
+                  You haven't posted any projects yet.
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid md:grid-cols-2 gap-6">
+                {myProjects.map((project) => (
+                  <ProjectCard key={project.id} project={project} isOwner={false} />
+                ))}
+              </div>
+            )}
+          </TabsContent>
 
           <TabsContent value="active" className="space-y-4">
             {loading ? (
