@@ -125,6 +125,13 @@ const sections = [
     color: "bg-yellow-500/10 hover:bg-yellow-500/20 border-yellow-500",
   },
   {
+    title: "Bot Activity Monitor",
+    description: "Real-time bot activity feeds and automation logs",
+    icon: <Activity className="w-8 h-8 text-accent" />,
+    href: "/muna/bot-activity",
+    color: "bg-orange-600/10 hover:bg-orange-600/20 border-orange-600",
+  },
+  {
     title: "Contracts Monitor",
     description: "Real-time contract lifecycle monitoring dashboard",
     icon: <Activity className="w-8 h-8 text-accent" />,
