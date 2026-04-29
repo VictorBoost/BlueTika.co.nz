@@ -71,27 +71,28 @@ position: 33
 ### **PORTION 2: Create Contract Chat Component** (3 hours) ⏱️
 
 **File 1: Create src/components/ContractChat.tsx**
-- [ ] Import contract_messages service
-- [ ] Real-time message list (newest first or oldest first - decide)
-- [ ] Text input with send button
-- [ ] Show sender name + timestamp
-- [ ] Auto-scroll to latest message
-- [ ] Loading states
-- [ ] Empty state: "Start conversation with [name]"
-- [ ] Mark who is client vs provider with badges
+- [x] Import contract_messages service
+- [x] Real-time message list (oldest first with auto-scroll)
+- [x] Text input with send button
+- [x] Show sender name + timestamp
+- [x] Auto-scroll to latest message
+- [x] Loading states
+- [x] Empty state: "Start conversation with [name]"
+- [x] Mark who is client vs provider with badges
 
 **Features:**
-- [ ] Send text message (200 char limit)
-- [ ] Display all messages for this contract
-- [ ] Show sender avatar/initials
-- [ ] Timestamp formatting (e.g., "2 hours ago", "Yesterday 3:45pm")
-- [ ] Prevent empty messages
-- [ ] Realtime updates (poll every 10 seconds OR use Supabase realtime)
+- [x] Send text message (500 char limit)
+- [x] Display all messages for this contract
+- [x] Show sender avatar/initials
+- [x] Timestamp formatting (e.g., "2 hours ago", "Yesterday 3:45pm")
+- [x] Prevent empty messages
+- [x] Realtime updates (Supabase realtime subscription)
 
 **File 2: Create src/services/contractMessageService.ts**
-- [ ] sendMessage(contractId, senderId, message)
-- [ ] getMessages(contractId) - ordered by created_at
-- [ ] markAsRead(messageId) - for future read receipts
+- [x] sendMessage(contractId, senderId, message)
+- [x] getMessages(contractId) - ordered by created_at
+- [x] markAsRead(messageId) - for future read receipts
+- [x] subscribeToMessages() - real-time updates
 
 **Test Cases:**
 - [ ] Send message as client → appears in provider's view
