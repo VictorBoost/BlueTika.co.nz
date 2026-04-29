@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "@/integrations/supabase/client";
 import { contractService } from "@/services/contractService";
-import { googleCalendarService } from "@/services/googleCalendarService";
 import { routineContractService } from "@/services/routineContractService";
 import { cancellationService } from "@/services/cancellationService";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Calendar, Loader2, Clock, MapPin, Star, Calendar as CalendarIcon, AlertCircle, XCircle, User } from "lucide-react";
+import { Loader2, Clock, AlertCircle, XCircle, User } from "lucide-react";
 import { ProgressSteps } from "@/components/ProgressSteps";
 import { EvidencePhotoUpload } from "@/components/EvidencePhotoUpload";
 import { ReviewSubmissionModal } from "@/components/ReviewSubmissionModal";
@@ -36,8 +35,6 @@ export default function ContractsPage() {
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [routinePromptOpen, setRoutinePromptOpen] = useState(false);
   const [routinePromptContract, setRoutinePromptContract] = useState<any>(null);
-  const [calendarConnected, setCalendarConnected] = useState(false);
-  const [syncingCalendar, setSyncingCalendar] = useState<string | null>(null);
   const [cancellationRequests, setCancellationRequests] = useState<Record<string, any>>({});
   const [showCancellationForm, setShowCancellationForm] = useState<string | null>(null);
   const [cancellationReason, setCancellationReason] = useState("");
@@ -57,10 +54,6 @@ export default function ContractsPage() {
     }
 
     setUser(user);
-    
-    // Check Google Calendar connection
-    const connected = await googleCalendarService.isConnected(user.id);
-    setCalendarConnected(connected);
     
     await loadContracts(user.id);
     await loadRoutineContracts(user.id);
@@ -232,52 +225,6 @@ export default function ContractsPage() {
     }
   }
 
-  async function handleConnectGoogleCalendar() {
-    if (!user) return;
-    
-    const authUrl = googleCalendarService.getAuthUrl(user.id);
-    window.location.href = authUrl;
-  }
-
-  async function handleSyncToCalendar(contract: any) {
-    if (!user || !calendarConnected) return;
-
-    setSyncingCalendar(contract.id);
-
-    try {
-      const userRole = contract.client_id === user.id ? "client" : "provider";
-      const otherPartyName = userRole === "client" 
-        ? contract.provider?.full_name || "Service Provider"
-        : contract.client?.full_name || "Client";
-
-      await googleCalendarService.createContractEvent(
-        user.id,
-        contract.id,
-        contract.project.title,
-        otherPartyName,
-        contract.agreed_start_date,
-        contract.project.address,
-        userRole === "client"
-      );
-
-      toast({
-        title: "Added to Calendar",
-        description: "This contract has been added to your Google Calendar."
-      });
-
-      loadContracts(user.id);
-    } catch (error) {
-      console.error("Error syncing to calendar:", error);
-      toast({
-        title: "Sync Failed",
-        description: "Could not add to Google Calendar. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setSyncingCalendar(null);
-    }
-  }
-
   async function handlePauseRoutine(routineId: string) {
     const { error } = await routineContractService.pauseRoutine(routineId);
     
@@ -357,25 +304,6 @@ export default function ContractsPage() {
             <strong>Contract Lifecycle:</strong> Cancellation requests give the other party 48 hours to respond before auto-cancellation. Completed/cancelled contracts move to archive and are not deleted.
           </AlertDescription>
         </Alert>
-
-        {!calendarConnected && (
-          <Card className="mb-6 border-accent">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CalendarIcon className="w-5 h-5" />
-                Connect Google Calendar
-              </CardTitle>
-              <CardDescription>
-                Add your contracts to Google Calendar to get automatic reminders
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button onClick={handleConnectGoogleCalendar}>
-                Connect Calendar
-              </Button>
-            </CardContent>
-          </Card>
-        )}
 
         <Tabs defaultValue="active">
           <TabsList>
@@ -511,22 +439,6 @@ export default function ContractsPage() {
                                 </div>
                               </div>
 
-                              {calendarConnected && !contract.google_calendar_event_id && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleSyncToCalendar(contract)}
-                                  disabled={syncingCalendar === contract.id}
-                                >
-                                  {syncingCalendar === contract.id ? (
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                  ) : (
-                                    <CalendarIcon className="w-4 h-4 mr-2" />
-                                  )}
-                                  Add to Calendar
-                                </Button>
-                              )}
-
                               {/* Cancellation Request Section */}
                               {!isPendingCancellation && contract.status === "active" && (
                                 <div className="border-t pt-4 mt-4">
@@ -596,7 +508,7 @@ export default function ContractsPage() {
                           </Card>
                         );
                       })
-                    )}
+                    }
                   </div>
                 )}
               </div>
