@@ -54,8 +54,7 @@ export default function AdminVerifyProviders() {
       }
 
       console.log("✅ [Verify Providers] Admin verified, loading data...");
-      setIsAuthorized(true);
-      loadVerifications();
+      loadDocuments();
     } catch (error) {
       console.error("💥 [Verify Providers] Auth check failed:", error);
       router.push("/muna/login");
@@ -374,50 +373,6 @@ export default function AdminVerifyProviders() {
         </TableBody>
       </Table>
     );
-  };
-
-  const loadVerifications = async () => {
-    console.log("🔍 [Verify Providers] Loading verification documents...");
-    
-    try {
-      const { data, error } = await supabase
-        .from("verification_documents")
-        .select(`
-          *,
-          profile:profiles!verification_documents_profile_id_fkey(
-            id,
-            full_name,
-            email
-          )
-        `)
-        .order("created_at", { ascending: false });
-
-      console.log("🔍 [Verify Providers] Query result:", {
-        rowCount: data?.length || 0,
-        error: error?.message,
-        sample: data?.[0]
-      });
-
-      if (error) {
-        console.error("❌ [Verify Providers] Database error:", error);
-        throw error;
-      }
-
-      const formattedData = data?.map(doc => ({
-        ...doc,
-        profile: Array.isArray(doc.profile) ? doc.profile[0] : doc.profile
-      })) || [];
-
-      console.log("✅ [Verify Providers] Loaded", formattedData.length, "verification documents");
-      setVerifications(formattedData);
-    } catch (error: any) {
-      console.error("💥 [Verify Providers] Load failed:", error);
-      toast({
-        title: "Error loading verifications",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
   };
 
   return (
