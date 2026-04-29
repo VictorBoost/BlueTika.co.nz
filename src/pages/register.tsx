@@ -54,9 +54,9 @@ export default function RegisterPage() {
   };
 
   const validatePhoneNumber = (phone: string): boolean => {
-    // NZ phone format: 021/022/027 followed by 6-8 digits, or 03/04/06/07/09 followed by 7 digits
-    const mobilePattern = /^(02[1247]|021)\s?\d{3}\s?\d{3,4}$/;
-    const landlinePattern = /^(0[3-9])\s?\d{3}\s?\d{4}$/;
+    // NZ phone format: 02X followed by 6-8 digits, or 03/04/06/07/09 followed by 7 digits
+    const mobilePattern = /^(02[0-9])\s?\d{3,4}\s?\d{3,4}$/;
+    const landlinePattern = /^(0[34679])\s?\d{3}\s?\d{4}$/;
     const cleanPhone = phone.replace(/\s+/g, '');
     return mobilePattern.test(cleanPhone) || landlinePattern.test(cleanPhone);
   };
