@@ -1,6 +1,7 @@
 import { SEO } from "@/components/SEO";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
+import { Navigation } from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -64,17 +65,6 @@ export default function DirectoryListingsAdmin() {
       }
 
       if (response.status === 403 || !data.isAdmin) {
-        router.push("/muna");
-        return;
-      }
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("email")
-        .eq("id", user.id)
-        .single();
-
-      if (!profile || profile.email?.toLowerCase() !== "bluetikanz@gmail.com") {
         router.push("/muna");
         return;
       }
@@ -165,6 +155,7 @@ export default function DirectoryListingsAdmin() {
     <>
       <SEO title="Directory Listings - BlueTika Admin" />
       <div className="min-h-screen bg-background">
+        <Navigation />
         <div className="container py-12 px-4">
           <Button
             variant="outline"

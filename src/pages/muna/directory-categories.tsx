@@ -7,7 +7,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -19,8 +18,6 @@ interface DirectoryCategory {
   name: string;
   slug: string;
   description: string;
-  icon: string;
-  is_active: boolean;
   display_order: number;
   created_at: string;
 }
@@ -36,8 +33,6 @@ export default function DirectoryCategoriesPage() {
     name: "",
     slug: "",
     description: "",
-    icon: "",
-    is_active: true,
     display_order: 0,
   });
 
@@ -47,20 +42,19 @@ export default function DirectoryCategoriesPage() {
 
   async function checkAccess() {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const response = await fetch("/api/auth/verify-admin", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      const data = await response.json();
       
-      if (!user) {
-        router.push("/muna");
+      if (response.status === 401) {
+        router.push("/muna/login");
         return;
       }
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("email")
-        .eq("id", user.id)
-        .single();
-
-      if (!profile || profile.email?.toLowerCase() !== "bluetikanz@gmail.com") {
+      if (response.status === 403 || !data.isAdmin) {
         router.push("/muna");
         return;
       }
@@ -98,8 +92,6 @@ export default function DirectoryCategoriesPage() {
       name: "",
       slug: "",
       description: "",
-      icon: "",
-      is_active: true,
       display_order: categories.length,
     });
     setIsDialogOpen(true);
@@ -111,8 +103,6 @@ export default function DirectoryCategoriesPage() {
       name: category.name,
       slug: category.slug,
       description: category.description,
-      icon: category.icon,
-      is_active: category.is_active,
       display_order: category.display_order,
     });
     setIsDialogOpen(true);
@@ -241,28 +231,11 @@ export default function DirectoryCategoriesPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Icon (Lucide React name)</Label>
-                    <Input
-                      value={formData.icon}
-                      onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                      placeholder="e.g., Wrench"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
                     <Label>Display Order</Label>
                     <Input
                       type="number"
                       value={formData.display_order}
                       onChange={(e) => setFormData({ ...formData, display_order: parseInt(e.target.value) })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <Label>Active</Label>
-                    <Switch
-                      checked={formData.is_active}
-                      onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
                     />
                   </div>
 
@@ -286,9 +259,7 @@ export default function DirectoryCategoriesPage() {
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Slug</TableHead>
-                    <TableHead>Icon</TableHead>
                     <TableHead>Order</TableHead>
-                    <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -297,15 +268,7 @@ export default function DirectoryCategoriesPage() {
                     <TableRow key={category.id}>
                       <TableCell className="font-medium">{category.name}</TableCell>
                       <TableCell className="text-muted-foreground">{category.slug}</TableCell>
-                      <TableCell>{category.icon}</TableCell>
                       <TableCell>{category.display_order}</TableCell>
-                      <TableCell>
-                        {category.is_active ? (
-                          <span className="text-success">Active</span>
-                        ) : (
-                          <span className="text-muted-foreground">Inactive</span>
-                        )}
-                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button variant="ghost" size="sm" onClick={() => openEditDialog(category)}>
