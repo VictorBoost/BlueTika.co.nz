@@ -77,7 +77,7 @@ export default function BotActivityPage() {
     if (isAuthorized && !loading) {
       loadActivities();
     }
-  }, [filterType, sortBy, isAuthorized, loading]);
+  }, [filterType, isAuthorized, loading]);
 
   useEffect(() => {
     if (autoRefresh && !loading) {
