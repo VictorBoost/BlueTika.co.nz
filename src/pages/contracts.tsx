@@ -786,6 +786,39 @@ export default function ContractsPage() {
           isSubmitting={isMarkingComplete}
         />
       )}
+
+      {/* Contract Chat - Only for paid contracts */}
+      {selectedContract.payment_status === "paid" && session?.user && (
+        <ContractChat
+          contractId={selectedContract.id}
+          currentUserId={session.user.id}
+          clientId={selectedContract.client_id}
+          providerId={selectedContract.provider_id}
+          clientName={
+            selectedContract.projects?.profiles?.full_name ||
+            selectedContract.projects?.profiles?.email ||
+            "Client"
+          }
+          providerName={
+            selectedContract.provider_profiles?.full_name ||
+            selectedContract.provider_profiles?.email ||
+            "Provider"
+          }
+        />
+      )}
+
+      {/* Additional Charges Section */}
+      {session?.user?.id === selectedContract.provider_id && 
+        selectedContract.status === "in_progress" && (
+        <AdditionalChargeRequest contractId={selectedContract.id} />
+      )}
+
+      {/* List of All Additional Charges */}
+      <AdditionalChargesList
+        contractId={selectedContract.id}
+        currentUserId={session?.user?.id || ""}
+        isProvider={session?.user?.id === selectedContract.provider_id}
+      />
     </div>
   );
 }

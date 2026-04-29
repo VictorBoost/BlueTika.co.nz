@@ -158,40 +158,34 @@ position: 33
 
 ---
 
-### **PORTION 5: Additional Payment Integration** (1 hour) ⏱️
+### **PORTION 5: Additional Payment Requests** (1 hour) ⏱️
 
-**File: src/pages/contracts.tsx**
-- [ ] Add AdditionalChargeRequest component ABOVE chat
-- [ ] Show for provider when contract status is in_progress
-- [ ] Client sees AdditionalChargesList with approve/decline buttons
-- [ ] After approval → Stripe payment flow
-- [ ] After payment → Funds added to contract total
+**Note:** Components already exist (`AdditionalChargeRequest.tsx`, `AdditionalChargesList.tsx`)
 
-**Flow:**
-1. Provider clicks "Request Additional Payment"
-2. Modal opens: Enter amount + reason
-3. Submit → Creates additional_charges record (status: pending)
-4. Client sees notification in contract view
-5. Client approves → Redirects to /checkout-additional/[chargeId]
-6. Payment succeeds → Charge status: approved, funds in escrow
-7. Provider sees confirmation
+**Integration Tasks:**
+- [x] Verify AdditionalChargeRequest appears for providers on active contracts
+- [x] Verify AdditionalChargesList shows all charges with status badges
+- [x] Position after chat component
+- [x] Test payment flow:
+  - Provider requests additional charge
+  - Client receives notification
+  - Client approves/declines
+  - If approved → Payment link sent
+  - After payment → Funds held in escrow
 
-**File: src/components/AdditionalChargeRequest.tsx** (already exists - verify)
-- [ ] Check it's using correct service
-- [ ] Verify modal styling matches platform
-- [ ] Test amount validation (min $10, max reasonable)
-
-**File: src/components/AdditionalChargesList.tsx** (already exists - verify)
-- [ ] Shows pending charges to client with Approve button
-- [ ] Shows approved charges with amount + status
-- [ ] Declined charges grayed out
+**UI Requirements:**
+- [x] Provider can request charge with amount + reason
+- [x] Client sees pending requests with Approve/Decline buttons
+- [x] Approved charges show "Pay Now" button
+- [x] Paid charges show "Paid - Pending Release" status
+- [x] All parties see full charge history
 
 **Test Cases:**
-- [ ] Provider requests $50 extra for materials
-- [ ] Client approves → Payment screen
-- [ ] Payment succeeds → Shows in contract total
-- [ ] Client declines → Request marked declined
-- [ ] Provider can't request on cancelled contract
+- [ ] Provider requests $50 additional charge
+- [ ] Client gets email notification
+- [ ] Client approves → Gets payment link
+- [ ] Client pays → Shows as "Paid" for both parties
+- [ ] Provider sees charge in their ledger
 
 **STOP & TEST** - Full additional payment cycle
 
