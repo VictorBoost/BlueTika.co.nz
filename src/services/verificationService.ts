@@ -80,7 +80,7 @@ export const verificationService = {
     const { error: profileError } = await supabase
       .from("profiles")
       .update({
-        provider_verification_status: "pending"
+        verification_status: "pending"
       })
       .eq("id", providerId);
 

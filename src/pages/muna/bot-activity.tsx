@@ -46,6 +46,7 @@ interface ActivityStats {
 export default function BotActivityPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const [isAuthorized, setIsAuthorized] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activities, setActivities] = useState<any[]>([]);
   const [filterType, setFilterType] = useState<string>("all");
