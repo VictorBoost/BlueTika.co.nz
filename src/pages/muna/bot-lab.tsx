@@ -35,11 +35,12 @@ export default function BotLab() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("email")
+        .select("email, is_admin")
         .eq("id", user.id)
         .single();
       
-      console.log("Bot Lab - Profile email:", profile?.email);
+      console.log("Bot Lab - Profile data:", profile);
+      console.log("Bot Lab - Email match check:", profile?.email, "===", "bluetikanz@gmail.com", "?", profile?.email === "bluetikanz@gmail.com");
       
       if (!profile || profile.email !== "bluetikanz@gmail.com") {
         console.log("Bot Lab - Access denied, redirecting to /muna");
