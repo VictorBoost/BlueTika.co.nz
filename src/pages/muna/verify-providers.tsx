@@ -75,8 +75,9 @@ export default function AdminVerifyProviders() {
       `)
       .eq("status", "pending")
       .in("document_type", ["driver_licence", "driver_licence_back", "trade_certificate"])
-      .order("ai_confidence_score", { ascending: true, nullsFirst: false })
       .order("created_at");
+
+    console.log("Standard verification query:", { data: standard, error: standardError });
 
     // Load domestic helper verifications (police check, first aid)
     const { data: domestic, error: domesticError } = await supabase
@@ -91,14 +92,26 @@ export default function AdminVerifyProviders() {
       .in("document_type", ["police_check", "first_aid"])
       .order("created_at");
 
+    console.log("Domestic helper verification query:", { data: domestic, error: domesticError });
+
     if (standardError) {
       console.error("Error loading standard docs:", standardError);
+      toast({
+        title: "Error",
+        description: `Failed to load standard verifications: ${standardError.message}`,
+        variant: "destructive",
+      });
     } else {
       setStandardDocs(standard || []);
     }
 
     if (domesticError) {
       console.error("Error loading domestic helper docs:", domesticError);
+      toast({
+        title: "Error",
+        description: `Failed to load domestic helper verifications: ${domesticError.message}`,
+        variant: "destructive",
+      });
     } else {
       setDomesticHelperDocs(domestic || []);
     }
