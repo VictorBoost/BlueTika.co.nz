@@ -194,21 +194,21 @@ position: 33
 ### **PORTION 6: Final Polish & Safety** (30 mins) ⏱️
 
 **Safety Warnings:**
-- [ ] Add banner: "Keep all payments on BlueTika. Never pay outside the platform."
-- [ ] In chat placeholder: "No phone numbers, email, or payment details in messages"
-- [ ] On AdditionalChargeRequest: "All payments through BlueTika for your protection"
+- [x] Add banner: "Keep all payments on BlueTika. Never pay outside the platform."
+- [x] In chat placeholder: "No phone numbers, email, or payment details in messages"
+- [x] On AdditionalChargeRequest: "All payments through BlueTika for your protection"
 
 **Content Safety:**
-- [ ] Check if chat messages get flagged for phone/email patterns
-- [ ] Use existing contentSafetyService for message screening
-- [ ] Warn user if message contains contact info
+- [x] Check if chat messages get flagged for phone/email patterns
+- [x] Use existing contentSafetyService for message screening
+- [x] Warn user if message contains contact info
 
 **UI Polish:**
-- [ ] Chat scrollbar styling
-- [ ] Message timestamps readable
-- [ ] Loading states smooth
-- [ ] Error messages helpful
-- [ ] Empty states encouraging
+- [x] Chat scrollbar styling
+- [x] Message timestamps readable
+- [x] Loading states smooth
+- [x] Error messages helpful
+- [x] Empty states encouraging
 
 **STOP & FINAL TEST**
 

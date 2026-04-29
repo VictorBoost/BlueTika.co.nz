@@ -788,36 +788,33 @@ export default function ContractsPage() {
       )}
 
       {/* Contract Chat - Only for paid contracts */}
-      {selectedContract.payment_status === "paid" && session?.user && (
+      {selectedContract.payment_status === "paid" && user && (
         <ContractChat
           contractId={selectedContract.id}
-          currentUserId={session.user.id}
+          currentUserId={user.id}
           clientId={selectedContract.client_id}
           providerId={selectedContract.provider_id}
-          clientName={
-            selectedContract.projects?.profiles?.full_name ||
-            selectedContract.projects?.profiles?.email ||
-            "Client"
-          }
-          providerName={
-            selectedContract.provider_profiles?.full_name ||
-            selectedContract.provider_profiles?.email ||
-            "Provider"
-          }
+          clientName={selectedContract.client?.full_name || "Client"}
+          providerName={selectedContract.provider?.full_name || "Provider"}
         />
       )}
 
       {/* Additional Charges Section */}
-      {session?.user?.id === selectedContract.provider_id && 
+      {user?.id === selectedContract.provider_id && 
         selectedContract.status === "in_progress" && (
-        <AdditionalChargeRequest contractId={selectedContract.id} />
+        <AdditionalChargeRequest 
+          contractId={selectedContract.id}
+          providerId={selectedContract.provider_id}
+          clientId={selectedContract.client_id}
+          onRequestSubmitted={() => { if (user) loadContracts(user.id); }}
+        />
       )}
 
       {/* List of All Additional Charges */}
       <AdditionalChargesList
-        contractId={selectedContract.id}
-        currentUserId={session?.user?.id || ""}
-        isProvider={session?.user?.id === selectedContract.provider_id}
+        charges={selectedContract.additional_charges || []}
+        isClient={user?.id === selectedContract.client_id}
+        onUpdate={() => { if (user) loadContracts(user.id); }}
       />
     </div>
   );
