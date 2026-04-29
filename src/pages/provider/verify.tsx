@@ -142,9 +142,9 @@ export default function ProviderVerification() {
           });
         } else {
           toast({
-            title: "Document Received",
-            description: `AI confidence: ${aiResult.confidence}%. Your document is queued for manual review.`,
-            duration: 5000,
+            title: "Document Submitted for Review",
+            description: `Your document has been submitted for manual review by our admin team. You'll receive an email once approved. (AI confidence: ${aiResult.confidence}%)`,
+            duration: 6000,
           });
         }
       }
@@ -195,9 +195,9 @@ export default function ProviderVerification() {
           });
         } else {
           toast({
-            title: "Certificate Received",
-            description: `AI confidence: ${aiResult.confidence}%. Queued for manual review.`,
-            duration: 5000,
+            title: "Certificate Submitted for Review",
+            description: `Your certificate has been submitted for manual review by our admin team. You'll receive an email once approved. (AI confidence: ${aiResult.confidence}%)`,
+            duration: 6000,
           });
         }
       }

@@ -111,7 +111,7 @@ export const aiVerificationService = {
           ai_scan_result: autoApproved ? "pass" : "review_required",
           ai_scan_reason: scanResult.reason,
           scanned_at: new Date().toISOString(),
-          status: autoApproved ? "approved" : "pending",
+          status: "pending",
           auto_approved: autoApproved,
         })
         .eq("id", documentId);
@@ -132,9 +132,9 @@ export const aiVerificationService = {
         scanResult.reason
       );
 
-      // Step 5: If auto-approved, send email notification
+      // Step 5: If auto-approved, send email notification but keep in queue for owner review
       if (autoApproved) {
-        console.log("AUTO-APPROVED: Sending email to provider", { providerId, documentType });
+        console.log("AUTO-APPROVED: Document passed 75% threshold, notifying user but keeping in admin queue", { providerId, documentType });
         // Email will be sent by caller (verificationService)
       }
 
