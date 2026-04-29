@@ -144,27 +144,23 @@ serve(async (req) => {
         // Step 1: Upload "before" evidence photo with realistic caption
         const beforePhotoUrl = `https://picsum.photos/seed/${contract.id}-before/800/600`;
         await supabaseClient
-          .from("evidence_photos")
+          .from("contract_evidence_photos")
           .insert({
             contract_id: contract.id,
-            uploaded_by: contract.provider_id,
-            photo_type: "before",
-            photo_url: beforePhotoUrl,
-            caption: `Before starting the ${categoryName.toLowerCase()} work - documenting the initial state as requested by the client.`,
-            is_confirmed: true
+            uploader_role: "provider",
+            photo_urls: [beforePhotoUrl],
+            status: "approved"
           });
 
         // Step 2: Upload "after" evidence photo with realistic caption
         const afterPhotoUrl = `https://picsum.photos/seed/${contract.id}-after/800/600`;
         await supabaseClient
-          .from("evidence_photos")
+          .from("contract_evidence_photos")
           .insert({
             contract_id: contract.id,
-            uploaded_by: contract.provider_id,
-            photo_type: "after",
-            photo_url: afterPhotoUrl,
-            caption: `Work completed! All ${categoryName.toLowerCase()} tasks finished as agreed. Client was very happy with the results.`,
-            is_confirmed: true
+            uploader_role: "provider",
+            photo_urls: [afterPhotoUrl],
+            status: "approved"
           });
 
         // Step 3: Mark work done
