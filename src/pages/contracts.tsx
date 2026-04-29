@@ -23,6 +23,9 @@ import { ProjectCard } from "@/components/ProjectCard";
 import { MarkCompleteModal } from "@/components/MarkCompleteModal";
 import { sesEmailService } from "@/services/sesEmailService";
 import { notificationService } from "@/services/notificationService";
+import { AdditionalChargeRequest } from "@/components/AdditionalChargeRequest";
+import { AdditionalChargesList } from "@/components/AdditionalChargesList";
+import { ContractChat } from "@/components/ContractChat";
 
 type Contract = any;
 type RoutineBooking = any;

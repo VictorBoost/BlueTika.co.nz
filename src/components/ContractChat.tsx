@@ -47,8 +47,15 @@ export function ContractChat({
 
   useEffect(() => {
     loadMessages();
-    const unsubscribe = subscribeToMessages(contractId, handleNewMessage);
-    return () => unsubscribe();
+    
+    let cleanup: (() => void) | undefined;
+    subscribeToMessages(contractId, handleNewMessage).then((unsubscribeFn) => {
+      cleanup = unsubscribeFn;
+    });
+    
+    return () => {
+      if (cleanup) cleanup();
+    };
   }, [contractId]);
 
   useEffect(() => {
