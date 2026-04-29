@@ -97,9 +97,10 @@ export default function MunaLogin() {
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
+                  name="email"
                   type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={formData.email}
+                  onChange={handleChange}
                   className="bg-muted/50"
                   placeholder="bluetikanz@gmail.com"
                   required
