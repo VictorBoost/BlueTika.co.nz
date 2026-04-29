@@ -23,9 +23,10 @@ interface ProviderProfileModalProps {
     provider_categories?: Array<{ categories: { name: string } }>;
     trade_certificates?: Array<{ certificate_type: string; document_url: string }>;
   } | null;
+  hasPaidContract?: boolean;
 }
 
-export function ProviderProfileModal({ open, onOpenChange, provider }: ProviderProfileModalProps) {
+export function ProviderProfileModal({ open, onOpenChange, provider, hasPaidContract = false }: ProviderProfileModalProps) {
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [badges, setBadges] = useState<BadgeType[]>([]);
   const [loadingBadges, setLoadingBadges] = useState(true);
@@ -178,10 +179,10 @@ export function ProviderProfileModal({ open, onOpenChange, provider }: ProviderP
                         <span>{provider.phone}</span>
                       </div>
                     )}
-                    {provider.profiles?.email && (
+                    {provider.email && (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Mail className="h-4 w-4" />
-                        <span>{provider.profiles.email}</span>
+                        <span>{provider.email}</span>
                       </div>
                     )}
                   </>
