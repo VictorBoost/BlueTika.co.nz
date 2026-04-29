@@ -36,32 +36,33 @@ export default function AdminVerifyProviders() {
   }, []);
 
   async function checkAuth() {
+    console.log("🔍 [Verify Providers] Starting auth check...");
+    
     try {
-      const response = await fetch("/api/auth/verify-admin", {
-        method: "GET",
-        credentials: "include",
-      });
-
+      const response = await fetch("/api/auth/verify-admin");
       const data = await response.json();
       
-      if (response.status === 401) {
+      console.log("🔍 [Verify Providers] API response:", {
+        status: response.status,
+        data
+      });
+
+      if (!data.isAdmin) {
+        console.log("❌ [Verify Providers] Not admin, redirecting to /muna/login");
         router.push("/muna/login");
         return;
       }
 
-      if (response.status === 403 || !data.isAdmin) {
-        router.push("/muna");
-        return;
-      }
-
-      
-
-      loadDocuments();
+      console.log("✅ [Verify Providers] Admin verified, loading data...");
+      setIsAuthorized(true);
+      loadVerifications();
     } catch (error) {
-      console.error("Admin verification error:", error);
-      router.push("/muna");
+      console.error("💥 [Verify Providers] Auth check failed:", error);
+      router.push("/muna/login");
+    } finally {
+      setLoading(false);
     }
-  };
+  }
 
   const loadDocuments = async () => {
     setLoading(true);
@@ -373,6 +374,50 @@ export default function AdminVerifyProviders() {
         </TableBody>
       </Table>
     );
+  };
+
+  const loadVerifications = async () => {
+    console.log("🔍 [Verify Providers] Loading verification documents...");
+    
+    try {
+      const { data, error } = await supabase
+        .from("verification_documents")
+        .select(`
+          *,
+          profile:profiles!verification_documents_profile_id_fkey(
+            id,
+            full_name,
+            email
+          )
+        `)
+        .order("created_at", { ascending: false });
+
+      console.log("🔍 [Verify Providers] Query result:", {
+        rowCount: data?.length || 0,
+        error: error?.message,
+        sample: data?.[0]
+      });
+
+      if (error) {
+        console.error("❌ [Verify Providers] Database error:", error);
+        throw error;
+      }
+
+      const formattedData = data?.map(doc => ({
+        ...doc,
+        profile: Array.isArray(doc.profile) ? doc.profile[0] : doc.profile
+      })) || [];
+
+      console.log("✅ [Verify Providers] Loaded", formattedData.length, "verification documents");
+      setVerifications(formattedData);
+    } catch (error: any) {
+      console.error("💥 [Verify Providers] Load failed:", error);
+      toast({
+        title: "Error loading verifications",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   return (

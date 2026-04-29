@@ -1,39 +1,42 @@
-import type { NextApiRequest, NextApiResponse } from "next";
+import { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const OWNER_EMAIL = "bluetikanz@gmail.com";
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  console.log("🔍 [verify-admin] Starting verification check...");
+  
   if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
+    console.log("❌ [verify-admin] Wrong method:", req.method);
+    return res.status(405).json({ error: "Method not allowed", isAdmin: false });
   }
 
   try {
-    const accessToken = req.cookies["sb-access-token"];
-
-    if (!accessToken) {
-      return res.status(401).json({ 
-        isAdmin: false, 
-        isOwner: false,
-        error: "Not authenticated" 
-      });
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    console.log("🔍 [verify-admin] Checking session from cookies...");
+    const authHeader = req.headers.authorization || "";
+    const token = authHeader.replace("Bearer ", "") || req.cookies["sb-access-token"];
+    
+    console.log("🔍 [verify-admin] Token exists?", !!token);
+    
+    if (!token) {
+      console.log("❌ [verify-admin] No token found in cookies or headers");
+      return res.status(401).json({ error: "No session", isAdmin: false });
     }
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    
+    console.log("🔍 [verify-admin] User lookup result:", {
+      userId: user?.id,
+      userEmail: user?.email,
+      error: userError?.message
+    });
 
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-
-    if (error || !user) {
-      return res.status(401).json({ 
-        isAdmin: false, 
-        isOwner: false,
-        error: "Invalid session" 
-      });
+    if (userError || !user) {
+      console.log("❌ [verify-admin] User lookup failed:", userError?.message);
+      return res.status(401).json({ error: "Invalid session", isAdmin: false });
     }
 
     const { data: profile, error: profileError } = await supabase
@@ -42,20 +45,34 @@ export default async function handler(
       .eq("id", user.id)
       .single();
 
+    console.log("🔍 [verify-admin] Profile lookup result:", {
+      profileEmail: profile?.email,
+      error: profileError?.message
+    });
+
     if (profileError || !profile) {
+      console.log("❌ [verify-admin] Profile not found:", profileError?.message);
       return res.status(401).json({ error: "Profile not found", isAdmin: false });
     }
 
-    // Check if user is owner (case-insensitive)
     const isAdmin = profile.email?.toLowerCase() === "bluetikanz@gmail.com";
+    
+    console.log("🔍 [verify-admin] Final admin check:", {
+      email: profile.email,
+      normalized: profile.email?.toLowerCase(),
+      expected: "bluetikanz@gmail.com",
+      isAdmin
+    });
+
+    if (isAdmin) {
+      console.log("✅ [verify-admin] Admin access GRANTED");
+    } else {
+      console.log("❌ [verify-admin] Admin access DENIED - wrong email");
+    }
 
     return res.status(200).json({ isAdmin });
-  } catch (error) {
-    console.error("Admin verification error:", error);
-    return res.status(500).json({ 
-      isAdmin: false, 
-      isOwner: false,
-      error: "Server error" 
-    });
+  } catch (error: any) {
+    console.error("💥 [verify-admin] Exception caught:", error.message);
+    return res.status(500).json({ error: error.message, isAdmin: false });
   }
 }
