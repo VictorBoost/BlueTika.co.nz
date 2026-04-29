@@ -30,18 +30,20 @@ export default async function handler(
       return res.status(400).json({ error: "Email is required" });
     }
 
-    const { data: profile, error: profileError } = await supabaseAdmin
+    const { data: profiles, error: profileError } = await supabaseAdmin
       .from("profiles")
       .select("id, full_name")
       .eq("email", email)
-      .single();
+      .limit(1);
 
-    if (profileError || !profile) {
+    if (profileError || !profiles || profiles.length === 0) {
       return res.status(200).json({ 
         success: true, 
         message: "If an account exists with this email, you will receive a password reset link shortly." 
       });
     }
+
+    const profile = profiles[0];
 
     const resetToken = crypto.randomBytes(32).toString("hex");
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000);

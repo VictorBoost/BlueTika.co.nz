@@ -51,6 +51,8 @@ export default function ProviderVerification() {
     date_of_birth: "",
     driver_licence_file: null as File | null,
     driver_licence_url: "",
+    driver_licence_back_file: null as File | null,
+    driver_licence_back_url: "",
   });
 
   useEffect(() => {
@@ -74,6 +76,8 @@ export default function ProviderVerification() {
         date_of_birth: profileData.date_of_birth || "",
         driver_licence_file: null,
         driver_licence_url: profileData.driver_licence_url || "",
+        driver_licence_back_file: null,
+        driver_licence_back_url: "",
       });
 
       // Load existing certificates
@@ -105,7 +109,7 @@ export default function ProviderVerification() {
     }
   };
 
-  const handleDriverLicenceUpload = async (file: File) => {
+  const handleDriverLicenceUpload = async (file: File, type: string = "driver_licence") => {
     if (!profile) return;
 
     setUploading(true);
@@ -114,7 +118,7 @@ export default function ProviderVerification() {
       const { data, error } = await verificationService.uploadDocument(
         file,
         profile.id,
-        "driver_licence"
+        type
       );
 
       if (error) {
@@ -235,6 +239,42 @@ export default function ProviderVerification() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!formData.driver_licence_number.trim()) {
+      toast({
+        title: "Required Field Missing",
+        description: "Please enter your Driver Licence Number in Step 1",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.date_of_birth) {
+      toast({
+        title: "Required Field Missing",
+        description: "Please enter your Date of Birth in Step 1",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.driver_licence_file && !formData.driver_licence_url) {
+      toast({
+        title: "Required Field Missing",
+        description: "Please upload the Front of your Driver Licence",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.driver_licence_back_file && !formData.driver_licence_back_url) {
+      toast({
+        title: "Required Field Missing",
+        description: "Please upload the Back of your Driver Licence",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const session = await authService.getCurrentSession();
     if (!session?.user) {
       toast({
@@ -260,12 +300,20 @@ export default function ProviderVerification() {
       // Upload driver licence if new file
       let driverLicenceUrl = formData.driver_licence_url;
       if (formData.driver_licence_file) {
-        const url = await handleDriverLicenceUpload(formData.driver_licence_file);
+        const url = await handleDriverLicenceUpload(formData.driver_licence_file, "driver_licence");
         if (!url) {
           setLoading(false);
           return;
         }
         driverLicenceUrl = url;
+      }
+
+      if (formData.driver_licence_back_file) {
+        const url = await handleDriverLicenceUpload(formData.driver_licence_back_file, "driver_licence_back");
+        if (!url) {
+          setLoading(false);
+          return;
+        }
       }
 
       // Upload trade certificates
@@ -455,7 +503,6 @@ export default function ProviderVerification() {
                         value={formData.driver_licence_number}
                         onChange={(e) => setFormData({ ...formData, driver_licence_number: e.target.value })}
                         placeholder="XX000000"
-                        required
                       />
                     </div>
 
@@ -466,42 +513,72 @@ export default function ProviderVerification() {
                         type="date"
                         value={formData.date_of_birth}
                         onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
-                        required
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="driver_licence">Upload Driver Licence Photo *</Label>
-                    <Input
-                      id="driver_licence"
-                      type="file"
-                      accept="image/*,.pdf"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          if (file.size > 10 * 1024 * 1024) {
-                            toast({
-                              title: "File too large",
-                              description: "Maximum file size is 10MB",
-                              variant: "destructive",
-                            });
-                            return;
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="driver_licence_front">Upload Driver Licence (Front) *</Label>
+                      <Input
+                        id="driver_licence_front"
+                        type="file"
+                        accept="image/*,.pdf"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            if (file.size > 10 * 1024 * 1024) {
+                              toast({
+                                title: "File too large",
+                                description: "Maximum file size is 10MB",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+                            setFormData({ ...formData, driver_licence_file: file });
                           }
-                          setFormData({ ...formData, driver_licence_file: file });
-                        }
-                      }}
-                      required={!formData.driver_licence_url}
-                    />
+                        }}
+                      />
+                      {formData.driver_licence_url && (
+                        <p className="text-sm text-success flex items-center gap-1">
+                          <CheckCircle className="h-4 w-4" />
+                          Front photo already uploaded
+                        </p>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="driver_licence_back">Upload Driver Licence (Back) *</Label>
+                      <Input
+                        id="driver_licence_back"
+                        type="file"
+                        accept="image/*,.pdf"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            if (file.size > 10 * 1024 * 1024) {
+                              toast({
+                                title: "File too large",
+                                description: "Maximum file size is 10MB",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+                            setFormData({ ...formData, driver_licence_back_file: file });
+                          }
+                        }}
+                      />
+                      {formData.driver_licence_back_url && (
+                        <p className="text-sm text-success flex items-center gap-1">
+                          <CheckCircle className="h-4 w-4" />
+                          Back photo already uploaded
+                        </p>
+                      )}
+                    </div>
+
                     <p className="text-sm text-muted-foreground">
                       JPG, PNG, or PDF. Max 10MB. Must be clear and readable.
                     </p>
-                    {formData.driver_licence_url && (
-                      <p className="text-sm text-success flex items-center gap-1">
-                        <CheckCircle className="h-4 w-4" />
-                        Driver licence already uploaded
-                      </p>
-                    )}
                   </div>
                 </CardContent>
               </Card>

@@ -24,9 +24,13 @@ export default function LoginPage() {
     // Only check session on mount, don't redirect immediately
     // This allows logged-in users to visit the login page if needed
     const checkInitialSession = async () => {
-      const user = await authService.getCurrentUser();
-      // Don't auto-redirect if user is already logged in
-      // They might be trying to switch accounts
+      try {
+        const session = await authService.getCurrentSession();
+        // Don't auto-redirect if user is already logged in
+        // They might be trying to switch accounts
+      } catch (err) {
+        console.error("Session check skipped:", err);
+      }
     };
     checkInitialSession();
   }, []);

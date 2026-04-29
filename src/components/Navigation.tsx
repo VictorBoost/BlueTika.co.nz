@@ -93,9 +93,6 @@ export function Navigation() {
                       <Link href="/projects" className="cursor-pointer w-full">Browse Projects</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/directory" className="cursor-pointer w-full">Find Providers</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
                       <Link href="/testimonials" className="cursor-pointer w-full">Testimonials</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
@@ -157,12 +154,6 @@ export function Navigation() {
               </>
             ) : (
               <>
-                <Link
-                  href="/directory"
-                  className="block text-foreground hover:text-primary transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}>
-                  Find Providers
-                </Link>
                 <Link
                   href="/testimonials"
                   className="block text-foreground hover:text-primary transition-colors"
