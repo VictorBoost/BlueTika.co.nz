@@ -57,8 +57,8 @@ export default function ContractsMonitor() {
       .eq("id", user.id)
       .single();
 
-    if (profile?.email !== "bluetikanz@gmail.com") {
-      router.push("/");
+    if (profile?.email?.toLowerCase() !== "bluetikanz@gmail.com") {
+      router.push("/muna");
       return;
     }
 

@@ -97,13 +97,12 @@ export default function MunaLogin() {
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
-                  name="email"
                   type="email"
-                  value={formData.email}
-                  onChange={handleChange}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="bg-muted/50"
+                  placeholder="bluetikanz@gmail.com"
                   required
-                  placeholder="owner@bluetika.co.nz"
-                  autoComplete="email"
                 />
               </div>
 

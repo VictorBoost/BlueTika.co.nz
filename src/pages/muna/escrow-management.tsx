@@ -36,12 +36,12 @@ export default function EscrowManagementPage() {
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("*")
+      .select("email")
       .eq("id", user.id)
       .single();
-
-    if (!profile || profile.email !== "bluetikanz@gmail.com") {
-      router.push("/");
+    
+    if (!profile || profile.email?.toLowerCase() !== "bluetikanz@gmail.com") {
+      router.push("/muna");
       return;
     }
 
