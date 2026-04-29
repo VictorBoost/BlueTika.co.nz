@@ -1,5 +1,17 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabase } from "@/integrations/supabase/client";
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
+);
 
 export default async function handler(
   req: NextApiRequest,
@@ -17,7 +29,7 @@ export default async function handler(
     }
 
     // Check if token exists and is valid
-    const { data: resetToken, error } = await supabase
+    const { data: resetToken, error } = await supabaseAdmin
       .from("password_reset_tokens")
       .select("*")
       .eq("token", token)

@@ -34,7 +34,7 @@ export default async function handler(
     }
 
     // Verify token
-    const { data: resetToken, error: tokenError } = await supabase
+    const { data: resetToken, error: tokenError } = await supabaseAdmin
       .from("password_reset_tokens")
       .select("*")
       .eq("token", token)
@@ -63,13 +63,13 @@ export default async function handler(
     }
 
     // Mark token as used
-    await supabase
+    await supabaseAdmin
       .from("password_reset_tokens")
       .update({ used: true })
       .eq("id", resetToken.id);
 
     // Log the password reset
-    await supabase.from("email_logs").insert({
+    await supabaseAdmin.from("email_logs").insert({
       recipient_email: resetToken.email,
       email_type: "password_reset_complete",
       subject: "Password Reset Successful",
