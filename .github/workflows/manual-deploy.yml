@@ -1,0 +1,27 @@
+name: Manual Vercel Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to deploy'
+        required: false
+        default: 'main'
+
+jobs:
+  trigger-deploy:
+    name: Trigger Vercel Deploy Hook
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Vercel Deploy Hook
+        env:
+          HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK }}
+          BRANCH: ${{ github.event.inputs.branch || github.ref_name || 'main' }}
+        run: |
+          if [ -z "$HOOK_URL" ]; then
+            echo "ERROR: Set the VERCEL_DEPLOY_HOOK secret in this repository (Settings → Secrets → Actions).";
+            exit 1;
+          fi
+          echo "Triggering Vercel deploy for branch: $BRANCH"
+          # POST the hook URL (Vercel hooks are configured to deploy a branch)
+          curl -fsS -X POST "$HOOK_URL" || { echo 'Deploy hook POST failed'; exit 1; }
