@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,9 +15,9 @@ export default function TestCyclePage() {
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState("");
 
-  useState(() => {
+  useEffect(() => {
     checkAdminAccess();
-  });
+  }, []);
 
   async function checkAdminAccess() {
     try {
