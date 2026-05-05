@@ -8,8 +8,8 @@ export default function Home() {
   return (
     <>
       <SEO
-        title="BlueTika - Find Local Help. Get it Done."
-        description="New Zealand's trusted marketplace connecting Kiwis with local service providers. Post your project or find work."
+        title="BlueTika - Find Local Tradies & Services in New Zealand"
+        description="New Zealand's marketplace for hiring trusted tradies and service providers. Post your project or find work today!"
         image="/og-image.png"
       />
       <div className="min-h-screen">

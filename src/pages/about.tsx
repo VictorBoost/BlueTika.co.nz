@@ -9,8 +9,8 @@ export default function About() {
   return (
     <>
       <SEO 
-        title="About BlueTika - Our Story | 100% NZ Owned" 
-        description="Learn how BlueTika was born from a costly lesson with a runaway painter. We're here to protect Kiwis from dodgy contractors and help honest tradies build their reputation." 
+        title="About BlueTika - Our Story | NZ Tradie Marketplace" 
+        description="Learn about BlueTika's mission to connect Kiwis with reliable tradies and protect them from bad experiences. 100% NZ Owned."
       />
       
       <div className="min-h-screen flex flex-col bg-background">

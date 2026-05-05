@@ -55,10 +55,12 @@ function getContractFromProject(project: unknown): {
 export default function ProjectDetail() {
   const router = useRouter();
   const { id } = router.query;
+  const projectId = typeof id === "string" ? id : Array.isArray(id) ? id[0] : null;
   const { toast } = useToast();
   const [project, setProject] = useState<any>(null);
   const [bids, setBids] = useState<Bid[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [reopening, setReopening] = useState(false);
   const [accepting, setAccepting] = useState(false);
@@ -82,11 +84,11 @@ export default function ProjectDetail() {
   });
 
   useEffect(() => {
-    if (id) {
-      loadProject();
+    if (projectId) {
+      loadProject(projectId);
       checkUser();
     }
-  }, [id]);
+  }, [projectId]);
 
   useEffect(() => {
     if (project?.expires_at && !project?.is_expired) {
@@ -142,17 +144,30 @@ export default function ProjectDetail() {
     }
   };
 
-  const loadProject = async () => {
+  const loadProject = async (projectId: string) => {
     setLoading(true);
-    const { data, error } = await projectService.getProject(id as string);
+    setFetchError(null);
+
+    const { data, error } = await projectService.getProject(projectId);
     
     if (error) {
+      const message = error.message || "Failed to load project details";
+      setFetchError(message);
       toast({
         title: "Error",
-        description: "Failed to load project details",
+        description: message,
         variant: "destructive",
       });
-      router.push("/projects");
+      setProject(null);
+    } else if (!data) {
+      const message = "Project not found or unavailable.";
+      setFetchError(message);
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive",
+      });
+      setProject(null);
     } else {
       setProject(data);
       
@@ -424,7 +439,7 @@ export default function ProjectDetail() {
     }
     
     const { data, error } = await bidService.createBid({
-      project_id: id as string,
+      project_id: projectId || "",
       provider_id: currentUser.id,
       amount: parseFloat(bidData.amount),
       estimated_timeline: bidData.estimated_timeline,
@@ -447,7 +462,9 @@ export default function ProjectDetail() {
       });
       setBidData({ amount: "", estimated_timeline: "", message: "" });
       setTradeCertFile(null);
-      loadProject();
+      if (projectId) {
+        loadProject(projectId);
+      }
     }
     
     setSubmitting(false);
@@ -490,7 +507,32 @@ export default function ProjectDetail() {
   }
 
   if (!project) {
-    return null;
+    return (
+      <>
+        <SEO title="Project Not Found - BlueTika" />
+        <div className="min-h-screen flex items-center justify-center bg-background px-4">
+          <div className="max-w-xl w-full">
+            <Card>
+              <CardHeader>
+                <CardTitle>Project details unavailable</CardTitle>
+                <CardDescription>
+                  {fetchError || "We could not load this project. It may have been removed or is temporarily unavailable."}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Please try again or return to the projects list.
+                </p>
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <Button className="w-full" onClick={() => router.push("/projects")}>Browse Projects</Button>
+                  <Button variant="outline" className="w-full" onClick={() => router.back()}>Go Back</Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </>
+    );
   }
 
   const statusColors: Record<string, string> = {
