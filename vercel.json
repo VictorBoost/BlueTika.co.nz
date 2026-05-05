@@ -5,6 +5,14 @@
   "framework": "nextjs",
   "redirects": [
     {
+      "source": "/(.*)",
+      "has": [
+        { "type": "host", "value": "www.bluetika.co.nz" }
+      ],
+      "destination": "https://bluetika.co.nz/$1",
+      "permanent": true
+    },
+    {
       "source": "/old-path",
       "destination": "/new-path",
       "permanent": true

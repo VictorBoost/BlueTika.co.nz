@@ -21,9 +21,6 @@ export function SEOElements({
       <meta name="description" content={description} />
       <link rel="icon" href="/favicon.ico" />
 
-      {/* Canonical URL */}
-      <link rel="canonical" href={url || "https://bluetika.co.nz"} />
-
       {/* Open Graph */}
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
