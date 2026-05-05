@@ -41,8 +41,6 @@ export default function ModerationSettingsPage() {
         return;
       }
 
-      
-
       console.log("✅ Admin access verified");
       setIsAdmin(true);
     } catch (error) {

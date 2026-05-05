@@ -35,7 +35,10 @@ export default function CommissionSettingsPage() {
 
   async function checkAuth() {
     try {
-      const response = await fetch("/api/auth/verify-admin");
+      const response = await fetch("/api/auth/verify-admin", {
+        method: "GET",
+        credentials: "include",
+      });
       const data = await response.json();
 
       if (!data.isAdmin) {

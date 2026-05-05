@@ -65,7 +65,7 @@ export default async function handler(
       errorsResult,
       recentErrorsResult,
     ] = await Promise.all([
-      admin.from("bot_configuration").select("automation_enabled").eq("id", 1).maybeSingle(),
+      admin.from("bot_configuration").select("automation_enabled").eq("id", "00000000-0000-0000-0000-000000000001").maybeSingle(),
       admin.from("bot_accounts").select("id", { count: "exact", head: true }),
       admin.from("bot_accounts").select("id", { count: "exact", head: true }).eq("bot_type", "client"),
       admin.from("bot_accounts").select("id", { count: "exact", head: true }).eq("bot_type", "provider"),
@@ -80,13 +80,13 @@ export default async function handler(
       admin
         .from("bot_activity_logs")
         .select("action_type")
-        .eq("status", "failed")
+        .eq("success", false)
         .order("created_at", { ascending: false })
         .limit(100),
       admin
         .from("bot_activity_logs")
         .select("*")
-        .eq("status", "failed")
+        .eq("success", false)
         .order("created_at", { ascending: false })
         .limit(20),
     ]);

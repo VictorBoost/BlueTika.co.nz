@@ -1,5 +1,4 @@
 import { supabase } from "@/integrations/supabase/client";
-import { createClient } from "@supabase/supabase-js";
 
 /** Mirrors `/api/bot-automation-status` JSON (`automation` field). */
 export interface BotAutomationPayload {
@@ -20,12 +19,6 @@ export interface BotAutomationStatsPayload {
   errorSummary: Record<string, number>;
   recentErrors: unknown[];
 }
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-// Service role client for admin operations that bypass RLS
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 // Realistic NZ data
 const NZ_FIRST_NAMES = [
@@ -187,17 +180,14 @@ export const botLabService = {
 
   async toggleAutomation(enable: boolean) {
     try {
-      // Use admin client to bypass RLS
-      const { error } = await supabaseAdmin
-        .from("bot_configuration")
-        .upsert({
-          id: 1,
-          automation_enabled: enable,
-          updated_at: new Date().toISOString()
-        });
-
-      if (error) throw error;
-      return { success: true };
+      const response = await fetch("/api/bot-automation-toggle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enable }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Toggle failed");
+      return data;
     } catch (error) {
       console.error("toggleAutomation error:", error);
       throw error;
@@ -206,7 +196,11 @@ export const botLabService = {
 
   async runManualCycle() {
     try {
-      const response = await fetch("/api/bot-payment", { method: "POST" });
+      const response = await fetch("/api/bot-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "full_cycle" })
+      });
       const data = await response.json();
       return data;
     } catch (error) {
@@ -248,36 +242,14 @@ export const botLabService = {
 
   async removeBots(count: number) {
     try {
-      // Use admin client to bypass RLS
-      const { data: oldestBots } = await supabaseAdmin
-        .from("bot_accounts")
-        .select("profile_id")
-        .order("created_at", { ascending: true })
-        .limit(count);
-
-      if (!oldestBots || oldestBots.length === 0) {
-        return { success: 0, failed: 0, errors: ["No bots found"] };
-      }
-
-      const results = { success: 0, failed: 0, errors: [] as string[] };
-
-      for (const bot of oldestBots) {
-        try {
-          // Delete from auth (cascades to profiles and bot_accounts)
-          const { error } = await supabaseAdmin.auth.admin.deleteUser(bot.profile_id);
-          if (error) {
-            results.failed++;
-            results.errors.push(`Failed to delete ${bot.profile_id}: ${error.message}`);
-          } else {
-            results.success++;
-          }
-        } catch (error: any) {
-          results.failed++;
-          results.errors.push(`Exception deleting ${bot.profile_id}: ${error.message}`);
-        }
-      }
-
-      return results;
+      const response = await fetch("/api/bot-remove", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ count }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Remove failed");
+      return data;
     } catch (error: any) {
       console.error("removeBots error:", error);
       return { success: 0, failed: count, errors: [error.message] };
@@ -286,26 +258,14 @@ export const botLabService = {
 
   async killSwitch() {
     try {
-      // Use admin client to bypass RLS
-      const { data: allBots } = await supabaseAdmin
-        .from("bot_accounts")
-        .select("profile_id");
-
-      if (!allBots || allBots.length === 0) {
-        return { success: true, deleted: 0 };
-      }
-
-      let deleted = 0;
-      for (const bot of allBots) {
-        try {
-          await supabaseAdmin.auth.admin.deleteUser(bot.profile_id);
-          deleted++;
-        } catch (error) {
-          console.error(`Failed to delete bot ${bot.profile_id}:`, error);
-        }
-      }
-
-      return { success: true, deleted };
+      const response = await fetch("/api/bot-remove", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ killAll: true }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Kill switch failed");
+      return { success: true, deleted: data.success };
     } catch (error: any) {
       console.error("killSwitch error:", error);
       return { success: false, error: error.message, deleted: 0 };

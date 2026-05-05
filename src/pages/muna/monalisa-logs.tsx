@@ -41,8 +41,6 @@ export default function MonalisaLogsPage() {
         router.push("/muna");
         return;
       }
-
-      
     } catch (error) {
       console.error("Owner verification error:", error);
       router.push("/muna");

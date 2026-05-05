@@ -92,14 +92,17 @@ export default function UserManagementPage() {
 
     setActionLoading(userId);
     try {
-      // Delete user's data cascade
-      const { error } = await (supabase as any)
-        .from("profiles")
-        .delete()
-        .eq("id", userId);
+      const response = await fetch("/api/admin/delete-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ userId }),
+      });
 
-      if (error) {
-        alert("Failed to delete user: " + error.message);
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert("Failed to delete user: " + (data.error || "Unknown error"));
         return;
       }
 

@@ -9,7 +9,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   
   if (req.method !== "GET") {
     console.log("❌ [verify-admin] Wrong method:", req.method);
-    return res.status(405).json({ error: "Method not allowed", isAdmin: false });
+    return res.status(405).json({ error: "Method not allowed", isAdmin: false, isOwner: false });
   }
 
   try {
@@ -23,7 +23,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     if (!token) {
       console.log("❌ [verify-admin] No token found in cookies or headers");
-      return res.status(401).json({ error: "No session", isAdmin: false });
+      return res.status(401).json({ error: "No session", isAdmin: false, isOwner: false });
     }
 
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
@@ -36,7 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (userError || !user) {
       console.log("❌ [verify-admin] User lookup failed:", userError?.message);
-      return res.status(401).json({ error: "Invalid session", isAdmin: false });
+      return res.status(401).json({ error: "Invalid session", isAdmin: false, isOwner: false });
     }
 
     const { data: profile, error: profileError } = await supabase
@@ -52,10 +52,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (profileError || !profile) {
       console.log("❌ [verify-admin] Profile not found:", profileError?.message);
-      return res.status(401).json({ error: "Profile not found", isAdmin: false });
+      return res.status(401).json({ error: "Profile not found", isAdmin: false, isOwner: false });
     }
 
     const isAdmin = profile.email?.toLowerCase() === "bluetikanz@gmail.com";
+    const isOwner = isAdmin; // Currently the owner is the only admin
     
     console.log("🔍 [verify-admin] Final admin check:", {
       email: profile.email,
@@ -70,9 +71,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.log("❌ [verify-admin] Admin access DENIED - wrong email");
     }
 
-    return res.status(200).json({ isAdmin });
+    return res.status(200).json({ isAdmin, isOwner });
   } catch (error: any) {
     console.error("💥 [verify-admin] Exception caught:", error.message);
-    return res.status(500).json({ error: error.message, isAdmin: false });
+    return res.status(500).json({ error: error.message, isAdmin: false, isOwner: false });
   }
 }

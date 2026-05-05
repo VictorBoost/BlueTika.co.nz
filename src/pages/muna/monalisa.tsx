@@ -53,8 +53,6 @@ export default function MonaLisaPage() {
         return;
       }
 
-      
-
       setIsOwner(true);
     } catch (error) {
       console.error("Owner verification error:", error);

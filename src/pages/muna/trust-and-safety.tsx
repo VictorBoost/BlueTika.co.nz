@@ -80,6 +80,31 @@ export default function TrustAndSafety() {
   }, []);
 
   async function checkAuth() {
+    try {
+      const response = await fetch("/api/auth/verify-admin", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      const data = await response.json();
+
+      if (response.status === 401) {
+        router.push("/muna/login");
+        return;
+      }
+
+      if (response.status === 403 || !data.isAdmin) {
+        router.push("/muna");
+        return;
+      }
+
+      setIsAdmin(true);
+      setLoading(false);
+      loadData();
+    } catch (error) {
+      console.error("Admin verification error:", error);
+      router.push("/muna");
+    }
   }
 
   const loadData = async () => {

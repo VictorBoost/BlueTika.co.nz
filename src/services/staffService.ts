@@ -30,68 +30,20 @@ export const staffService = {
       throw new Error("Invalid role");
     }
 
-    // Get current admin user
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
-    if (!currentUser) throw new Error("Not authenticated");
+    const response = await fetch("/api/admin/invite-staff", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ name, email, role }),
+    });
 
-    // Check if staff already exists
-    const { data: existing } = await supabase
-      .from("staff")
-      .select("id")
-      .eq("email", email)
-      .single();
+    const data = await response.json();
 
-    if (existing) {
-      throw new Error("Staff member with this email already exists");
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to invite staff member");
     }
 
-    // Create Supabase auth user (sends invitation email)
-    const { data: authData, error: authError } = await supabase.auth.admin.inviteUserByEmail(
-      email,
-      {
-        data: {
-          name,
-          role,
-          is_staff: true,
-        },
-      }
-    );
-
-    if (authError) {
-      // If user already exists, check if they're already staff
-      if (authError.message?.includes("already registered")) {
-        throw new Error("This email is already registered. They may already be a staff member.");
-      }
-      throw authError;
-    }
-
-    // Create staff record
-    const { data: staffData, error: staffError } = await supabase
-      .from("staff")
-      .insert({
-        user_id: authData.user.id,
-        name,
-        email,
-        role,
-        is_active: true,
-        created_by: currentUser.id,
-      })
-      .select()
-      .single();
-
-    if (staffError) throw staffError;
-
-    // Log the action
-    await this.logAction(
-      currentUser.id,
-      currentUser.email || "admin",
-      "invite_staff",
-      "staff",
-      staffData.id,
-      { name, email, role }
-    );
-
-    return staffData;
+    return data;
   },
 
   // Update staff active status
