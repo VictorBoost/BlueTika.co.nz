@@ -81,7 +81,7 @@ export const projectService = {
         *,
         client:profiles!projects_client_id_fkey(id, full_name, email, phone, location),
         category:categories(id, name, slug),
-        contract:contracts(
+        contract:contracts!contracts_project_id_fkey(
           id,
           status,
           payment_status,
@@ -93,9 +93,9 @@ export const projectService = {
         )
       `)
       .eq("id", projectId)
-      .single();
+      .maybeSingle();
 
-    console.log("getProject:", { data, error });
+    console.log("getProject:", { projectId, data, error });
     if (error) console.error("Project fetch error:", error);
     return { data, error };
   },
