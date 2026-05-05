@@ -89,7 +89,7 @@ export const projectService = {
         ),
         bids(
           *,
-          provider:profiles!bids_provider_id_fkey(id, full_name, email, phone, bio)
+          profiles:profiles!bids_provider_id_fkey(id, full_name, email, phone, bio, average_rating, total_reviews, response_rate, commission_tier, verification_status, verification_tier, created_at)
         )
       `)
       .eq("id", projectId)

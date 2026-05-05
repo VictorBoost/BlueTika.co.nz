@@ -5,6 +5,18 @@ import { notificationService } from "@/services/notificationService";
 
 export const bidService = {
   async createBid(bidData: any) {
+    // Delete any existing pending bids from this provider on this project
+    const { error: deleteError } = await supabase
+      .from("bids")
+      .delete()
+      .eq("project_id", bidData.project_id)
+      .eq("provider_id", bidData.provider_id)
+      .eq("status", "pending");
+    
+    if (deleteError) {
+      console.error("Error deleting old bids:", deleteError);
+    }
+
     const { data, error } = await supabase
       .from("bids")
       .insert(bidData)
@@ -75,7 +87,7 @@ export const bidService = {
       .select(`id, provider:profiles!bids_provider_id_fkey(email, full_name)`)
       .eq("project_id", projectId)
       .neq("id", bidId)
-      .eq("status", "submitted");
+      .eq("status", "pending");
 
     if (otherBids && otherBids.length > 0) {
       await supabase.from("bids").update({ status: "declined" }).eq("project_id", projectId).neq("id", bidId);
@@ -132,7 +144,7 @@ export const bidService = {
   },
 
   async getBidsByProject(projectId: string) {
-    const { data, error } = await supabase.from("bids").select(`*, provider:profiles!bids_provider_id_fkey(*)`).eq("project_id", projectId).order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("bids").select(`*, profiles:profiles!bids_provider_id_fkey(*)`).eq("project_id", projectId).order("created_at", { ascending: false });
     return { data: data || [], error };
   },
 
