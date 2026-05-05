@@ -90,6 +90,11 @@ export const paymentService = {
         body: JSON.stringify({ userId, email, returnUrl, refreshUrl }),
       });
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP ${response.status}: Failed to create Stripe account`);
+      }
+
       const { accountId, accountLinkUrl, error } = await response.json();
       if (error) throw new Error(error);
 
@@ -106,6 +111,11 @@ export const paymentService = {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ stripeAccountId, returnUrl, refreshUrl }),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP ${response.status}: Failed to create account link`);
+      }
 
       const { url, error } = await response.json();
       if (error) throw new Error(error);
@@ -124,6 +134,11 @@ export const paymentService = {
         body: JSON.stringify({ stripeAccountId }),
       });
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP ${response.status}: Failed to create login link`);
+      }
+
       const { url, error } = await response.json();
       if (error) throw new Error(error);
 
@@ -136,9 +151,16 @@ export const paymentService = {
   async getConnectAccountStatus(stripeAccountId: string) {
     try {
       const response = await fetch(`/api/stripe/account-status?accountId=${stripeAccountId}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP ${response.status}: Failed to retrieve account status`);
+      }
+
       const { account, error } = await response.json();
       
       if (error) throw new Error(error);
+      if (!account) throw new Error("Invalid account data received from Stripe");
 
       return { 
         data: { 
