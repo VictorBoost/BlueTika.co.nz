@@ -54,17 +54,23 @@ export const subscriptionService = {
     const currentDay = today.getDate();
     const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
 
-    // Calculate days remaining in current period
+    // Calculate days remaining until the 1st of next month
+    // All subscriptions align to the 1st of the month
     let daysRemaining = 0;
-    if (currentDay <= billingDate) {
-      daysRemaining = billingDate - currentDay;
+    if (currentDay <= 1) {
+      // Already at or before the 1st, next billing is next month 1st
+      daysRemaining = daysInMonth - 1;
     } else {
-      const nextMonthDays = new Date(today.getFullYear(), today.getMonth() + 2, 0).getDate();
-      daysRemaining = nextMonthDays - (currentDay - billingDate);
+      // Calculate days until next 1st
+      daysRemaining = daysInMonth - currentDay + 1;
     }
 
-    // Prorated amount = (days remaining / 30) * monthly price + monthly price
-    const proratedAmount = (daysRemaining / 30) * monthlyPrice + monthlyPrice;
+    // Minimum 30 days proration
+    const effectiveDays = Math.max(daysRemaining, 30);
+
+    // Prorated amount = (days remaining / 30) * monthly price
+    // This gives a minimum of 1 month charge, scaling up for longer periods
+    const proratedAmount = (effectiveDays / 30) * monthlyPrice;
     return parseFloat(proratedAmount.toFixed(2));
   },
 

@@ -3,11 +3,13 @@ import type { Tables } from "@/integrations/supabase/types";
 
 export type FundRelease = Tables<"fund_releases">;
 
-// Current commission tier rates
+// Current commission tier rates (provider-based tiers)
+// These are fallback rates - actual rates come from provider's tier
 const COMMISSION_TIERS = [
-  { min: 0, max: 10000, rate: 0.15 },
-  { min: 10001, max: 50000, rate: 0.10 },
-  { min: 50001, max: Infinity, rate: 0.05 },
+  { min: 0, max: 499, rate: 0.15 },      // Bronze
+  { min: 500, max: 1999, rate: 0.12 },   // Silver
+  { min: 2000, max: 4999, rate: 0.10 },  // Gold
+  { min: 5000, max: Infinity, rate: 0.08 }, // Platinum
 ];
 
 interface CalculateCommissionResult {

@@ -181,7 +181,7 @@ export default function FAQ() {
             <AccordionItem value="item-11">
               <AccordionTrigger>How does the tier system work for service providers?</AccordionTrigger>
               <AccordionContent>
-                Service providers advance through 4 tiers based on completed contracts: Bronze (0-9 jobs), Silver (10-49), Gold (50-149), Platinum (150+). Higher tiers unlock features like invoice generation, accounting ledgers, and lower commission rates. Progress is tracked on your dashboard.
+                Service providers advance through 4 tiers based on 60-day sales: Bronze ($0-499), Silver ($500-1,999), Gold ($2,000-4,999), Platinum ($5,000+). Commission rates are 15%, 12%, 10%, and 8% respectively. Higher tiers unlock features like invoice generation, accounting ledgers, and lower commission rates. Progress is tracked on your dashboard.
               </AccordionContent>
             </AccordionItem>
 

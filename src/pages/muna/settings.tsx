@@ -39,17 +39,17 @@ export default function SettingsPage() {
 
   // Settings state
   const [commissionRates, setCommissionRates] = useState({
-    bronze: 12,
-    silver: 10,
-    gold: 8,
-    platinum: 6,
+    bronze: 15,
+    silver: 12,
+    gold: 10,
+    platinum: 8,
     promo_active: false,
   });
   const [tierThresholds, setTierThresholds] = useState({
     bronze: 0,
-    silver: 5000,
-    gold: 15000,
-    platinum: 30000,
+    silver: 500,
+    gold: 2000,
+    platinum: 5000,
   });
   const [clientPlatformFee, setClientPlatformFee] = useState(2);
   const [stripeDomestic, setStripeDomestic] = useState(0);
