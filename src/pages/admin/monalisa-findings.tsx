@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Finding {
   id: string;
@@ -23,8 +23,6 @@ export default function MonaLisaFindings() {
     category: "",
     status: "detected",
   });
-
-  const supabase = createClientComponentClient();
 
   useEffect(() => {
     fetchFindings();
