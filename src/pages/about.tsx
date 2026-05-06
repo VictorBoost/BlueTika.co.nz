@@ -4,14 +4,35 @@ import { Navigation } from "@/components/Navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Shield, Heart, Users } from "lucide-react";
+import Head from "next/head";
 
 export default function About() {
+  const organizationSchema = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "BlueTika",
+    "url": "https://bluetika.co.nz",
+    "logo": "https://bluetika.co.nz/og-image.png",
+    "description": "New Zealand's trusted reverse marketplace for hiring tradies and local service providers",
+    "foundingDate": "2024",
+    "address": {
+      "@type": "PostalAddress",
+      "addressCountry": "NZ"
+    }
+  };
+
   return (
     <>
       <SEO 
         title="About BlueTika - Our Story | NZ Tradie Marketplace" 
         description="Learn about BlueTika's mission to connect Kiwis with reliable tradies and protect them from bad experiences. 100% NZ Owned."
       />
+      <Head>
+        <script 
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+        />
+      </Head>
       
       <div className="min-h-screen flex flex-col bg-background">
         <Navigation />

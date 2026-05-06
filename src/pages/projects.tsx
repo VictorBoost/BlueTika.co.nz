@@ -18,6 +18,7 @@ import { authService } from "@/services/authService";
 import type { Tables } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useRouter } from "next/router";
+import Head from "next/head";
 
 type Project = Tables<"projects">;
 type Category = Tables<"categories">;
@@ -246,6 +247,20 @@ export default function Projects() {
         title="Browse Projects - BlueTika" 
         description="Find local projects in New Zealand. Service providers can bid on projects that match their skills." 
       />
+      <Head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "ItemList",
+              "name": "Available Projects",
+              "description": "Browse projects available for bidding on BlueTika",
+              "url": "https://bluetika.co.nz/projects"
+            })
+          }}
+        />
+      </Head>
       
       <div className="min-h-screen flex flex-col">
         <Navigation />

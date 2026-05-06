@@ -1,4 +1,5 @@
 import { SEO } from "@/components/SEO";
+import Head from "next/head";
 import Link from "next/link";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
@@ -10,12 +11,65 @@ import {
 } from "@/components/ui/accordion";
 
 export default function FAQ() {
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is BlueTika?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "BlueTika is New Zealand's reverse marketplace connecting residents with trusted local service providers. Instead of browsing provider listings, you post your project and providers bid on it. Blue represents trust, and Tika (te reo Māori) means 'right' or 'fair' — our commitment to fair, transparent transactions."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How does the escrow payment system work?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "1. Upfront Payment: When you accept a bid, you pay 102% upfront (agreed price + 2% payment processing). BlueTika holds these funds securely until the job is complete. 2. Extra Charges: Either party can request additional payments during the project. 3. Job Completion: The service provider uploads 'Before & After' photos. 4. 24-Hour Review Window: You have exactly 24 hours to raise any disputes. 5. Weekly Fund Release: Payments are released every Friday."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How does the bidding system work?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Post your project with details and budget. Verified service providers review and submit bids. You compare bids, check provider profiles and reviews, then accept the bid that best suits your needs."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What happens during the 24-hour dispute window?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "After the service provider uploads completion photos, you have exactly 24 hours to review the work and raise any concerns. During this window, you can open a dispute if the work doesn't match what was agreed."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can additional charges be added during a project?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. Either party can request additional payments during the project using the 'Add Payment' button. These must be approved by the client before the job ends."
+        }
+      }
+    ]
+  };
+
   return (
     <>
       <SEO 
         title="FAQ - BlueTika" 
         description="Frequently asked questions about BlueTika marketplace"
       />
+      <Head>
+        <script 
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        />
+      </Head>
       <Navigation />
       
       <main className="min-h-screen bg-background">
