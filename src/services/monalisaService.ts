@@ -3,6 +3,7 @@ import type { Database } from "@/integrations/supabase/types";
 
 type MonalisaSettings = Database["public"]["Tables"]["monalisa_settings"]["Row"];
 type MonalisaLog = Database["public"]["Tables"]["monalisa_logs"]["Row"];
+type MonalisaErrorFinding = Database["public"]["Tables"]["monalisa_error_findings"]["Row"];
 
 export const monalisaService = {
   /**
@@ -377,5 +378,66 @@ export const monalisaService = {
       console.error("Error sending weekly summary:", error);
       return false;
     }
+  },
+
+  /**
+   * Get error findings with filters
+   */
+  async getErrorFindings(
+    filters?: {
+      category?: string;
+      severity?: "low" | "medium" | "high" | "critical";
+      status?: "detected" | "investigating" | "fixing" | "resolved";
+      limit?: number;
+    }
+  ): Promise<MonalisaErrorFinding[]> {
+    let query = supabase
+      .from("monalisa_error_findings")
+      .select(`
+        *,
+        related_user:profiles!monalisa_error_findings_related_user_id_fkey(full_name, email),
+        related_contract:contracts!monalisa_error_findings_related_contract_id_fkey(final_amount, status)
+      `)
+      .order("detected_at", { ascending: false })
+      .limit(filters?.limit || 50);
+
+    if (filters?.category) {
+      query = query.eq("category", filters.category);
+    }
+    if (filters?.severity) {
+      query = query.eq("severity", filters.severity);
+    }
+    if (filters?.status) {
+      query = query.eq("status", filters.status);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error("Error fetching error findings:", error);
+      return [];
+    }
+
+    return data || [];
+  },
+
+  /**
+   * Update error finding status
+   */
+  async updateFindingStatus(
+    findingId: string,
+    status: "detected" | "investigating" | "fixing" | "resolved"
+  ): Promise<boolean> {
+    const { error } = await supabase
+      .from("monalisa_error_findings")
+      .update({ status, resolved_at: status === "resolved" ? new Date().toISOString() : undefined })
+      .eq("id", findingId);
+
+    if (error) {
+      console.error("Error updating finding status:", error);
+      return false;
+    }
+
+    return true;
   }
 };

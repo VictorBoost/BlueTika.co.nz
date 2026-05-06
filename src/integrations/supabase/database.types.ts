@@ -2410,6 +2410,82 @@ export type Database = {
         }
         Relationships: []
       }
+      monalisa_error_findings: {
+        Row: {
+          id: string
+          category: string
+          severity: string
+          title: string
+          description: string
+          evidence: Json | null
+          suggested_fix: string | null
+          status: string
+          detected_at: string
+          resolved_at: string | null
+          related_user_id: string | null
+          related_contract_id: string | null
+          related_project_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          category: string
+          severity: string
+          title: string
+          description: string
+          evidence?: Json | null
+          suggested_fix?: string | null
+          status?: string
+          detected_at?: string
+          resolved_at?: string | null
+          related_user_id?: string | null
+          related_contract_id?: string | null
+          related_project_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          category?: string
+          severity?: string
+          title?: string
+          description?: string
+          evidence?: Json | null
+          suggested_fix?: string | null
+          status?: string
+          detected_at?: string
+          resolved_at?: string | null
+          related_user_id?: string | null
+          related_contract_id?: string | null
+          related_project_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monalisa_error_findings_related_contract_id_fkey"
+            columns: ["related_contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monalisa_error_findings_related_project_id_fkey"
+            columns: ["related_project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monalisa_error_findings_related_user_id_fkey"
+            columns: ["related_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string | null
