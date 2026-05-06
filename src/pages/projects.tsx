@@ -3,6 +3,7 @@ import { SEO } from "@/components/SEO";
 import { Footer } from "@/components/Footer";
 import { Navigation } from "@/components/Navigation";
 import { ProjectCard } from "@/components/ProjectCard";
+import { ProjectTeaserCard } from "@/components/ProjectTeaserCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,24 +54,43 @@ export default function Projects() {
 
   useEffect(() => {
     checkAuthentication();
+    loadPublicProjects(); // Load projects for SEO even without auth
   }, []);
 
   const checkAuthentication = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
-      if (!session) {
-        router.push("/login");
-        return;
+      if (session) {
+        setIsAuthenticated(true);
+        loadCurrentUser();
+        loadCategories();
       }
-      
-      setIsAuthenticated(true);
+      // Don't redirect - allow public view of project teasers
     } catch (error) {
       console.error("Auth check error:", error);
-      router.push("/login");
     } finally {
       setCheckingAuth(false);
     }
+  };
+
+  // Load projects for public SEO view
+  const loadPublicProjects = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("projects")
+      .select(`
+        *,
+        category:categories(name),
+        subcategory:subcategories(name)
+      `)
+      .eq("status", "open")
+      .order("created_at", { ascending: false });
+    
+    if (!error && data) {
+      setProjects(data);
+    }
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -85,6 +105,15 @@ export default function Projects() {
       loadProjects();
     }
   }, [authChecked, currentUser]);
+
+  // Reload projects when auth state changes
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadProjects();
+    } else {
+      loadPublicProjects();
+    }
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (categoryFilter !== "all") {
@@ -205,14 +234,10 @@ export default function Projects() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Checking authentication...</p>
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
-  }
-
-  if (!isAuthenticated) {
-    return null;
   }
 
   return (
@@ -239,8 +264,18 @@ export default function Projects() {
                   )}
                 </div>
                 <p className="text-muted-foreground mt-2">
-                  {isOwner ? "Viewing all projects (testing/moderation mode)" : "Find opportunities that match your skills"}
+                  {isOwner ? "Viewing all projects (testing/moderation mode)" : isAuthenticated ? "Find opportunities that match your skills" : "Login to view full details and bid on projects"}
                 </p>
+                {!isAuthenticated && (
+                  <div className="mt-2">
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href="/login">
+                        <LogIn className="h-4 w-4 mr-2" />
+                        Login to Bid
+                      </Link>
+                    </Button>
+                  </div>
+                )}
               </div>
               <Button asChild size="lg">
                 <Link href="/post-project">
@@ -412,9 +447,11 @@ export default function Projects() {
               </div>
             ) : (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredProjects.map(project => (
-                  <ProjectCard key={project.id} project={project} isOwner={isOwner} />
-                ))}
+                {filteredProjects.map(project => 
+                  isAuthenticated 
+                    ? <ProjectCard key={project.id} project={project} isOwner={isOwner} />
+                    : <ProjectTeaserCard key={project.id} project={project} />
+                )}
               </div>
             )}
           </div>

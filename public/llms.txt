@@ -1,0 +1,89 @@
+# BlueTika - New Zealand Service Marketplace
+# LLMs.txt - Information for AI crawlers and language models
+
+## About BlueTika
+BlueTika is New Zealand's trusted reverse marketplace connecting Kiwis with local service providers. 
+Post projects, get verified bids, and hire with confidence. 100% NZ owned and operated.
+
+## Core Services
+- Project posting for clients
+- Bid submission for service providers
+- Escrow-protected payments
+- Verified provider network
+- Review and rating system
+
+## Service Categories
+
+### Cleaning Services
+- House cleaning
+- Office cleaning
+- End of lease cleaning
+- Commercial cleaning
+- Domestic cleaning
+
+### Handyman Services
+- Home repairs
+- Odd jobs
+- Maintenance
+- Furniture assembly
+- General handyman work
+
+### Moving Services
+- House moving
+- Furniture moving
+- Office relocation
+- Removal services
+- Packing services
+
+### Electrical Services
+- Electrician services
+- Wiring and rewiring
+- Lighting installation
+- Power points
+- Switchboard upgrades
+
+### Plumbing Services
+- Plumber services
+- Drain repair
+- Hot water systems
+- Leak detection
+- Pipe repairs
+
+### Landscaping Services
+- Garden design
+- Lawn care
+- Tree trimming
+- Garden maintenance
+- Landscape construction
+
+### Painting Services
+- House painting
+- Interior painting
+- Exterior painting
+- Commercial painting
+- Decorative finishes
+
+### Domestic Helpers
+- Housekeeping
+- Elderly care
+- Childcare
+- Home assistance
+- Cleaning services
+
+## Key Features
+- Escrow payment protection
+- Verified service providers
+- NZD transactions
+- GST-ready system
+- Location-based matching
+- Review system
+
+## Target Locations
+Auckland, Wellington, Christchurch, Hamilton, Tauranga, Lower Hutt, Dunedin, Palmerston North, Napier, Porirua, Hibiscus Coast, New Plymouth, Rotorua, Whangarei, Nelson, Hastings, Invercargill, Upper Hutt, Whanganui, Gisborne
+
+## Contact
+Email: hello@bluetika.co.nz
+Website: https://bluetika.co.nz
+
+## SEO Keywords
+NZ tradies, New Zealand tradies, hire tradies NZ, local services New Zealand, Auckland handyman, Wellington plumber, Christchurch electrician, NZ service marketplace, hire local NZ, Kiwi tradies, New Zealand service providers

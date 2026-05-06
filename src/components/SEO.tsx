@@ -20,13 +20,18 @@ export function SEOElements({
       <title>{title}</title>
       <meta name="description" content={description} />
       <link rel="icon" href="/favicon.ico" />
+      <meta name="theme-color" content="#2563eb" />
+      <link rel="manifest" href="/manifest.json" />
 
       {/* Open Graph */}
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
       {image && <meta property="og:image" content={image} />}
+      {image && <meta property="og:image:width" content="1200" />}
+      {image && <meta property="og:image:height" content="630" />}
       {url && <meta property="og:url" content={url} />}
       <meta property="og:type" content="website" />
+      <meta property="og:locale" content="en_NZ" />
 
       {/* Twitter */}
       <meta name="twitter:card" content="summary_large_image" />
@@ -53,6 +58,8 @@ export function SEO({
       <title>{title}</title>
       <meta name="description" content={description} />
       <link rel="icon" href="/favicon.ico" />
+      <meta name="theme-color" content="#2563eb" />
+      <link rel="manifest" href="/manifest.json" />
 
       {/* Canonical URL - self-referencing to prevent duplicate content */}
       <link rel="canonical" href={canonicalUrl} />
@@ -61,8 +68,11 @@ export function SEO({
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
       {image && <meta property="og:image" content={image} />}
+      {image && <meta property="og:image:width" content="1200" />}
+      {image && <meta property="og:image:height" content="630" />}
       <meta property="og:url" content={canonicalUrl} />
       <meta property="og:type" content="website" />
+      <meta property="og:locale" content="en_NZ" />
 
       {/* Twitter */}
       <meta name="twitter:card" content="summary_large_image" />

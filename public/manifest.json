@@ -1,0 +1,25 @@
+{
+  "name": "BlueTika - NZ Service Marketplace",
+  "short_name": "BlueTika",
+  "description": "New Zealand's trusted marketplace for local services. Post projects, get verified bids, hire with confidence.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/og-image.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/og-image.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "lang": "en-NZ",
+  "dir": "ltr"
+}

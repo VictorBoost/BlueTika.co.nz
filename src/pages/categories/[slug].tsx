@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
+import Head from "next/head";
 import { SEO } from "@/components/SEO";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
@@ -79,12 +80,32 @@ export default function CategoryPage() {
     );
   }
 
+  // Generate FAQ schema for category page
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": categoryInfo.commonProblems.map((problem, index) => ({
+      "@type": "Question",
+      "name": problem,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": `BlueTika connects you with verified ${slug} professionals who can help solve this problem.`
+      }
+    }))
+  };
+
   return (
     <>
       <SEO 
         title={`${categoryInfo.title} | BlueTika`}
         description={categoryInfo.description}
       />
+      <Head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        />
+      </Head>
       <Navigation />
       
       <div className="min-h-screen bg-background">

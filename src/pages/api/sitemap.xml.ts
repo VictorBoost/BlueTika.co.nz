@@ -47,16 +47,16 @@ export default async function handler(
       { url: "/post-project", priority: "0.9", changefreq: "monthly" }
     ];
 
-    // Category pages
+    // Category pages with SEO keywords
     const categories = [
-      "cleaning",
-      "handyman",
-      "movers",
-      "electrical",
-      "plumbing",
-      "landscaping",
-      "painting",
-      "domestic-helper",
+      { slug: "cleaning", name: "Cleaning Services", keywords: "cleaner, house cleaning, office cleaning, end of lease cleaning" },
+      { slug: "handyman", name: "Handyman Services", keywords: "handyman, odd jobs, home repairs, maintenance" },
+      { slug: "movers", name: "Moving Services", keywords: "movers, removalists, house moving, furniture moving" },
+      { slug: "electrical", name: "Electrical Services", keywords: "electrician, electrical work, wiring, lighting installation" },
+      { slug: "plumbing", name: "Plumbing Services", keywords: "plumber, plumbing, drain repair, hot water systems" },
+      { slug: "landscaping", name: "Landscaping Services", keywords: "landscaper, garden design, lawn care, tree trimming" },
+      { slug: "painting", name: "Painting Services", keywords: "painter, house painting, interior painting, exterior painting" },
+      { slug: "domestic-helper", name: "Domestic Helpers", keywords: "housekeeper, nanny, elderly care, home helper" },
     ];
 
     // Build XML sitemap
@@ -73,10 +73,10 @@ export default async function handler(
       sitemap += "  </url>\n";
     });
 
-    // Add category pages
+    // Add category pages with SEO keywords
     categories.forEach((category) => {
       sitemap += "  <url>\n";
-      sitemap += `    <loc>${baseUrl}/categories/${category}</loc>\n`;
+      sitemap += `    <loc>${baseUrl}/categories/${category.slug}</loc>\n`;
       sitemap += `    <lastmod>${today}</lastmod>\n`;
       sitemap += `    <changefreq>weekly</changefreq>\n`;
       sitemap += `    <priority>0.9</priority>\n`;

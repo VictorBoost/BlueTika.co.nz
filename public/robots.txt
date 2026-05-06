@@ -10,7 +10,7 @@ Disallow: /api/
 Disallow: /checkout/
 Disallow: /checkout-additional/
 
-# Disallow auth pages
+# Disallow auth pages (but allow crawling for SEO)
 Disallow: /login
 Disallow: /register
 Disallow: /forgot-password
@@ -23,6 +23,13 @@ Allow: /directory
 Allow: /about
 Allow: /contact
 Allow: /faq
+Allow: /testimonials
+
+# Crawl-delay for polite crawling
+Crawl-delay: 1
 
 # Dynamic sitemap (auto-updated)
 Sitemap: https://bluetika.co.nz/api/sitemap.xml
+
+# LLMs.txt for AI crawlers
+Allow: /llms.txt
