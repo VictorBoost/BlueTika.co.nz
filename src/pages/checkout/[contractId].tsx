@@ -266,7 +266,7 @@ export default function Checkout() {
   const router = useRouter();
   const { contractId, calendar_connected } = router.query;
   const [contract, setContract] = useState<(Contract & {
-    projects?: { title: string; location: string; specific_date?: string | null; date_from?: string | null; slug?: string | null };
+    project?: { title: string; location: string; specific_date?: string | null; date_from?: string | null; slug?: string | null };
     profiles?: { full_name: string | null; email: string | null };
   }) | null>(null);
   const [loading, setLoading] = useState(true);
@@ -400,11 +400,11 @@ export default function Checkout() {
                 </Alert>
 
                 <div className="space-y-2 text-sm">
-                  <p><span className="font-semibold">Project:</span> {contract.projects?.title}</p>
+                  <p><span className="font-semibold">Project:</span> {contract.project?.title}</p>
                   <p><span className="font-semibold">Service Provider:</span> {contract.profiles?.full_name || contract.profiles?.email}</p>
                   <p><span className="font-semibold">Total Paid:</span> NZD ${fees.total.toLocaleString()}</p>
-                  {contract.projects?.specific_date && (
-                    <p><span className="font-semibold">Scheduled:</span> {new Date(contract.projects.specific_date).toLocaleDateString("en-NZ")}</p>
+                  {contract.project?.specific_date && (
+                    <p><span className="font-semibold">Scheduled:</span> {new Date(contract.project.specific_date).toLocaleDateString("en-NZ")}</p>
                   )}
                 </div>
 
@@ -414,7 +414,7 @@ export default function Checkout() {
                   <Button onClick={() => router.push("/contracts")} variant="outline" className="flex-1">
                     View Contracts
                   </Button>
-                  <Button onClick={() => router.push(`/project/${contract.projects?.slug || contract.project_id}`)} className="flex-1">
+                  <Button onClick={() => router.push(`/project/${contract.project?.slug || contract.project_id}`)} className="flex-1">
                     View Project
                   </Button>
                 </div>
