@@ -41,7 +41,7 @@ const steps = [
 
 interface CheckoutFormProps {
   contract: Contract & {
-    project?: { title: string };
+    project?: { title: string; slug?: string | null };
     profiles?: { full_name: string | null; email: string | null };
   };
   clientSecret: string;
@@ -266,7 +266,7 @@ export default function Checkout() {
   const router = useRouter();
   const { contractId, calendar_connected } = router.query;
   const [contract, setContract] = useState<(Contract & {
-    projects?: { title: string; location: string; specific_date?: string | null; date_from?: string | null };
+    projects?: { title: string; location: string; specific_date?: string | null; date_from?: string | null; slug?: string | null };
     profiles?: { full_name: string | null; email: string | null };
   }) | null>(null);
   const [loading, setLoading] = useState(true);
