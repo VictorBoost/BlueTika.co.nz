@@ -26,6 +26,7 @@ export default function MonaLisaFindings() {
 
   useEffect(() => {
     fetchFindings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
 
   const fetchFindings = async () => {
