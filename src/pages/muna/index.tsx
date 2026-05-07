@@ -447,7 +447,7 @@ export default function OwnerDashboard() {
           <section>
             <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Link href="/muna/providers-pending" className="w-full">
+              <Link href="/muna/verify-providers" className="w-full">
                 <Button
                   variant="outline"
                   className="w-full justify-start h-14 text-base"
