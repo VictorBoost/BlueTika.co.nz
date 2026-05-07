@@ -186,8 +186,11 @@ export const escrowService = {
       const amountToProvider = payment.amount_nzd * (1 - 0.02);
 
       // Release payment in Stripe
+      if (!payment.stripe_payment_intent_id) {
+        return { data: null, error: new Error("Payment intent ID not found") };
+      }
       const releaseResult = await stripeEscrow.releasePayment(
-        payment.stripe_payment_intent_id!,
+        payment.stripe_payment_intent_id,
         provider.stripe_account_id,
         amountToProvider
       );
@@ -251,8 +254,11 @@ export const escrowService = {
       }
 
       // Refund in Stripe
+      if (!payment.stripe_payment_intent_id) {
+        return { data: null, error: new Error("Payment intent ID not found") };
+      }
       const refundResult = await stripeEscrow.refundPayment(
-        payment.stripe_payment_intent_id!,
+        payment.stripe_payment_intent_id,
         reason
       );
 
