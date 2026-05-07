@@ -30,7 +30,7 @@ export default function AdminRoutineContractsPage() {
       const data = await response.json();
       
       if (response.status === 401) {
-        router.push("/muna/login");
+        router.push("/login");
         return;
       }
 

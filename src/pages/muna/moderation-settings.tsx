@@ -31,7 +31,7 @@ export default function ModerationSettingsPage() {
       
       if (response.status === 401) {
         console.log("❌ Unauthorized - redirecting to login");
-        router.push("/muna/login");
+        router.push("/login");
         return;
       }
 

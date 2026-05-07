@@ -31,7 +31,7 @@ export default function UserManagementPage() {
       });
 
       if (response.status === 401) {
-        router.push("/muna/login");
+        router.push("/login");
         return;
       }
 

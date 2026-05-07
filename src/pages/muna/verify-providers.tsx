@@ -48,8 +48,8 @@ export default function AdminVerifyProviders() {
       });
 
       if (!data.isAdmin) {
-        console.log("❌ [Verify Providers] Not admin, redirecting to /muna/login");
-        router.push("/muna/login");
+        console.log("❌ [Verify Providers] Not admin, redirecting to /login");
+        router.push("/login");
         return;
       }
 
@@ -57,7 +57,7 @@ export default function AdminVerifyProviders() {
       loadDocuments();
     } catch (error) {
       console.error("💥 [Verify Providers] Auth check failed:", error);
-      router.push("/muna/login");
+      router.push("/login");
     } finally {
       setLoading(false);
     }

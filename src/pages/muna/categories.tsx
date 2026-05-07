@@ -56,7 +56,7 @@ export default function AdminCategories() {
       
       if (response.status === 401) {
         // Not logged in - redirect to login
-        router.push("/muna/login");
+        router.push("/login");
         return;
       }
 

@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Loader2, Clock, AlertCircle, XCircle, User } from "lucide-react";
+import { Loader2, Clock, AlertCircle, XCircle, User, ArrowLeft } from "lucide-react";
 import { ProgressSteps } from "@/components/ProgressSteps";
 import { EvidencePhotoUpload } from "@/components/EvidencePhotoUpload";
 import { ReviewSubmissionModal } from "@/components/ReviewSubmissionModal";
@@ -342,7 +342,10 @@ export default function ContractsPage() {
       {/* Top Header with Navigation */}
       <header className="border-b bg-white">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={() => router.back()} title="Go back">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
             <Button variant="ghost" onClick={() => router.push("/")} className="text-xl font-bold text-primary px-0 hover:bg-transparent">
               BlueTika
             </Button>

@@ -50,7 +50,7 @@ export default function DirectoryCategoriesPage() {
       const data = await response.json();
       
       if (response.status === 401) {
-        router.push("/muna/login");
+        router.push("/login");
         return;
       }
 

@@ -30,7 +30,7 @@ export default function EscrowManagementPage() {
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
-      router.push("/muna/login");
+      router.push("/login");
       return;
     }
 

@@ -99,7 +99,7 @@ export default function MunaLogin() {
                   value={formData.email}
                   onChange={handleChange}
                   className="bg-muted/50"
-                  placeholder="bluetikanz@gmail.com"
+                  placeholder="owner@example.com"
                   required
                 />
               </div>
