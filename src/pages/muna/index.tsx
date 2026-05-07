@@ -19,6 +19,17 @@ import {
   RefreshCw,
   ArrowRight,
   Clock,
+  Bot,
+  Activity,
+  DollarSign,
+  Users,
+  UserCog,
+  Shield,
+  FileBarChart,
+  FolderKanban,
+  ListTodo,
+  BarChart3,
+  HeartPulse,
 } from "lucide-react";
 
 // Suggestion 1: Owner email from env var with fallback
@@ -445,8 +456,81 @@ export default function OwnerDashboard() {
 
           {/* Menu Buttons */}
           <section>
-            <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <h2 className="text-lg font-semibold mb-4">Owner Dashboards</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Bot Configuration */}
+              <Link href="/muna/bot-config" className="w-full">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start h-14 text-base"
+                  size="lg"
+                >
+                  <Bot className="w-5 h-5 mr-3 text-purple-500" />
+                  Bot Configuration
+                </Button>
+              </Link>
+
+              {/* Bot Activity */}
+              <Link href="/muna/bot-activity" className="w-full">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start h-14 text-base"
+                  size="lg"
+                >
+                  <Activity className="w-5 h-5 mr-3 text-blue-500" />
+                  Bot Activity
+                </Button>
+              </Link>
+
+              {/* Bot Lab */}
+              <Link href="/muna/bot-lab" className="w-full">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start h-14 text-base"
+                  size="lg"
+                >
+                  <HeartPulse className="w-5 h-5 mr-3 text-pink-500" />
+                  Bot Lab
+                </Button>
+              </Link>
+
+              {/* Commission Settings */}
+              <Link href="/muna/commission-settings" className="w-full">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start h-14 text-base"
+                  size="lg"
+                >
+                  <DollarSign className="w-5 h-5 mr-3 text-green-500" />
+                  Commission Settings
+                </Button>
+              </Link>
+
+              {/* User Management */}
+              <Link href="/muna/user-management" className="w-full">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start h-14 text-base"
+                  size="lg"
+                >
+                  <Users className="w-5 h-5 mr-3 text-indigo-500" />
+                  User Management
+                </Button>
+              </Link>
+
+              {/* Staff Management */}
+              <Link href="/muna/staff-management" className="w-full">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start h-14 text-base"
+                  size="lg"
+                >
+                  <UserCog className="w-5 h-5 mr-3 text-cyan-500" />
+                  Staff Management
+                </Button>
+              </Link>
+
+              {/* Verify Providers */}
               <Link href="/muna/verify-providers" className="w-full">
                 <Button
                   variant="outline"
@@ -458,6 +542,115 @@ export default function OwnerDashboard() {
                 </Button>
               </Link>
 
+              {/* Verify Domestic Helpers */}
+              <Link href="/muna/verify-domestic-helpers" className="w-full">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start h-14 text-base"
+                  size="lg"
+                >
+                  <Shield className="w-5 h-5 mr-3 text-amber-500" />
+                  Verify Domestic Helpers
+                </Button>
+              </Link>
+
+              {/* Trust & Safety */}
+              <Link href="/muna/trust-and-safety" className="w-full">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start h-14 text-base"
+                  size="lg"
+                >
+                  <Shield className="w-5 h-5 mr-3 text-red-500" />
+                  Trust & Safety
+                </Button>
+              </Link>
+
+              {/* Escrow Management */}
+              <Link href="/muna/escrow-management" className="w-full">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start h-14 text-base"
+                  size="lg"
+                >
+                  <DollarSign className="w-5 h-5 mr-3 text-emerald-500" />
+                  Escrow Management
+                </Button>
+              </Link>
+
+              {/* Fund Releases */}
+              <Link href="/muna/fund-releases" className="w-full">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start h-14 text-base"
+                  size="lg"
+                >
+                  <BarChart3 className="w-5 h-5 mr-3 text-teal-500" />
+                  Fund Releases
+                </Button>
+              </Link>
+
+              {/* Disputes */}
+              <Link href="/muna/disputes" className="w-full">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start h-14 text-base"
+                  size="lg"
+                >
+                  <FileBarChart className="w-5 h-5 mr-3 text-orange-500" />
+                  Disputes
+                </Button>
+              </Link>
+
+              {/* Routine Contracts */}
+              <Link href="/muna/routine-contracts" className="w-full">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start h-14 text-base"
+                  size="lg"
+                >
+                  <ListTodo className="w-5 h-5 mr-3 text-violet-500" />
+                  Routine Contracts
+                </Button>
+              </Link>
+
+              {/* Contracts Monitor */}
+              <Link href="/muna/contracts-monitor" className="w-full">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start h-14 text-base"
+                  size="lg"
+                >
+                  <FolderKanban className="w-5 h-5 mr-3 text-sky-500" />
+                  Contracts Monitor
+                </Button>
+              </Link>
+
+              {/* Directory Listings */}
+              <Link href="/muna/directory-listings" className="w-full">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start h-14 text-base"
+                  size="lg"
+                >
+                  <FolderOpen className="w-5 h-5 mr-3 text-lime-500" />
+                  Directory Listings
+                </Button>
+              </Link>
+
+              {/* Directory Categories */}
+              <Link href="/muna/directory-categories" className="w-full">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start h-14 text-base"
+                  size="lg"
+                >
+                  <FileText className="w-5 h-5 mr-3 text-fuchsia-500" />
+                  Directory Categories
+                </Button>
+              </Link>
+
+              {/* Settings */}
               <Link href="/muna/settings" className="w-full">
                 <Button
                   variant="outline"
@@ -469,6 +662,7 @@ export default function OwnerDashboard() {
                 </Button>
               </Link>
 
+              {/* Logout */}
               <Button
                 variant="outline"
                 className="w-full justify-start h-14 text-base"
@@ -479,6 +673,7 @@ export default function OwnerDashboard() {
                 Logout
               </Button>
 
+              {/* Back to Home */}
               <Link href="/" className="w-full">
                 <Button
                   variant="outline"
