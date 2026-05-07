@@ -111,7 +111,8 @@ export default function OwnerDashboard() {
       } = await supabase.auth.getUser();
 
       if (authError || !user) {
-        router.push("/login");
+        // User not logged in - show login prompt instead of immediate redirect
+        setIsAuthorized(false);
         return;
       }
 
@@ -123,7 +124,7 @@ export default function OwnerDashboard() {
       setIsAuthorized(true);
     } catch (err) {
       console.error("Auth check failed:", err);
-      router.push("/login");
+      setIsAuthorized(false);
     }
   };
 
@@ -295,10 +296,15 @@ export default function OwnerDashboard() {
             <p className="text-muted-foreground">
               This dashboard is restricted to the platform owner.
             </p>
-            <Button onClick={() => router.push("/")} variant="outline" className="w-full">
-              <Home className="w-4 h-4 mr-2" />
-              Back to Home
-            </Button>
+            <div className="flex flex-col gap-2">
+              <Button onClick={() => router.push("/login")} className="w-full">
+                Sign In
+              </Button>
+              <Button onClick={() => router.push("/")} variant="outline" className="w-full">
+                <Home className="w-4 h-4 mr-2" />
+                Back to Home
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
