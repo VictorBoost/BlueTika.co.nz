@@ -100,7 +100,7 @@ export function ProjectTeaserCard({ project }: ProjectTeaserCardProps) {
       </CardContent>
       <CardFooter className="flex flex-col gap-2">
         <Button asChild className="w-full">
-          <Link href={`/login?redirect=/project/${project.id}`}>
+          <Link href={`/login?redirect=/project/${project.slug || project.id}`}>
             <LogIn className="h-4 w-4 mr-2" />
             Login to View & Bid
           </Link>

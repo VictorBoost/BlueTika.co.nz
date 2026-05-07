@@ -522,7 +522,7 @@ export default function PostProject() {
           title: "Success",
           description: "Project posted successfully!",
         });
-        router.push(`/project/${data.id}`);
+        router.push(`/project/${data.slug || data.id}`);
       }
     } catch (error) {
       console.error('Project creation error:', error);

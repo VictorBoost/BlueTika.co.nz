@@ -190,7 +190,7 @@ function BidStatusCard({ bid }: { bid: any }) {
             </div>
           </div>
           <Button variant="outline" asChild size="sm">
-            <Link href={`/project/${bid.project_id}`}>
+            <Link href={`/project/${bid.projects?.slug || bid.project_id}`}>
               View Project <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>

@@ -414,7 +414,7 @@ export default function Checkout() {
                   <Button onClick={() => router.push("/contracts")} variant="outline" className="flex-1">
                     View Contracts
                   </Button>
-                  <Button onClick={() => router.push(`/project/${contract.project_id}`)} className="flex-1">
+                  <Button onClick={() => router.push(`/project/${contract.projects?.slug || contract.project_id}`)} className="flex-1">
                     View Project
                   </Button>
                 </div>

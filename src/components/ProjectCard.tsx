@@ -131,7 +131,7 @@ export function ProjectCard({ project, isOwner }: ProjectCardProps) {
         </CardContent>
         <CardFooter>
           <Button asChild className="w-full">
-            <Link href={`/project/${project.id}`}>View Details</Link>
+            <Link href={`/project/${project.slug || project.id}`}>View Details</Link>
           </Button>
         </CardFooter>
       </Card>

@@ -204,7 +204,7 @@ export default function CategoryPage() {
                             </div>
                           )}
                           <Button variant="outline" size="sm" asChild className="w-full mt-4">
-                            <Link href={`/project/${project.id}`}>
+                            <Link href={`/project/${project.slug || project.id}`}>
                               View Project <ExternalLink className="h-4 w-4 ml-2" />
                             </Link>
                           </Button>

@@ -46,6 +46,8 @@ export default function ContractsPage() {
   const [cancellationReason, setCancellationReason] = useState("");
   const [submittingCancellation, setSubmittingCancellation] = useState(false);
   const [myProjects, setMyProjects] = useState<any[]>([]);
+  const [archivedProjects, setArchivedProjects] = useState<any[]>([]);
+  const [loadingArchived, setLoadingArchived] = useState(false);
   const [markCompleteModalOpen, setMarkCompleteModalOpen] = useState(false);
   const [selectedContractForComplete, setSelectedContractForComplete] = useState<any>(null);
   const [isMarkingComplete, setIsMarkingComplete] = useState(false);
@@ -68,6 +70,7 @@ export default function ContractsPage() {
     await loadRoutineContracts(user.id);
     await loadCancellationRequests(user.id);
     await loadMyProjects(user.id);
+    await loadArchivedProjects(user.id);
   }
 
   async function loadMyProjects(userId: string) {
@@ -90,6 +93,30 @@ export default function ContractsPage() {
       }));
       setMyProjects(projectsWithStats);
     }
+  }
+
+  async function loadArchivedProjects(userId: string) {
+    setLoadingArchived(true);
+    const { data, error } = await supabase
+      .from("projects")
+      .select(`
+        *,
+        category:categories(name),
+        subcategory:subcategories(name),
+        bids(id)
+      `)
+      .eq("client_id", userId)
+      .eq("is_expired", true)
+      .order("expires_at", { ascending: false });
+
+    if (!error && data) {
+      const projectsWithStats = data.map((p: any) => ({
+        ...p,
+        bid_count: Array.isArray(p.bids) ? p.bids.length : 0
+      }));
+      setArchivedProjects(projectsWithStats);
+    }
+    setLoadingArchived(false);
   }
 
   async function loadContracts(userId: string) {
@@ -384,6 +411,7 @@ export default function ContractsPage() {
           <TabsList>
             <TabsTrigger value="active">Active Contracts</TabsTrigger>
             <TabsTrigger value="routine">Routine Arrangements ({routineContracts.length})</TabsTrigger>
+            <TabsTrigger value="archived">Archived Projects ({archivedProjects.length})</TabsTrigger>
             <TabsTrigger value="completed">Archive</TabsTrigger>
           </TabsList>
 
@@ -682,6 +710,66 @@ export default function ContractsPage() {
                   </Card>
                 );
               })
+            )}
+          </TabsContent>
+
+          <TabsContent value="archived" className="space-y-4">
+            {loadingArchived ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin" />
+              </div>
+            ) : archivedProjects.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center text-muted-foreground">
+                  No archived projects found. Expired projects will appear here.
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Archived Projects</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  These projects have expired. You can reopen them to make them active again.
+                </p>
+                <div className="grid md:grid-cols-2 gap-6">
+                  {archivedProjects.map((project) => (
+                    <div key={project.id} className="relative">
+                      <ProjectCard project={project} isOwner={true} />
+                      <Button 
+                        size="sm"
+                        variant="outline"
+                        className="absolute top-2 right-2"
+                        onClick={async () => {
+                          const { error } = await supabase
+                            .from("projects")
+                            .update({ 
+                              is_expired: false, 
+                              status: "open",
+                              expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+                            })
+                            .eq("id", project.id);
+                          
+                          if (!error) {
+                            toast({
+                              title: "Project Reopened",
+                              description: "Project is now active and visible to providers."
+                            });
+                            await loadMyProjects(user!.id);
+                            await loadArchivedProjects(user!.id);
+                          } else {
+                            toast({
+                              title: "Error",
+                              description: "Failed to reopen project",
+                              variant: "destructive"
+                            });
+                          }
+                        }}
+                      >
+                        Reopen
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </TabsContent>
 

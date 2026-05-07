@@ -4,8 +4,23 @@ import { sesEmailService } from "@/services/sesEmailService";
 
 type Project = Tables<"projects">;
 
+// Generate a URL-friendly slug from a title
+const generateSlug = (title: string): string => {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .trim();
+};
+
 export const projectService = {
   async createProject(projectData: any): Promise<{ data: Project | null; error: any }> {
+    // Generate slug from title if not provided
+    if (!projectData.slug && projectData.title) {
+      projectData.slug = generateSlug(projectData.title);
+    }
+
     const { data, error } = await supabase
       .from("projects")
       .insert([projectData])
@@ -97,6 +112,46 @@ export const projectService = {
 
     console.log("getProject:", { projectId, data, error });
     if (error) console.error("Project fetch error:", error);
+    return { data, error };
+  },
+
+  async getProjectBySlug(slug: string) {
+    const { data, error } = await supabase
+      .from("projects")
+      .select(`
+        *,
+        client:profiles!projects_client_id_fkey(id, full_name, email, phone, location),
+        category:categories(id, name, slug),
+        contract:contracts!contracts_project_id_fkey(
+          id,
+          status,
+          payment_status,
+          reviews(id, rating, comment, is_public, created_at)
+        ),
+        bids(
+          *,
+          profiles:profiles!bids_provider_id_fkey(id, full_name, email, phone, bio, average_rating, total_reviews, response_rate, commission_tier, verification_status, created_at)
+        )
+      `)
+      .eq("slug", slug)
+      .maybeSingle();
+
+    console.log("getProjectBySlug:", { slug, data, error });
+    if (error) console.error("Project fetch error:", error);
+    return { data, error };
+  },
+
+  async updateProjectSlug(projectId: string, title: string) {
+    const slug = generateSlug(title);
+    const { data, error } = await supabase
+      .from("projects")
+      .update({ slug })
+      .eq("id", projectId)
+      .select()
+      .single();
+
+    console.log("updateProjectSlug:", { projectId, slug, data, error });
+    if (error) console.error("Project slug update error:", error);
     return { data, error };
   },
 

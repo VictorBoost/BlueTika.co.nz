@@ -153,6 +153,11 @@ export const bidService = {
     return { data: data || [], error };
   },
 
+  async getBidsByProviderWithSlug(providerId: string) {
+    const { data, error } = await supabase.from("bids").select(`*, project:projects(id, title, slug)`).eq("provider_id", providerId).order("created_at", { ascending: false });
+    return { data: data || [], error };
+  },
+
   async getProviderBids(providerId: string) {
     return this.getBidsByProvider(providerId);
   },

@@ -144,11 +144,19 @@ export default function ProjectDetail() {
     }
   };
 
-  const loadProject = async (projectId: string) => {
+  const loadProject = async (projectIdOrSlug: string) => {
     setLoading(true);
     setFetchError(null);
 
-    const { data, error } = await projectService.getProject(projectId);
+    // Try to load by ID first, then by slug
+    let { data, error } = await projectService.getProject(projectIdOrSlug);
+    
+    // If not found by ID, try by slug
+    if (!data && !error) {
+      const slugResult = await projectService.getProjectBySlug(projectIdOrSlug);
+      data = slugResult.data;
+      error = slugResult.error;
+    }
     
     if (error) {
       const message = error.message || "Failed to load project details";
@@ -557,8 +565,11 @@ export default function ProjectDetail() {
     contractPaymentStatus === "held" ||
     contractPaymentStatus === "released";
 
-  // Generate schema.org data
-  const projectSchema = generateProjectSchema(project, `https://bluetika.co.nz/project/${project.id}`);
+  // Generate schema.org data - use slug if available, otherwise use ID
+  const projectUrl = project.slug 
+    ? `https://bluetika.co.nz/project/${project.slug}`
+    : `https://bluetika.co.nz/project/${project.id}`;
+  const projectSchema = generateProjectSchema(project, projectUrl);
   const reviewSchema = projectContract?.reviews
     ? generateReviewSchema(
         projectContract.reviews as Array<{ rating: number; comment: string; created_at: string }>
@@ -568,7 +579,7 @@ export default function ProjectDetail() {
   const breadcrumbSchema = generateBreadcrumbSchema([
     { name: "Home", url: "https://bluetika.co.nz" },
     { name: "Projects", url: "https://bluetika.co.nz/projects" },
-    { name: project.title, url: `https://bluetika.co.nz/project/${project.id}` }
+    { name: project.title, url: projectUrl }
   ]);
 
   return (

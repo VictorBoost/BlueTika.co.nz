@@ -6,6 +6,7 @@ export interface ProjectSchemaData {
   budget: number;
   category?: { name: string };
   created_at: string;
+  slug?: string;
   reviews?: Array<{
     rating: number;
     comment: string;

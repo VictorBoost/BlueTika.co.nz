@@ -2901,6 +2901,7 @@ export type Database = {
           routine_frequency: string | null
           routine_start_date: string | null
           selected_days: string[] | null
+          slug: string | null
           specific_date: string | null
           start_date: string | null
           status: string | null
@@ -2935,6 +2936,7 @@ export type Database = {
           routine_frequency?: string | null
           routine_start_date?: string | null
           selected_days?: string[] | null
+          slug?: string | null
           specific_date?: string | null
           start_date?: string | null
           status?: string | null
@@ -2969,6 +2971,7 @@ export type Database = {
           routine_frequency?: string | null
           routine_start_date?: string | null
           selected_days?: string[] | null
+          slug?: string | null
           specific_date?: string | null
           start_date?: string | null
           status?: string | null
